@@ -10,7 +10,8 @@
 
 #pragma prefast(disable:__WARNING_ENCODE_MEMBER_FUNCTION_POINTER, "Not valid for kernel mode drivers")
 
-PFLT_FILTER filterDriverHandle;
+// Driver global variables.
+NTFZ_CORE_GLOBALS Globals;
 
 EXTERN_C_START
 
@@ -23,7 +24,12 @@ DriverEntry(
 );
 
 NTSTATUS
-NtFreezerInstanceSetup(
+NTFZCoreUnload(
+    _In_ FLT_FILTER_UNLOAD_FLAGS Flags
+);
+
+NTSTATUS
+NTFZCoreInstanceSetup(
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
     _In_ FLT_INSTANCE_SETUP_FLAGS Flags,
     _In_ DEVICE_TYPE VolumeDeviceType,
@@ -31,34 +37,39 @@ NtFreezerInstanceSetup(
 );
 
 VOID
-NtFreezerInstanceTeardownStart(
+NTFZCoreInstanceTeardownStart(
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
     _In_ FLT_INSTANCE_TEARDOWN_FLAGS Flags
 );
 
 VOID
-NtFreezerInstanceTeardownComplete(
+NTFZCoreInstanceTeardownComplete(
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
     _In_ FLT_INSTANCE_TEARDOWN_FLAGS Flags
 );
 
 NTSTATUS
-NtFreezerUnload(
-    _In_ FLT_FILTER_UNLOAD_FLAGS Flags
-);
-
-NTSTATUS
-NtFreezerInstanceQueryTeardown(
+NTFZCoreInstanceQueryTeardown(
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
     _In_ FLT_INSTANCE_QUERY_TEARDOWN_FLAGS Flags
 );
 
+NTSTATUS NTFZCorePortConnectCallback(
+    _In_ PFLT_PORT AdminPort,
+    _In_ PVOID CorePortCookie,
+    _In_reads_bytes_(ContextBytes) PVOID ConnectionContext,
+    _In_ ULONG ContextBytes,
+    _Flt_ConnectionCookie_Outptr_ PVOID *ConnectionCookie
+);
+
+VOID NTFZCorePortDisconnectCallback(
+    _In_opt_ PVOID ConnectionCookie
+);
+
 EXTERN_C_END
 
-//
-//  Assign text sections for each routine.
-//
 
+//  Assign text sections for each routine.
 #ifdef ALLOC_PRAGMA
 #pragma alloc_text(INIT, DriverEntry)
 #pragma alloc_text(PAGE, NtFreezerUnload)
@@ -66,12 +77,12 @@ EXTERN_C_END
 #pragma alloc_text(PAGE, NtFreezerInstanceSetup)
 #pragma alloc_text(PAGE, NtFreezerInstanceTeardownStart)
 #pragma alloc_text(PAGE, NtFreezerInstanceTeardownComplete)
+#pragma alloc_text(PAGE, NTFZCorePortConnectCallback)
+#pragma alloc_text(PAGE, NTFZCorePortDisconnectCallback)
 #endif
 
-//
-//  operation registration
-//
 
+//  operation registration
 CONST FLT_OPERATION_REGISTRATION Callbacks[] = {
 
     { IRP_MJ_CREATE,
@@ -98,25 +109,23 @@ CONST FLT_OPERATION_REGISTRATION Callbacks[] = {
 //
 
 CONST FLT_REGISTRATION FilterRegistration = {
-
-    sizeof(FLT_REGISTRATION),         //  Size
+    sizeof(FLT_REGISTRATION),           //  Size
     FLT_REGISTRATION_VERSION,           //  Version
     0,                                  //  Flags
 
     NULL,                               //  Context
     Callbacks,                          //  Operation callbacks
 
-    NtFreezerUnload,                           //  MiniFilterUnload
+    NTFZCoreUnload,                    //  MiniFilterUnload
 
-    NtFreezerInstanceSetup,                    //  InstanceSetup
-    NtFreezerInstanceQueryTeardown,            //  InstanceQueryTeardown
-    NtFreezerInstanceTeardownStart,            //  InstanceTeardownStart
-    NtFreezerInstanceTeardownComplete,         //  InstanceTeardownComplete
+    NTFZCoreInstanceSetup,             //  InstanceSetup
+    NTFZCoreInstanceQueryTeardown,     //  InstanceQueryTeardown
+    NTFZCoreInstanceTeardownStart,     //  InstanceTeardownStart
+    NTFZCoreInstanceTeardownComplete,  //  InstanceTeardownComplete
 
     NULL,                               //  GenerateFileName
     NULL,                               //  GenerateDestinationFileName
     NULL                                //  NormalizeNameComponent
-
 };
 
 
@@ -127,55 +136,99 @@ NTSTATUS
 DriverEntry(
     _In_ PDRIVER_OBJECT DriverObject,
     _In_ PUNICODE_STRING RegistryPath
-)
-/*++
-
-Routine Description:
-
-    This is the initialization routine for this miniFilter driver.  This
-    registers with FltMgr and initializes all global data structures.
-
-Arguments:
-
-    DriverObject - Pointer to driver object created by the system to
-        represent this driver.
-
-    RegistryPath - Unicode string identifying where the parameters for this
-        driver are located in the registry.
-
-Return Value:
-
-    Routine can return non success error codes.
-
---*/
-{
-    NTSTATUS status;
+) {
+    NTSTATUS status = STATUS_SUCCESS;
+    OBJECT_ATTRIBUTES objAttr = { 0 };
+    PSECURITY_DESCRIPTOR pSecurityDescriptor = NULL;
+    UNICODE_STRING portName;
 
     UNREFERENCED_PARAMETER(RegistryPath);
+    PAGED_CODE();
 
     KdPrint(("NtFreezerCore!%s Driver entry initialization.", __func__));
 
-    //
     //  Register with FltMgr to tell it our callback routines
-    //
+    try {
+        // Setup global variables.
+        Globals.ConfigEntryMaxAllocated = MAX_CONFIG_ENTRY_ALLOCATED;
+        Globals.ConfigEntryAllocated    = 0;
 
-    status = FltRegisterFilter(DriverObject,
-        &FilterRegistration,
-        &filterDriverHandle);
+        KeInitializeSpinLock(&Globals.ConfigTableLock);
+        ExInitializeNPagedLookasideList(
+            &Globals.ConfigEntryFreeMemPool,
+            NULL,
+            NULL,
+            POOL_NX_ALLOCATION,
+            //sizof(),
+            1024,
+            NPAGED_MEMPOOL_TAG_CONFIG_ENTRY,
+            0
+        );
 
-    FLT_ASSERT(NT_SUCCESS(status));
+        RtlInitalizeGenericTable(
+            &Globals.ConfigTable,
 
-    if (NT_SUCCESS(status)) {
+        );
 
-        //
-        //  Start filtering i/o
-        //
+        // Register filter driver.
+        status = FltRegisterFilter(
+            DriverObject,
+            &FilterRegistration,
+            &Globals.Filter
+        );
+        if (!NT_SUCCESS(status)) leave;
 
-        status = FltStartFiltering(filterDriverHandle);
+        status = FltBuildDefaultSecurityDescriptor(
+            &pSecurityDescriptor,
+            FLT_PORT_ALL_ACCESS);
+        if (!NT_SUCCESS(status)) leave;
+
+        // Make unicode string port name.
+        RtlInitUnicodeString(&portName, NTFZ_PORT_NAME);
+        InitializeObjectAttributes(
+            &objAttr,
+            &portName,
+            OBJ_KERNEL_HANDLE | OBJ_CASE_INSENSITIVE,
+            NULL,
+            pSecurityDescriptor
+        );
+
+        // Create port.
+        status = FltCreateCommunicationPort(
+            Globals.Filter,
+            &Globals.CorePort,
+            &objAttr,
+            NULL,
+            NTFZCorePortConnectCallback,
+            NTFZCorePortDisconnectCallback,
+            NTFZCoreMessageHandlerRoutine,
+            1
+        );
+        if (!NT_SUCCESS(status)) leave;
+
+        // Start filter driver.
+        status = FltStartFiltering(Globals.Filter);
+        if (!NT_SUCCESS(status)) 
+            FltUnregisterFilter(Globals.Filter);
+
+    } finally {
+
+        if (pSecurityDescriptor != NULL)
+            FltFreeSecurityDescriptor(pSecurityDescriptor);
 
         if (!NT_SUCCESS(status)) {
+            KdPrint(("NtFreezerCore!%s: Driver loading failed.", __func__));
 
-            FltUnregisterFilter(filterDriverHandle);
+            if (Globals.CorePort != NULL)
+                FltCloseCommunicationPort(Globals.CorePort);
+
+            if (Globals.Filter != NULL)
+                FltUnregisterFilter(Globals.Filter);
+
+            ExDeleteNPagedLookasideList(&Globals.ConfigEntryFreeMemPool);
+
+        } else {
+            KdPrint(("NtFreezerCore!%s: Driver loaded successfully.", __func__));
         }
     }
 
@@ -184,76 +237,37 @@ Return Value:
 
 
 NTSTATUS
-NtFreezerUnload(
+NTFZCoreUnload(
     _In_ FLT_FILTER_UNLOAD_FLAGS Flags
-)
-/*++
-
-Routine Description:
-
-    This is the unload routine for this miniFilter driver. This is called
-    when the minifilter is about to be unloaded. We can fail this unload
-    request if this is not a mandatory unload indicated by the Flags
-    parameter.
-
-Arguments:
-
-    Flags - Indicating if this is a mandatory unload.
-
-Return Value:
-
-    Returns STATUS_SUCCESS.
-
---*/
-{
+) {
     UNREFERENCED_PARAMETER(Flags);
-
     PAGED_CODE();
 
     KdPrint(("NtFreezerCore!%s: Driver unload.", __func__));
 
-    FltUnregisterFilter(filterDriverHandle);
+    if (Globals.CorePort != NULL) 
+        FltCloseCommunicationPort(Globals.CorePort);
+
+    if (Globals.Filter != NULL)
+        FltUnregisterFilter(Globals.Filter);
+
+    ExDeleteNPagedLookasideList(&Globals.ConfigEntryFreeMemPool);
 
     return STATUS_SUCCESS;
 }
 
 
 NTSTATUS
-NtFreezerInstanceSetup(
+NTFZCoreInstanceSetup(
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
     _In_ FLT_INSTANCE_SETUP_FLAGS Flags,
     _In_ DEVICE_TYPE VolumeDeviceType,
     _In_ FLT_FILESYSTEM_TYPE VolumeFilesystemType
-)
-/*++
-
-Routine Description:
-
-    This routine is called whenever a new instance is created on a volume. This
-    gives us a chance to decide if we need to attach to this volume or not.
-
-    If this routine is not defined in the registration structure, automatic
-    instances are always created.
-
-Arguments:
-
-    FltObjects - Pointer to the FLT_RELATED_OBJECTS data structure containing
-        opaque handles to this filter, instance and its associated volume.
-
-    Flags - Flags describing the reason for this attach request.
-
-Return Value:
-
-    STATUS_SUCCESS - attach
-    STATUS_FLT_DO_NOT_ATTACH - do not attach
-
---*/
-{
+) {
     UNREFERENCED_PARAMETER(FltObjects);
     UNREFERENCED_PARAMETER(Flags);
     UNREFERENCED_PARAMETER(VolumeDeviceType);
     UNREFERENCED_PARAMETER(VolumeFilesystemType);
-
     PAGED_CODE();
 
     KdPrint(("NtFreezerCore!%s: Instance setup.", __func__));
@@ -263,38 +277,12 @@ Return Value:
 
 
 NTSTATUS
-NtFreezerInstanceQueryTeardown(
+NTFZCoreInstanceQueryTeardown(
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
     _In_ FLT_INSTANCE_QUERY_TEARDOWN_FLAGS Flags
-)
-/*++
-
-Routine Description:
-
-    This is called when an instance is being manually deleted by a
-    call to FltDetachVolume or FilterDetach thereby giving us a
-    chance to fail that detach request.
-
-    If this routine is not defined in the registration structure, explicit
-    detach requests via FltDetachVolume or FilterDetach will always be
-    failed.
-
-Arguments:
-
-    FltObjects - Pointer to the FLT_RELATED_OBJECTS data structure containing
-        opaque handles to this filter, instance and its associated volume.
-
-    Flags - Indicating where this detach request came from.
-
-Return Value:
-
-    Returns the status of this operation.
-
---*/
-{
+) {
     UNREFERENCED_PARAMETER(FltObjects);
     UNREFERENCED_PARAMETER(Flags);
-
     PAGED_CODE();
 
     KdPrint(("NtFreezerCore!%s: Instance teardown.", __func__));
@@ -304,32 +292,12 @@ Return Value:
 
 
 VOID
-NtFreezerInstanceTeardownStart(
+NTFZCoreInstanceTeardownStart(
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
     _In_ FLT_INSTANCE_TEARDOWN_FLAGS Flags
-)
-/*++
-
-Routine Description:
-
-    This routine is called at the start of instance teardown.
-
-Arguments:
-
-    FltObjects - Pointer to the FLT_RELATED_OBJECTS data structure containing
-        opaque handles to this filter, instance and its associated volume.
-
-    Flags - Reason why this instance is being deleted.
-
-Return Value:
-
-    None.
-
---*/
-{
+) {
     UNREFERENCED_PARAMETER(FltObjects);
     UNREFERENCED_PARAMETER(Flags);
-
     PAGED_CODE();
 
     KdPrint(("NtFreezerCore!%s: Instance teardown start.", __func__));
@@ -337,33 +305,47 @@ Return Value:
 
 
 VOID
-NtFreezerInstanceTeardownComplete(
+NTFZCoreInstanceTeardownComplete(
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
     _In_ FLT_INSTANCE_TEARDOWN_FLAGS Flags
-)
-/*++
-
-Routine Description:
-
-    This routine is called at the end of instance teardown.
-
-Arguments:
-
-    FltObjects - Pointer to the FLT_RELATED_OBJECTS data structure containing
-        opaque handles to this filter, instance and its associated volume.
-
-    Flags - Reason why this instance is being deleted.
-
-Return Value:
-
-    None.
-
---*/
-{
+) {
     UNREFERENCED_PARAMETER(FltObjects);
     UNREFERENCED_PARAMETER(Flags);
-
     PAGED_CODE();
 
     KdPrint(("NtFreezer!%s: Instance teardown comoplete.", __func__));
+}
+
+NTSTATUS NTFZCorePortConnectCallback(
+    _In_ PFLT_PORT AdminPort,
+    _In_ PVOID CorePortCookie,
+    _In_reads_bytes_(ContextBytes) PVOID ConnectionContext,
+    _In_ ULONG ContextBytes,
+    _Flt_ConnectionCookie_Outptr_ PVOID* ConnectionCookie
+) {
+    UNREFERENCED_PARAMETER(AdminPort);
+    UNREFERENCED_PARAMETER(CorePortCookie);
+    UNREFERENCED_PARAMETER(ConnectionContext);
+    UNREFERENCED_PARAMETER(ContextBytes);
+    UNREFERENCED_PARAMETER(ConnectionCookie);
+    PAGED_CODE();
+
+    FLT_ASSERT(Globals.AdminPort == NULL);
+    Globals.AdminPort = AdminPort;
+
+    KdPrint(("NtFreezer!%s", __func__));
+
+    return STATUS_SUCCESS;
+}
+
+VOID NTFZCorePortDisconnectCallback(
+    _In_opt_ PVOID ConnectionCookie
+) {
+    UNREFERENCED_PARAMETER(ConnectionCookie);
+    PAGED_CODE();
+
+    FLT_ASSERT(Globals.AdminPort != NULL);
+    FltCloseClientPort(Globals.Filter, &Globals.AdminPort);
+    
+    KdPrint(("NtFreezer!%s", __func__));
 }

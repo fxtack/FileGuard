@@ -17,9 +17,7 @@ Environment:
 #include "NtFreezerCore.h"
 
 
-/*************************************************************************
-    MiniFilter callback routines.
-*************************************************************************/
+
 FLT_PREOP_CALLBACK_STATUS
 NtFreezerPreOperation (
     _Inout_ PFLT_CALLBACK_DATA Data,
