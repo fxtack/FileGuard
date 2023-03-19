@@ -36,6 +36,7 @@
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="NtFreezerCore.rc" />
+    <ClCompile Include="Driver.c" />
     <ClCompile Include="NtFreezerCore.c" />
     <Inf Include="NtFreezerCore.inf" />
   </ItemGroup>
@@ -193,6 +194,9 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <FilesToPackage Include="$(TargetPath)" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="NtFreezerCore.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
