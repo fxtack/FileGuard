@@ -1,0 +1,71 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.33130.400
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NtFreezerCore", "NtFreezerCore\NtFreezer.vcxproj", "{83689296-9019-4C8D-8E17-A010E40D6500}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NtFreezerAdmin", "NtFreezerAdmin\NtFreezerAdmin.vcxproj", "{7253732E-E2A3-4146-9DAF-31E47CBEBCEF}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Project Files", "Project Files", "{F30979C7-8233-4973-8A0F-02DC343CDEFC}"
+	ProjectSection(SolutionItems) = preProject
+		.gitignore = .gitignore
+		README.md = README.md
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|ARM = Debug|ARM
+		Debug|ARM64 = Debug|ARM64
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|ARM = Release|ARM
+		Release|ARM64 = Release|ARM64
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{83689296-9019-4C8D-8E17-A010E40D6500}.Debug|ARM.ActiveCfg = Debug|ARM
+		{83689296-9019-4C8D-8E17-A010E40D6500}.Debug|ARM.Build.0 = Debug|ARM
+		{83689296-9019-4C8D-8E17-A010E40D6500}.Debug|ARM.Deploy.0 = Debug|ARM
+		{83689296-9019-4C8D-8E17-A010E40D6500}.Debug|ARM64.ActiveCfg = Debug|ARM64
+		{83689296-9019-4C8D-8E17-A010E40D6500}.Debug|ARM64.Build.0 = Debug|ARM64
+		{83689296-9019-4C8D-8E17-A010E40D6500}.Debug|ARM64.Deploy.0 = Debug|ARM64
+		{83689296-9019-4C8D-8E17-A010E40D6500}.Debug|x64.ActiveCfg = Debug|x64
+		{83689296-9019-4C8D-8E17-A010E40D6500}.Debug|x64.Build.0 = Debug|x64
+		{83689296-9019-4C8D-8E17-A010E40D6500}.Debug|x64.Deploy.0 = Debug|x64
+		{83689296-9019-4C8D-8E17-A010E40D6500}.Debug|x86.ActiveCfg = Debug|Win32
+		{83689296-9019-4C8D-8E17-A010E40D6500}.Debug|x86.Build.0 = Debug|Win32
+		{83689296-9019-4C8D-8E17-A010E40D6500}.Debug|x86.Deploy.0 = Debug|Win32
+		{83689296-9019-4C8D-8E17-A010E40D6500}.Release|ARM.ActiveCfg = Release|ARM
+		{83689296-9019-4C8D-8E17-A010E40D6500}.Release|ARM.Build.0 = Release|ARM
+		{83689296-9019-4C8D-8E17-A010E40D6500}.Release|ARM.Deploy.0 = Release|ARM
+		{83689296-9019-4C8D-8E17-A010E40D6500}.Release|ARM64.ActiveCfg = Release|ARM64
+		{83689296-9019-4C8D-8E17-A010E40D6500}.Release|ARM64.Build.0 = Release|ARM64
+		{83689296-9019-4C8D-8E17-A010E40D6500}.Release|ARM64.Deploy.0 = Release|ARM64
+		{83689296-9019-4C8D-8E17-A010E40D6500}.Release|x64.ActiveCfg = Release|x64
+		{83689296-9019-4C8D-8E17-A010E40D6500}.Release|x64.Build.0 = Release|x64
+		{83689296-9019-4C8D-8E17-A010E40D6500}.Release|x64.Deploy.0 = Release|x64
+		{83689296-9019-4C8D-8E17-A010E40D6500}.Release|x86.ActiveCfg = Release|Win32
+		{83689296-9019-4C8D-8E17-A010E40D6500}.Release|x86.Build.0 = Release|Win32
+		{83689296-9019-4C8D-8E17-A010E40D6500}.Release|x86.Deploy.0 = Release|Win32
+		{7253732E-E2A3-4146-9DAF-31E47CBEBCEF}.Debug|ARM.ActiveCfg = Debug|Win32
+		{7253732E-E2A3-4146-9DAF-31E47CBEBCEF}.Debug|ARM64.ActiveCfg = Debug|Win32
+		{7253732E-E2A3-4146-9DAF-31E47CBEBCEF}.Debug|x64.ActiveCfg = Debug|x64
+		{7253732E-E2A3-4146-9DAF-31E47CBEBCEF}.Debug|x64.Build.0 = Debug|x64
+		{7253732E-E2A3-4146-9DAF-31E47CBEBCEF}.Debug|x86.ActiveCfg = Debug|Win32
+		{7253732E-E2A3-4146-9DAF-31E47CBEBCEF}.Debug|x86.Build.0 = Debug|Win32
+		{7253732E-E2A3-4146-9DAF-31E47CBEBCEF}.Release|ARM.ActiveCfg = Release|Win32
+		{7253732E-E2A3-4146-9DAF-31E47CBEBCEF}.Release|ARM64.ActiveCfg = Release|Win32
+		{7253732E-E2A3-4146-9DAF-31E47CBEBCEF}.Release|x64.ActiveCfg = Release|x64
+		{7253732E-E2A3-4146-9DAF-31E47CBEBCEF}.Release|x64.Build.0 = Release|x64
+		{7253732E-E2A3-4146-9DAF-31E47CBEBCEF}.Release|x86.ActiveCfg = Release|Win32
+		{7253732E-E2A3-4146-9DAF-31E47CBEBCEF}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {BCE4E4A3-ED3E-4AE5-85F2-C0B53E4A0721}
+	EndGlobalSection
+EndGlobal

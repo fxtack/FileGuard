@@ -1,0 +1,99 @@
+;;;
+;;; NtFreezerCore
+;;;
+
+[Version]
+Signature   = "$Windows NT$"
+; TODO - Change the Class and ClassGuid to match the Load Order Group value, see https://msdn.microsoft.com/en-us/windows/hardware/gg462963
+Class       = "ActivityMonitor"                         ;This is determined by the work this filter driver does
+ClassGuid   = {b86dff51-a31e-4bac-b3cf-e8cfe75c9fc2}    ;This value is determined by the Load Order Group value
+Provider    = %ManufacturerName%
+DriverVer   = 
+CatalogFile = NtFreezerCore.cat
+PnpLockDown = 1
+
+[DestinationDirs]
+DefaultDestDir          = 13
+MiniFilter.DriverFiles  = 13            ;%windir%\system32\drivers
+
+;;
+;; Default install sections
+;;
+
+[DefaultInstall.NTAMD64]
+OptionDesc          = %ServiceDescription%
+CopyFiles           = MiniFilter.DriverFiles
+
+[DefaultInstall.NTAMD64.Services]
+AddService          = %ServiceName%,,MiniFilter.Service
+
+;;
+;; Default uninstall sections
+;;
+
+[DefaultUninstall.NTAMD64]
+DelFiles   = MiniFilter.DriverFiles
+
+[DefaultUnistall.NT*]
+LegacyUninstall = 1
+
+[DefaultUninstall.NTAMD64.Services]
+DelService = %ServiceName%,0x200      ;Ensure service is stopped before deleting
+
+;
+; Services Section
+;
+
+[MiniFilter.Service]
+DisplayName      = %ServiceName%
+Description      = %ServiceDescription%
+ServiceBinary    = %12%\%DriverName%.sys        ;%windir%\system32\drivers\
+Dependencies     = "FltMgr"
+ServiceType      = 2                            ;SERVICE_FILE_SYSTEM_DRIVER
+StartType        = 3                            ;SERVICE_DEMAND_START
+ErrorControl     = 1                            ;SERVICE_ERROR_NORMAL
+; TODO - Change the Load Order Group value
+LoadOrderGroup   = "FSFilter Activity Monitor"
+AddReg           = MiniFilter.AddRegistry
+
+;
+; Registry Modifications
+;
+
+[MiniFilter.AddRegistry]
+HKR,,"DebugFlags",0x00010001 ,0x0
+HKR,,"SupportedFeatures",0x00010001,0x3
+HKR,"Instances","DefaultInstance",0x00000000,%DefaultInstance%
+HKR,"Instances\"%Instance1.Name%,"Altitude",0x00000000,%Instance1.Altitude%
+HKR,"Instances\"%Instance1.Name%,"Flags",0x00010001,%Instance1.Flags%
+
+;
+; Copy Files
+;
+
+[MiniFilter.DriverFiles]
+%DriverName%.sys
+
+[SourceDisksFiles]
+NtFreezerCore.sys = 1,,
+
+[SourceDisksNames]
+1 = %DiskId1%,,,
+
+;;
+;; String Section
+;;
+
+[Strings]
+ManufacturerName        = "Your ManufacturerName"
+ServiceDescription      = "NtFreezerCore Mini-Filter Driver"
+ServiceName             = "NtFreezerCore"
+DriverName              = "NtFreezerCore"
+DiskId1                 = "NtFreezerCore Device Installation Disk"
+
+;Instances specific information.
+DefaultInstance         = "NtFreezerCore Instance"
+Instance1.Name          = "NtFreezerCore Instance"
+; Altitude value, see https://msdn.microsoft.com/en-us/windows/hardware/drivers/ifs/load-order-groups-and-altitudes-for-minifilter-drivers
+Instance1.Altitude      = "409599"
+Instance1.Flags         = 0x0              ; Allow all attachments
