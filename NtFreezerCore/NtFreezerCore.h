@@ -5,6 +5,7 @@
     @Mode   Kernel
     @Author Fxtack
 */
+
 #define RTL_USE_AVL_TABLES 0
 
 #ifndef _NTFZ_CORE_H_

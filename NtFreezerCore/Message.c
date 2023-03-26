@@ -1,3 +1,11 @@
+/*
+    @File   Message.c
+    @Note   NtFreezerCore message handler.
+
+    @Mode   Kernel
+    @Author Fxtack
+*/
+
 #include "NtFreezerCore.h"
 
 NTSTATUS HandlerGetVersion(
@@ -37,12 +45,17 @@ NTSTATUS NTFZCoreMessageHandlerRoutine(
 
     switch (pMsg->MsgType) {
     case AddConfig:
+        KdPrint(("NtFreezer!%s: Handle message type [AddConfig].", __func__));
         break;
     case RemoveConfig:
+        KdPrint(("NtFreezer!%s: Handle message type [RemoveConfig].", __func__));
         break;
     case CleanupConfig:
+        KdPrint(("NtFreezer!%s: Handle message type [CleanupConfig].", __func__));
         break;
     case GetCoreVersion:
+        KdPrint(("NtFreezer!%s: Handle message type [GetCoreVersion].", __func__));
+
         status = HandlerGetVersion(
             Output,
             OutputBytes,
