@@ -9,7 +9,7 @@
 #ifndef _NTFZ_H_
 #define _NTFZ_H_
 
-#include <windows.h>
+#define MAX_PATH 260
 
 #define NTFZ_PORT_NAME L"\\NtFreezerPort"
 

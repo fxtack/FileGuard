@@ -72,11 +72,11 @@ EXTERN_C_END
 //  Assign text sections for each routine.
 #ifdef ALLOC_PRAGMA
 #pragma alloc_text(INIT, DriverEntry)
-#pragma alloc_text(PAGE, NtFreezerUnload)
-#pragma alloc_text(PAGE, NtFreezerInstanceQueryTeardown)
-#pragma alloc_text(PAGE, NtFreezerInstanceSetup)
-#pragma alloc_text(PAGE, NtFreezerInstanceTeardownStart)
-#pragma alloc_text(PAGE, NtFreezerInstanceTeardownComplete)
+#pragma alloc_text(PAGE, NTFZCoreUnload)
+#pragma alloc_text(PAGE, NTFZCoreInstanceQueryTeardown)
+#pragma alloc_text(PAGE, NTFZCoreInstanceSetup)
+#pragma alloc_text(PAGE, NTFZCoreInstanceTeardownStart)
+#pragma alloc_text(PAGE, NTFZCoreInstanceTeardownComplete)
 #pragma alloc_text(PAGE, NTFZCorePortConnectCallback)
 #pragma alloc_text(PAGE, NTFZCorePortDisconnectCallback)
 #endif
@@ -159,14 +159,17 @@ DriverEntry(
             NULL,
             NULL,
             POOL_NX_ALLOCATION,
-            CONFIG_ENTRY_SIZE,
+            NTFZ_CONFIG_ENTRY_SIZE,
             MEM_NPAGED_POOL_TAG_CONFIG_ENTRY,
             0
         );
 
-        RtlInitalizeGenericTable(
+        RtlInitializeGenericTable (
             &Globals.ConfigTable,
-
+            configEntryCompareRoutine,
+            configEntryAllocateRoutine,
+            configEntryFreeRoutine,
+            NULL
         );
 
         // Register filter driver.
@@ -249,6 +252,8 @@ NTFZCoreUnload(
 
     if (Globals.Filter != NULL)
         FltUnregisterFilter(Globals.Filter);
+
+    CleanupConfigTable();
 
     ExDeleteNPagedLookasideList(&Globals.ConfigEntryFreeMemPool);
 

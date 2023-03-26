@@ -5,11 +5,13 @@
     @Mode   Kernel
     @Author Fxtack
 */
+#define RTL_USE_AVL_TABLES 0
 
 #ifndef _NTFZ_CORE_H_
 #define _NTFZ_CORE_H_
 
 #include <fltKernel.h>
+#include <ntddk.h>
 #include <dontuse.h>
 
 #include "NtFreezer.h"
@@ -21,8 +23,6 @@
 #define MEM_NPAGED_POOL_TAG_CONFIG_ENTRY 'fzcg'
 
 #define MAX_CONFIG_ENTRY_ALLOCATED 1024
-
-#define RTL_USE_AVL_TABLES 0
 
 // These routine is used by AVL tree (ConfigTable).
 RTL_GENERIC_COMPARE_ROUTINE  configEntryCompareRoutine;  // Compare two config entry.
@@ -109,5 +109,10 @@ typedef struct _NTFZ_CONFIG_ENTRY {
   NTFZ_CONFIG_ENTRY, *PNTFZ_CONFIG_ENTRY;
 
 #define NTFZ_CONFIG_ENTRY_SIZE (sizeof(NTFZ_CONFIG_ENTRY))
+
+// Cleanup config table and release configs memory.
+VOID CleanupConfigTable(
+    VOID
+);
 
 #endif
