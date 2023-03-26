@@ -159,9 +159,8 @@ DriverEntry(
             NULL,
             NULL,
             POOL_NX_ALLOCATION,
-            //sizof(),
-            1024,
-            NPAGED_MEMPOOL_TAG_CONFIG_ENTRY,
+            CONFIG_ENTRY_SIZE,
+            MEM_NPAGED_POOL_TAG_CONFIG_ENTRY,
             0
         );
 

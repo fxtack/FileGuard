@@ -6,7 +6,8 @@
     @Author Fxtack
 */
 
-#pragma once
+#ifndef _NTFZ_CORE_H_
+#define _NTFZ_CORE_H_
 
 #include <fltKernel.h>
 #include <dontuse.h>
@@ -17,21 +18,41 @@
 #define NTFZ_CORE_VERSION_MINOR 1
 #define NTFZ_CORE_VERSION_PATCH 0
 
-#define NPAGED_MEMPOOL_TAG_CONFIG_ENTRY 'fzcg'
+#define MEM_NPAGED_POOL_TAG_CONFIG_ENTRY 'fzcg'
 
 #define MAX_CONFIG_ENTRY_ALLOCATED 1024
+
+#define RTL_USE_AVL_TABLES 0
+
+// These routine is used by AVL tree (ConfigTable).
+RTL_GENERIC_COMPARE_ROUTINE  configEntryCompareRoutine;  // Compare two config entry.
+RTL_GENERIC_ALLOCATE_ROUTINE configEntryAllocateRoutine; // Allocate config entry.
+RTL_GENERIC_FREE_ROUTINE     configEntryFreeRoutine;     // Free config entry.
 
 /*************************************************************************
     Global variabls.
 *************************************************************************/
 typedef struct _NTFZ_CORE_GLOBALS {
+
+    // Filter instances.
     PFLT_FILTER Filter;
+
+    // The communication port.
     PFLT_PORT CorePort;
     PFLT_PORT AdminPort;
+
+    // Maxinum of config entry can be allocated.
     ULONG ConfigEntryMaxAllocated;
+    // Amount of allocated config entry.
     __volatile ULONG ConfigEntryAllocated;
+    // Memory pool of config entry.
     NPAGED_LOOKASIDE_LIST ConfigEntryFreeMemPool;
+
+    // Config table.
+    RTL_AVL_TABLE ConfigTable;
+    // Config table lock.
     KSPIN_LOCK ConfigTableLock;
+
 } NTFZ_CORE_GLOBALS, *PNTFZ_CORE_GLOBALS;
 
 extern NTFZ_CORE_GLOBALS Globals;
@@ -74,3 +95,19 @@ NTSTATUS NTFZCoreMessageHandlerRoutine(
     _In_ ULONG OutputBytes,
     _Out_ PULONG ReturnBytes
 );
+
+// Config will be save to config table as config entry.
+typedef struct _NTFZ_CONFIG_ENTRY {
+
+    // Table index of config, the pointer reference of Config path.
+    PCWSTR Index;
+
+    // Config.
+    NTFZ_CONFIG Config;
+
+} NTFZ_CONFIG_TABLE, *PNTFZ_CONFIG_TABLE,
+  NTFZ_CONFIG_ENTRY, *PNTFZ_CONFIG_ENTRY;
+
+#define NTFZ_CONFIG_ENTRY_SIZE (sizeof(NTFZ_CONFIG_ENTRY))
+
+#endif

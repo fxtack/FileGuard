@@ -36,6 +36,7 @@
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="NtFreezerCore.rc" />
+    <ClCompile Include="ConfigEntry.c" />
     <ClCompile Include="Driver.c" />
     <ClCompile Include="Message.c" />
     <ClCompile Include="NtFreezerCore.c" />
