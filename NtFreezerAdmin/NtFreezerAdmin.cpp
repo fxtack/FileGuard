@@ -86,6 +86,10 @@ int __cdecl wmain(
     
     } else if (command == L"--config-cleanup") {
     
+    } else if (command == L"--version") {
+        wprintf(L"NtFreezerAdmin version:\tv%lu.%lu.%lu\nNtFreezerCore version:\tv%lu.%lu.%lu",
+            NTFZ_ADMIN_VERSION_MAJOR, NTFZ_ADMIN_VERSION_MINOR, NTFZ_ADMIN_VERSION_PATCH,
+            respVersion.Major, respVersion.Minor, respVersion.Patch);
     } else {
         wprintf(L"Unknown command, use `-help` or `-h` for help.\n");
     }
