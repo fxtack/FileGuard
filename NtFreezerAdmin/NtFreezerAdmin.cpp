@@ -99,10 +99,10 @@ namespace ntfz {
         
         hResult = FilterSendMessage(
             _port_,
-            &msg, NTFZ_A2CMSG_SIZE,
-            &respVersion, RESPONSE_GET_VERSION_SIZE,
+            &msg, sizeof(NTFZ_A2CMSG),
+            &respVersion, sizeof(RESPONSE_GET_VERSION),
             &returnBytes);
-        if (IS_ERROR(hResult) || returnBytes != RESPONSE_GET_VERSION_SIZE) {
+        if (IS_ERROR(hResult) || returnBytes != sizeof(RESPONSE_GET_VERSION)) {
             throw AdminError(hResult, "Get core version failed, admin and core version may not match.");
         }
 
@@ -145,7 +145,7 @@ namespace ntfz {
         DWORD returneBytes;
         auto hResult = FilterSendMessage(
             _port_,
-            &msg, NTFZ_A2CMSG_SIZE,
+            &msg, sizeof(NTFZ_A2CMSG),
             &resp, sizeof(NTFZ_CONFIG),
             &returneBytes
         );
@@ -174,7 +174,7 @@ namespace ntfz {
         DWORD returnBytes;
         auto hResult = FilterSendMessage(
             _port_,
-            &msg, NTFZ_A2CMSG_SIZE,
+            &msg, sizeof(NTFZ_A2CMSG),
             NULL, 0, &returnBytes
         );
         if (!IS_ERROR(hResult))
@@ -202,7 +202,7 @@ namespace ntfz {
         DWORD returnBytes;
         auto hResult = FilterSendMessage(
             _port_,
-            &msg, NTFZ_A2CMSG_SIZE,
+            &msg, sizeof(NTFZ_A2CMSG),
             NULL, 0, &returnBytes
         );
         if (!IS_ERROR(hResult))
@@ -217,7 +217,7 @@ namespace ntfz {
         DWORD returnBytes;
         auto hResult = FilterSendMessage(
             _port_,
-            &msg, NTFZ_A2CMSG_SIZE,
+            &msg, sizeof(NTFZ_A2CMSG),
             NULL, 0, &returnBytes
         );
         if (!IS_ERROR(hResult))

@@ -13,10 +13,6 @@
 
 #define NTFZ_PORT_NAME L"\\NtFreezerPort"
 
-#define NTFZ_A2CMSG_SIZE          sizeof(NTFZ_A2CMSG)
-#define NTFZ_CORE_VERSION_SIZE    sizeof(NTFZ_CORE_VERSION)
-#define RESPONSE_GET_VERSION_SIZE sizeof(RESPONSE_GET_VERSION)
-
 // The type of message that sending from admin to core.
 typedef enum _NTFZ_A2CMSG_TYPE {
 
@@ -64,6 +60,7 @@ typedef struct _NTFZ_CORE_VERSION {
 	ULONG Patch;
 } NTFZ_CORE_VERSION, *PNTFZ_CORE_VERSION,
   RESPONSE_GET_VERSION, *PREPONSE_GET_VERSION;
+
 
 // Filesystem item, file or directory.
 #define FS_ITEM_FILE      ((ULONG) 0x00000001)

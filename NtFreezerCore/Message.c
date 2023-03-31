@@ -8,73 +8,53 @@
 
 #include "NtFreezerCore.h"
 
-NTSTATUS HandlerGetVersion(
-    _Out_writes_bytes_to_opt_(OutputBytes, *ReturnBytes) PVOID Output,
-    _In_ ULONG OutputBytes,
-    _Out_ PULONG ReturnBytes
-);
-
-LONG AsMessageException(
-    _In_ PEXCEPTION_POINTERS ExceptionPointer,
-    _In_ BOOLEAN AccessingUserBuffer
-);
-
-NTSTATUS NTFZCoreMessageHandlerRoutine(
-    _In_ PVOID ConnectionCookie,
+inline NTSTATUS HandlerQueryConfig(
     _In_reads_bytes_opt_(InputBytes) PVOID Input,
     _In_ ULONG InputBytes,
     _Out_writes_bytes_to_opt_(OutputBytes, *ReturnBytes) PVOID Output,
     _In_ ULONG OutputBytes,
     _Out_ PULONG ReturnBytes
 ) {
-    PAGED_CODE();
 
-    UNREFERENCED_PARAMETER(ConnectionCookie);
-
-    NTSTATUS status = STATUS_UNSUCCESSFUL;
-    PNTFZ_A2CMSG pMsg;
-
-    if ((Input == NULL) ||
-        (InputBytes < (FIELD_OFFSET(NTFZ_A2CMSG, MsgType) + sizeof(NTFZ_A2CMSG)))) {
-
-        KdPrint(("NtFreezer!%s", __func__));
-        return STATUS_INVALID_PARAMETER;
-    } else {
-        pMsg = (PNTFZ_A2CMSG)Input;
-    }
-
-    switch (pMsg->MsgType) {
-    case AddConfig:
-        KdPrint(("NtFreezer!%s: Handle message type [AddConfig].", __func__));
-        break;
-    case RemoveConfig:
-        KdPrint(("NtFreezer!%s: Handle message type [RemoveConfig].", __func__));
-        break;
-    case CleanupConfig:
-        KdPrint(("NtFreezer!%s: Handle message type [CleanupConfig].", __func__));
-        break;
-    case GetCoreVersion:
-        KdPrint(("NtFreezer!%s: Handle message type [GetCoreVersion].", __func__));
-
-        status = HandlerGetVersion(
-            Output,
-            OutputBytes,
-            ReturnBytes
-        );
-        break;
-    default:
-        KdPrint(("NtFreezer!%s: Unknown message type.", __func__));
-    }
-
-    return status;
+    return STATUS_SUCCESS;
 }
 
-NTSTATUS HandlerGetVersion(
+inline NTSTATUS HandlerAddConfig(
+    _In_reads_bytes_opt_(InputBytes) PVOID Input,
+    _In_ ULONG InputBytes
+) {
+
+    return STATUS_SUCCESS;
+}
+
+inline NTSTATUS HandlerRemoveConfig(
+    _In_reads_bytes_opt_(InputBytes) PVOID Input,
+    _In_ ULONG InputBytes
+) {
+    if (Input == NULL || InputBytes != sizeof(REQUEST_REMOVE_CONFIG)) {
+        return STATUS_INVALID_PARAMETER;
+    }
+
+    try {
+        // Find up configuration and remove it from table.
+    } except (AsMessageException(GetExceptionInformation(), TRUE)) {
+        return GetExceptionCode();
+    }
+    return STATUS_SUCCESS;
+}
+
+inline VOID HandlerCleanupConfig(
+    VOID
+) {
+    CleanupConfigTable();
+}
+
+inline NTSTATUS HandlerGetVersion(
     _Out_writes_bytes_to_opt_(OutputBytes, *ReturnBytes) PVOID Output,
     _In_ ULONG OutputBytes,
     _Out_ PULONG ReturnBytes
 ) {
-    if (Output == NULL || OutputBytes != RESPONSE_GET_VERSION_SIZE) {
+    if (Output == NULL || OutputBytes != sizeof(NTFZ_CORE_VERSION)) {
         return STATUS_INVALID_PARAMETER;
     } else if (!IS_ALIGNED(Output, sizeof(ULONG))) {
         return STATUS_DATATYPE_MISALIGNMENT;
@@ -88,7 +68,7 @@ NTSTATUS HandlerGetVersion(
         return GetExceptionCode();
     }
 
-    *ReturnBytes = RESPONSE_GET_VERSION_SIZE;
+    *ReturnBytes = sizeof(NTFZ_CORE_VERSION);
     return STATUS_SUCCESS;
 }
 
@@ -105,3 +85,67 @@ LONG AsMessageException(
 
     return EXCEPTION_EXECUTE_HANDLER;
 }
+
+NTSTATUS NTFZCoreMessageHandlerRoutine(
+    _In_ PVOID ConnectionCookie,
+    _In_reads_bytes_opt_(InputBytes) PVOID Input,
+    _In_ ULONG InputBytes,
+    _Out_writes_bytes_to_opt_(OutputBytes, *ReturnBytes) PVOID Output,
+    _In_ ULONG OutputBytes,
+    _Out_ PULONG ReturnBytes
+) {
+    PAGED_CODE();
+
+    UNREFERENCED_PARAMETER(ConnectionCookie);
+
+    NTSTATUS status = STATUS_INVALID_PARAMETER;
+    PNTFZ_A2CMSG pMsg;
+
+    if ((Input == NULL) ||
+        (InputBytes < (FIELD_OFFSET(NTFZ_A2CMSG, MsgType) + sizeof(NTFZ_A2CMSG)))) {
+
+        KdPrint(("NtFreezer!%s", __func__));
+        return status;
+    } else {
+        pMsg = (PNTFZ_A2CMSG)Input;
+    }
+
+    switch (pMsg->MsgType) {
+    case QueryConfig:
+        status = HandlerQueryConfig(Input,
+                                    InputBytes,
+                                    Output,
+                                    OutputBytes,
+                                    ReturnBytes);
+        KdPrint(("NtFreezer!%s: Handle message type [QueryConfig], status: %x.", __func__, status));
+
+        break;
+    case AddConfig:
+        status = HandlerAddConfig(Input, InputBytes);
+        KdPrint(("NtFreezer!%s: Handle message type [AddConfig], status: %x.", __func__, status));
+
+        break;
+    case RemoveConfig:
+        status = HandlerRemoveConfig(Input, InputBytes);
+        KdPrint(("NtFreezer!%s: Handle message type [RemoveConfig], status£º%x.", __func__, status));
+
+        break;
+    case CleanupConfig:
+        HandlerCleanupConfig();
+        KdPrint(("NtFreezer!%s: Handle message type [CleanupConfig].", __func__));
+
+        break;
+    case GetCoreVersion:
+        status = HandlerGetVersion(Output,
+                                   OutputBytes,
+                                   ReturnBytes);
+        KdPrint(("NtFreezer!%s: Handle message type [GetCoreVersion], status: %x.", __func__, status));
+
+        break;
+    default:
+        KdPrint(("NtFreezer!%s: Unknown message type.", __func__));
+    }
+
+    return status;
+}
+
