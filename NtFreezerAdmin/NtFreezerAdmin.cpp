@@ -86,35 +86,34 @@ namespace ntfz {
         _port_= INVALID_HANDLE_VALUE;
 
         // Initialize NtFreezerCore communication port.
-        auto hResult = FilterConnectCommunicationPort(
-            PortName, 0, NULL, 0, NULL, &_port_);
-        if (IS_ERROR(hResult)) {
-            throw AdminError(hResult, "Connect to core failed, ensure that the core driver is loaded.");
-        }
+        auto hResult = FilterConnectCommunicationPort(PortName,
+                                                      0,
+                                                      NULL,
+                                                      0,
+                                                      NULL,
+                                                      &_port_);
+        if (IS_ERROR(hResult))
+            throw AdminError(hResult, "Connect to core failed, ensure that the core driver is loaded.");    
 
         NTFZ_A2CMSG msg;
         RESPONSE_GET_VERSION respVersion = { 0 };
         DWORD returnBytes;
         msg.MsgType = GetCoreVersion;
         
-        hResult = FilterSendMessage(
-            _port_,
-            &msg, sizeof(NTFZ_A2CMSG),
-            &respVersion, sizeof(RESPONSE_GET_VERSION),
-            &returnBytes);
-        if (IS_ERROR(hResult) || returnBytes != sizeof(RESPONSE_GET_VERSION)) {
-            throw AdminError(hResult, "Get core version failed, admin and core version may not match.");
-        }
+        hResult = FilterSendMessage(_port_,
+                                    &msg, sizeof(NTFZ_A2CMSG),
+                                    &respVersion, sizeof(RESPONSE_GET_VERSION),
+                                    &returnBytes);
+        if (IS_ERROR(hResult) || returnBytes != sizeof(RESPONSE_GET_VERSION))
+            throw AdminError(hResult, "Get core version failed, admin and core version may not match.");       
 
         // Different major versions of Admin and Core are incompatible with each other.
-        if (respVersion.Major != NTFZ_ADMIN_VERSION_MAJOR) {
-            throw AdminError("Version mismatch, please select an admin and core version that can match");
-        }
+        if (respVersion.Major != NTFZ_ADMIN_VERSION_MAJOR)
+            throw AdminError("Version mismatch, please select an admin and core version that can match");      
 
         // If the Admin minor version higher than Core minor version is incompatible.
-        if (respVersion.Minor < NTFZ_ADMIN_VERSION_MINOR) {
+        if (respVersion.Minor < NTFZ_ADMIN_VERSION_MINOR)
             throw AdminError("ERROR: Admin version too high, please select an admin and core that can match");
-        }
 
         _coreVersion_ = respVersion;
     }
@@ -143,14 +142,13 @@ namespace ntfz {
 
         NTFZ_CONFIG resp;
         DWORD returneBytes;
-        auto hResult = FilterSendMessage(
-            _port_,
-            &msg, sizeof(NTFZ_A2CMSG),
-            &resp, sizeof(NTFZ_CONFIG),
-            &returneBytes
-        );
+        auto hResult = FilterSendMessage(_port_,
+                                         &msg, sizeof(NTFZ_A2CMSG),
+                                         &resp, sizeof(NTFZ_CONFIG),
+                                         &returneBytes);
         if (!IS_ERROR(hResult))
             throw AdminError(hResult, "Query a config failed.");
+
         return std::move(std::make_unique<NTFZ_CONFIG>(resp));
     }
 
@@ -172,11 +170,12 @@ namespace ntfz {
         msg.DataBytes = sizeof(request);
 
         DWORD returnBytes;
-        auto hResult = FilterSendMessage(
-            _port_,
-            &msg, sizeof(NTFZ_A2CMSG),
-            NULL, 0, &returnBytes
-        );
+        auto hResult = FilterSendMessage(_port_,
+                                         &msg,
+                                         sizeof(NTFZ_A2CMSG),
+                                         NULL,
+                                         0,
+                                         &returnBytes);
         if (!IS_ERROR(hResult))
             throw AdminError(hResult, "Add a config failed.");
     }
@@ -200,11 +199,11 @@ namespace ntfz {
         msg.DataBytes = sizeof(request);
 
         DWORD returnBytes;
-        auto hResult = FilterSendMessage(
-            _port_,
-            &msg, sizeof(NTFZ_A2CMSG),
-            NULL, 0, &returnBytes
-        );
+        auto hResult = FilterSendMessage(_port_,
+                                         &msg, sizeof(NTFZ_A2CMSG),
+                                         NULL,
+                                         0,
+                                         &returnBytes);
         if (!IS_ERROR(hResult))
             throw AdminError(hResult, "Remove a config failed.");
     }
@@ -215,11 +214,11 @@ namespace ntfz {
         msg.MsgType = CleanupConfig;
         
         DWORD returnBytes;
-        auto hResult = FilterSendMessage(
-            _port_,
-            &msg, sizeof(NTFZ_A2CMSG),
-            NULL, 0, &returnBytes
-        );
+        auto hResult = FilterSendMessage(_port_,
+                                         &msg, sizeof(NTFZ_A2CMSG),
+                                         NULL,
+                                         0,
+                                         &returnBytes);
         if (!IS_ERROR(hResult))
             throw AdminError(hResult, "Clean up all configs failed.");
     }
