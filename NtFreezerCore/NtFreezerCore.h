@@ -68,7 +68,6 @@ NtFreezerPreOperation(
     _Flt_CompletionContext_Outptr_ PVOID* CompletionContext
 );
 
-
 FLT_POSTOP_CALLBACK_STATUS
 NtFreezerPostOperation(
     _Inout_ PFLT_CALLBACK_DATA Data,
@@ -110,6 +109,22 @@ typedef struct _NTFZ_CONFIG_ENTRY {
   NTFZ_CONFIG_ENTRY, *PNTFZ_CONFIG_ENTRY;
 
 #define NTFZ_CONFIG_ENTRY_SIZE (sizeof(NTFZ_CONFIG_ENTRY))
+
+// Query a config from table by index.
+NTSTATUS QueryConfigFromTable(
+    _In_ PCWSTR ConfigIndex,
+    _Out_ PNTFZ_CONFIG ResultConfig
+);
+
+// Add a config to table.
+NTSTATUS AddConfigToTable(
+    _In_ PNTFZ_CONFIG_ENTRY InsertConfigEntry
+);
+
+// Find the config from table by index and remove it.
+NTSTATUS RemoveConfigFromTable(
+    _In_ PCWSTR ConfigIndex
+);
 
 // Cleanup config table and release configs memory.
 VOID CleanupConfigTable(

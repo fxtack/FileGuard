@@ -19,21 +19,26 @@ inline NTSTATUS HandlerQueryConfig(
     return STATUS_SUCCESS;
 }
 
+
 inline NTSTATUS HandlerAddConfig(
     _In_reads_bytes_opt_(InputBytes) PVOID Input,
     _In_ ULONG InputBytes
 ) {
+    if (Input == NULL || InputBytes != sizeof(REQUEST_ADD_CONFIG))
+        return STATUS_INVALID_PARAMETER;
 
+
+    
     return STATUS_SUCCESS;
 }
+
 
 inline NTSTATUS HandlerRemoveConfig(
     _In_reads_bytes_opt_(InputBytes) PVOID Input,
     _In_ ULONG InputBytes
 ) {
-    if (Input == NULL || InputBytes != sizeof(REQUEST_REMOVE_CONFIG)) {
-        return STATUS_INVALID_PARAMETER;
-    }
+    if (Input == NULL || InputBytes != sizeof(REQUEST_REMOVE_CONFIG))
+        return STATUS_INVALID_PARAMETER;    
 
     try {
         // Find up configuration and remove it from table.
@@ -43,11 +48,13 @@ inline NTSTATUS HandlerRemoveConfig(
     return STATUS_SUCCESS;
 }
 
+
 inline VOID HandlerCleanupConfig(
     VOID
 ) {
     CleanupConfigTable();
 }
+
 
 inline NTSTATUS HandlerGetVersion(
     _Out_writes_bytes_to_opt_(OutputBytes, *ReturnBytes) PVOID Output,
@@ -72,6 +79,7 @@ inline NTSTATUS HandlerGetVersion(
     return STATUS_SUCCESS;
 }
 
+
 LONG AsMessageException(
     _In_ PEXCEPTION_POINTERS ExceptionPointer,
     _In_ BOOLEAN AccessingUserBuffer
@@ -85,6 +93,7 @@ LONG AsMessageException(
 
     return EXCEPTION_EXECUTE_HANDLER;
 }
+
 
 NTSTATUS NTFZCoreMessageHandlerRoutine(
     _In_ PVOID ConnectionCookie,
@@ -136,9 +145,7 @@ NTSTATUS NTFZCoreMessageHandlerRoutine(
 
         break;
     case GetCoreVersion:
-        status = HandlerGetVersion(Output,
-                                   OutputBytes,
-                                   ReturnBytes);
+        status = HandlerGetVersion(Output, OutputBytes, ReturnBytes);
         KdPrint(("NtFreezer!%s: Handle message type [GetCoreVersion], status: %x.", __func__, status));
 
         break;

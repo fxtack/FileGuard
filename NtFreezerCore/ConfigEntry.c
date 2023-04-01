@@ -8,6 +8,7 @@
 
 #include "NtFreezerCore.h"
 
+
 RTL_GENERIC_COMPARE_RESULTS
 NTAPI
 configEntryCompareRoutine(
@@ -41,6 +42,7 @@ configEntryCompareRoutine(
 		GenericGreaterThan : GenericLessThan;
 }
 
+
 PVOID
 NTAPI
 configEntryAllocateRoutine(
@@ -56,6 +58,7 @@ configEntryAllocateRoutine(
 	);
 }
 
+
 VOID
 NTAPI
 configEntryFreeRoutine(
@@ -64,8 +67,72 @@ configEntryFreeRoutine(
 ) {
 	UNREFERENCED_PARAMETER(Table);
 
+	ASSERT(Entry != NULL);
+
 	ExFreeToNPagedLookasideList(&Globals.ConfigEntryFreeMemPool, Entry);
 }
+
+
+NTSTATUS QueryConfigFromTable(
+	_In_ PCWSTR ConfigIndex,
+	_Out_ PNTFZ_CONFIG ResultConfig
+) {
+	PNTFZ_CONFIG_ENTRY pResultEntry = NULL;
+	NTFZ_CONFIG_ENTRY queryEntry = { 0 };
+	queryEntry.Index = ConfigIndex;
+
+	pResultEntry = RtlLookupElementGenericTable(&Globals.ConfigTable, &queryEntry);
+	if (pResultEntry == NULL) {
+		ResultConfig = NULL;
+		return STATUS_UNSUCCESSFUL;
+	}
+
+	ResultConfig = &pResultEntry->Config;
+	return STATUS_SUCCESS;
+}
+
+
+NTSTATUS AddConfigToTable(
+	_In_ PNTFZ_CONFIG_ENTRY InsertConfigEntry
+) {
+	BOOLEAN inserted;
+
+	// Set config entry index.
+	InsertConfigEntry->Index = InsertConfigEntry->Config.Path;
+
+	// Insert config entry.
+	RtlInsertElementGenericTable(&Globals.ConfigTable,
+	                             (PVOID)InsertConfigEntry,
+	                             sizeof(NTFZ_CONFIG_ENTRY),
+	                             &inserted);
+	if (inserted == NULL || !inserted) 
+		return STATUS_UNSUCCESSFUL;
+
+	return STATUS_SUCCESS;
+}
+
+
+NTSTATUS RemoveConfigFromTable(
+	_In_ PCWSTR ConfigIndex
+) {
+	PNTFZ_CONFIG_ENTRY pResultEntry = NULL;
+	NTFZ_CONFIG_ENTRY queryEntry = { 0 };
+	BOOLEAN deleted = FALSE;
+	queryEntry.Index = ConfigIndex;
+
+	pResultEntry = RtlLookupElementGenericTable(&Globals.ConfigTable, &queryEntry);
+	if (pResultEntry == NULL) {
+		return STATUS_SUCCESS;
+	}
+
+	deleted = RtlDeleteElementGenericTable(&Globals.ConfigTable, pResultEntry);
+	if (!deleted) {
+		return STATUS_UNSUCCESSFUL;
+	}
+
+	return STATUS_SUCCESS;
+}
+
 
 VOID CleanupConfigTable(
 	VOID
