@@ -26,7 +26,7 @@ LONG AsMessageException(
 inline NTSTATUS HandlerQueryConfig(
     _In_reads_bytes_(InputBytes) PVOID Input,
     _In_ ULONG InputBytes,
-    _Out_writes_bytes_to_(OutputBytes, *ReturnBytes) PVOID Output,
+    _Out_writes_bytes_to_opt_(OutputBytes, *ReturnBytes) PVOID Output,
     _In_ ULONG OutputBytes,
     _Out_ PULONG ReturnBytes
 ) {
@@ -125,20 +125,22 @@ NTSTATUS NTFZCoreMessageHandlerRoutine(
     _In_ ULONG OutputBytes,
     _Out_ PULONG ReturnBytes
 ) {
-    PAGED_CODE();
-
     UNREFERENCED_PARAMETER(ConnectionCookie);
 
     NTSTATUS status = STATUS_INVALID_PARAMETER;
     PNTFZ_A2CMSG pMsg;
 
+    PAGED_CODE();
+
+    ASSERT(ReturnBytes != NULL);
+
     if ((Input == NULL) ||
         (InputBytes < (FIELD_OFFSET(NTFZ_A2CMSG, MsgType) + sizeof(NTFZ_A2CMSG)))) {
-
-        KdPrint(("NtFreezer!%s", __func__));
+        KdPrint(("NtFreezer!%s: Bad message from admin.", __func__));
         return status;
     } else {
         pMsg = (PNTFZ_A2CMSG)Input;
+        *ReturnBytes = 0;
     }
 
     switch (pMsg->MsgType) {
