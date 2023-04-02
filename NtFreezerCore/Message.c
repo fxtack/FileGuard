@@ -8,15 +8,52 @@
 
 #include "NtFreezerCore.h"
 
+LONG AsMessageException(
+    _In_ PEXCEPTION_POINTERS ExceptionPointer,
+    _In_ BOOLEAN AccessingUserBuffer
+) {
+    NTSTATUS status = ExceptionPointer->ExceptionRecord->ExceptionCode;
+
+    if (!FsRtlIsNtstatusExpected(status) &&
+        !AccessingUserBuffer) {
+        return EXCEPTION_CONTINUE_SEARCH;
+    }
+
+    return EXCEPTION_EXECUTE_HANDLER;
+}
+
+
 inline NTSTATUS HandlerQueryConfig(
-    _In_reads_bytes_opt_(InputBytes) PVOID Input,
+    _In_reads_bytes_(InputBytes) PVOID Input,
     _In_ ULONG InputBytes,
-    _Out_writes_bytes_to_opt_(OutputBytes, *ReturnBytes) PVOID Output,
+    _Out_writes_bytes_to_(OutputBytes, *ReturnBytes) PVOID Output,
     _In_ ULONG OutputBytes,
     _Out_ PULONG ReturnBytes
 ) {
+    NTSTATUS status = STATUS_SUCCESS;
+    PNTFZ_CONFIG qQueryResult;
 
-    return STATUS_SUCCESS;
+    if (Input == NULL || InputBytes != sizeof(REQUEST_QUERY_CONFIG) ||
+        Output == NULL || OutputBytes != sizeof(RESPONSE_QUERY_CONFIG) ||
+        ReturnBytes == NULL)
+        status = STATUS_INVALID_PARAMETER;
+    goto returnWithStatus;
+
+    try {
+        status = QueryConfigFromTable(((PNTFZ_CONFIG)Input)->Path,
+                                      (QRESPONSE_QUERY_CONFIG)Output);
+        if (!NT_SUCCESS(status) || qQueryResult == NULL) {
+            *ReturnBytes = 0;
+            goto returnWithStatus;
+        }
+        *ReturnBytes = sizeof(RESPONSE_QUERY_CONFIG);
+
+    } except(AsMessageException(GetExceptionInformation(), TRUE)) {
+        status =  GetExceptionCode();
+    }
+
+returnWithStatus:
+    return status;
 }
 
 
@@ -80,23 +117,8 @@ inline NTSTATUS HandlerGetVersion(
 }
 
 
-LONG AsMessageException(
-    _In_ PEXCEPTION_POINTERS ExceptionPointer,
-    _In_ BOOLEAN AccessingUserBuffer
-) {
-    NTSTATUS status = ExceptionPointer->ExceptionRecord->ExceptionCode;
-
-    if (!FsRtlIsNtstatusExpected(status) &&
-        !AccessingUserBuffer) {
-        return EXCEPTION_CONTINUE_SEARCH;
-    }
-
-    return EXCEPTION_EXECUTE_HANDLER;
-}
-
-
 NTSTATUS NTFZCoreMessageHandlerRoutine(
-    _In_ PVOID ConnectionCookie,
+    _In_opt_ PVOID ConnectionCookie,
     _In_reads_bytes_opt_(InputBytes) PVOID Input,
     _In_ ULONG InputBytes,
     _Out_writes_bytes_to_opt_(OutputBytes, *ReturnBytes) PVOID Output,

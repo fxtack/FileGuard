@@ -88,7 +88,7 @@ NtFreezerPreOperationNoPostOperation(
     Message handler routine.
 *************************************************************************/
 NTSTATUS NTFZCoreMessageHandlerRoutine(
-    _In_ PVOID ConnectionCookie,
+    _In_opt_ PVOID ConnectionCookie,
     _In_reads_bytes_opt_(InputBytes) PVOID Input,
     _In_ ULONG InputBytes,
     _Out_writes_bytes_to_opt_(OutputBytes, *ReturnBytes) PVOID Output,
@@ -113,7 +113,7 @@ typedef struct _NTFZ_CONFIG_ENTRY {
 // Query a config from table by index.
 NTSTATUS QueryConfigFromTable(
     _In_ PCWSTR ConfigIndex,
-    _Out_ PNTFZ_CONFIG ResultConfig
+    _Out_ PNTFZ_CONFIG Output
 );
 
 // Add a config to table.

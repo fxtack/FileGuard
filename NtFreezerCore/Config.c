@@ -8,10 +8,9 @@
 
 #include "NtFreezerCore.h"
 
-
-RTL_GENERIC_COMPARE_RESULTS
-NTAPI
-configEntryCompareRoutine(
+// Generic table routine required.
+// Comparing two config entry that save in table and return the compare result.
+RTL_GENERIC_COMPARE_RESULTS NTAPI configEntryCompareRoutine(
 	_In_ PRTL_GENERIC_TABLE Table,
 	_In_ PVOID LEntry,
 	_In_ PVOID REntry
@@ -42,10 +41,10 @@ configEntryCompareRoutine(
 		GenericGreaterThan : GenericLessThan;
 }
 
-
-PVOID
-NTAPI
-configEntryAllocateRoutine(
+// Generic table routine required.
+// When table operation include config entry creation, this routine will be called for
+// memory allocation.
+PVOID NTAPI configEntryAllocateRoutine(
 	_In_ PRTL_GENERIC_TABLE Table,
 	_In_ CLONG ByteSize
 ) {
@@ -58,10 +57,10 @@ configEntryAllocateRoutine(
 	);
 }
 
-
-VOID
-NTAPI
-configEntryFreeRoutine(
+// Generic table routine required.
+// When table operation include config entry delete, this routine will be called for free
+// config entry memory.
+VOID NTAPI configEntryFreeRoutine(
 	_In_ PRTL_GENERIC_TABLE Table,
 	_In_ __drv_freesMem(Mem) _Post_invalid_ PVOID Entry
 ) {
@@ -72,10 +71,10 @@ configEntryFreeRoutine(
 	ExFreeToNPagedLookasideList(&Globals.ConfigEntryFreeMemPool, Entry);
 }
 
-
+// Query config from table and return it by memory copying.
 NTSTATUS QueryConfigFromTable(
 	_In_ PCWSTR ConfigIndex,
-	_Out_ PNTFZ_CONFIG ResultConfig
+	_Out_ PNTFZ_CONFIG Output
 ) {
 	PNTFZ_CONFIG_ENTRY pResultEntry = NULL;
 	NTFZ_CONFIG_ENTRY queryEntry = { 0 };
@@ -83,15 +82,15 @@ NTSTATUS QueryConfigFromTable(
 
 	pResultEntry = RtlLookupElementGenericTable(&Globals.ConfigTable, &queryEntry);
 	if (pResultEntry == NULL) {
-		ResultConfig = NULL;
 		return STATUS_UNSUCCESSFUL;
 	}
 
-	ResultConfig = &pResultEntry->Config;
+	// Copy config result to output buffer.
+	RtlCopyMemory(Output, &pResultEntry->Config, sizeof(NTFZ_CONFIG));
 	return STATUS_SUCCESS;
 }
 
-
+// Add a config to table.
 NTSTATUS AddConfigToTable(
 	_In_ PNTFZ_CONFIG_ENTRY InsertConfigEntry
 ) {
@@ -111,7 +110,7 @@ NTSTATUS AddConfigToTable(
 	return STATUS_SUCCESS;
 }
 
-
+// Find up the config by index and remove it.
 NTSTATUS RemoveConfigFromTable(
 	_In_ PCWSTR ConfigIndex
 ) {
@@ -133,7 +132,7 @@ NTSTATUS RemoveConfigFromTable(
 	return STATUS_SUCCESS;
 }
 
-
+// Clean all configs from table.
 VOID CleanupConfigTable(
 	VOID
 ) {

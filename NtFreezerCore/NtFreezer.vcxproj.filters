@@ -33,7 +33,7 @@
     <ClCompile Include="Message.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="ConfigEntry.c">
+    <ClCompile Include="Config.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
