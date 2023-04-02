@@ -146,7 +146,7 @@ namespace ntfz {
                                          &msg, sizeof(NTFZ_A2CMSG),
                                          &resp, sizeof(NTFZ_CONFIG),
                                          &returneBytes);
-        if (!IS_ERROR(hResult))
+        if (IS_ERROR(hResult))
             throw AdminError(hResult, "Query a config failed.");
 
         return std::move(std::make_unique<NTFZ_CONFIG>(resp));
@@ -176,7 +176,7 @@ namespace ntfz {
                                          NULL,
                                          0,
                                          &returnBytes);
-        if (!IS_ERROR(hResult))
+        if (IS_ERROR(hResult))
             throw AdminError(hResult, "Add a config failed.");
     }
 
@@ -204,7 +204,7 @@ namespace ntfz {
                                          NULL,
                                          0,
                                          &returnBytes);
-        if (!IS_ERROR(hResult))
+        if (IS_ERROR(hResult))
             throw AdminError(hResult, "Remove a config failed.");
     }
 
@@ -219,14 +219,14 @@ namespace ntfz {
                                          NULL,
                                          0,
                                          &returnBytes);
-        if (!IS_ERROR(hResult))
+        if (IS_ERROR(hResult))
             throw AdminError(hResult, "Clean up all configs failed.");
     }
 
     // Print version information of core and admin.
     void Admin::TellCorePrintVersion() {
         printf(
-            "NtFreezerAdmin: v%lu.%lu.%lu"
+            "NtFreezerAdmin: v%lu.%lu.%lu\n"
             "NtFreezerCore:  v%lu.%lu.%lu",
             NTFZ_ADMIN_VERSION_MAJOR, NTFZ_ADMIN_VERSION_MINOR, NTFZ_ADMIN_VERSION_PATCH,
             _coreVersion_.Major, _coreVersion_.Minor, _coreVersion_.Patch

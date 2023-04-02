@@ -96,34 +96,20 @@ NTSTATUS NTFZCoreMessageHandlerRoutine(
     _Out_ PULONG ReturnBytes
 );
 
-// Config will be save to config table as config entry.
-typedef struct _NTFZ_CONFIG_ENTRY {
-
-    // Table index of config, the pointer reference of Config path.
-    PCWSTR Index;
-
-    // Config.
-    NTFZ_CONFIG Config;
-
-} NTFZ_CONFIG_TABLE, *PNTFZ_CONFIG_TABLE,
-  NTFZ_CONFIG_ENTRY, *PNTFZ_CONFIG_ENTRY;
-
-#define NTFZ_CONFIG_ENTRY_SIZE (sizeof(NTFZ_CONFIG_ENTRY))
-
 // Query a config from table by index.
 NTSTATUS QueryConfigFromTable(
-    _In_ PCWSTR ConfigIndex,
-    _Out_ PNTFZ_CONFIG Output
+    _In_  PNTFZ_CONFIG QueryConfigEntry,
+    _Out_ PNTFZ_CONFIG ResultConfigEntry
 );
 
 // Add a config to table.
 NTSTATUS AddConfigToTable(
-    _In_ PNTFZ_CONFIG_ENTRY InsertConfigEntry
+    _In_ PNTFZ_CONFIG InsertConfigEntry
 );
 
 // Find the config from table by index and remove it.
 NTSTATUS RemoveConfigFromTable(
-    _In_ PCWSTR ConfigIndex
+    _In_ PNTFZ_CONFIG RemoveConfigEntry
 );
 
 // Cleanup config table and release configs memory.

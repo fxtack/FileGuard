@@ -159,7 +159,7 @@ DriverEntry(
                                         NULL,
                                         NULL,
                                         POOL_NX_ALLOCATION,
-                                        NTFZ_CONFIG_ENTRY_SIZE,
+                                        sizeof(RTL_BALANCED_LINKS) + sizeof(NTFZ_CONFIG),
                                         MEM_NPAGED_POOL_TAG_CONFIG_ENTRY,
                                         0);
 
@@ -307,7 +307,7 @@ NTFZCoreInstanceTeardownComplete(
     UNREFERENCED_PARAMETER(Flags);
     PAGED_CODE();
 
-    KdPrint(("NtFreezer!%s: Instance teardown comoplete.", __func__));
+    KdPrint(("NtFreezerCore!%s: Instance teardown comoplete.", __func__));
 }
 
 NTSTATUS NTFZCorePortConnectCallback(
@@ -327,7 +327,7 @@ NTSTATUS NTFZCorePortConnectCallback(
     FLT_ASSERT(Globals.AdminPort == NULL);
     Globals.AdminPort = AdminPort;
 
-    KdPrint(("NtFreezer!%s", __func__));
+    KdPrint(("NtFreezerCore!%s", __func__));
 
     return STATUS_SUCCESS;
 }
@@ -341,5 +341,5 @@ VOID NTFZCorePortDisconnectCallback(
     FLT_ASSERT(Globals.AdminPort != NULL);
     FltCloseClientPort(Globals.Filter, &Globals.AdminPort);
     
-    KdPrint(("NtFreezer!%s", __func__));
+    KdPrint(("NtFreezerCore!%s", __func__));
 }

@@ -10,7 +10,7 @@
 #define _NTFZ_ADMIN_H_
 
 #define NTFZ_ADMIN_VERSION_MAJOR 0
-#define NTFZ_ADMIN_VERSION_MINOR 0
+#define NTFZ_ADMIN_VERSION_MINOR 1
 #define NTFZ_ADMIN_VERSION_PATCH 0
 
 namespace ntfz {

@@ -10,6 +10,7 @@
 _Analysis_mode_(_Analysis_code_type_user_code_)
 
 #include <iostream>
+#include <sstream>
 #include <algorithm>
 #include <filesystem>
 
@@ -20,28 +21,54 @@ _Analysis_mode_(_Analysis_code_type_user_code_)
 #include "NtFreezer.h"
 #include "NtFreezerAdmin.h"
 
+inline std::wstring formatConfigPathParam(
+    _In_opt_ PCWSTR ConfigPathParam
+) {
+    if (ConfigPathParam == NULL || wcslen(ConfigPathParam) == 0)
+        return L"";
+
+    std::wstring configPath(ConfigPathParam);
+
+    // The config string is invalid if its length exceeds 260.
+    if (configPath.length() > MAX_PATH) {
+        std::stringstream errStr;
+        errStr << "Invalid config path length: " << configPath.length()
+               << ", path character length must be less than " << MAX_PATH << ".";
+        throw std::string(errStr.str());
+    }
+
+    std::wstring::size_type first = configPath.find_first_not_of(' ');
+    if (first == std::wstring::npos)
+        return L"";
+
+    std::wstring::size_type last = configPath.find_last_not_of(' ');
+    return configPath.substr(first, last - first + 1);
+}
+
 int __cdecl wmain(
     _In_ INT argc,
     _In_reads_(argc) WCHAR* argv[]
 ) {
     using namespace std;
+    namespace fs = filesystem;
 
     if (argc <= 1) {
-        wprintf(L"Use `--help` or `-h` for help.\n");
+        wprintf(L"Use `/help` for help.\n");
         return 0;
     }
 
     wstring command(argv[1]);
-    if (command == L"--help" || command == L"-h") {
+    if (command == L"/help") {
         wprintf(
-            L"`--version`        Check NtFreezer version.\n"
-            L"`--config-add`     Add a config.\n"
-            L"`--config-remove`  Remove a config.\n"
-            L"`--config-cleanup` Cleanup all configs.\n"
+            L"/version        Check NtFreezer version.\n"
+            L"/config-add     Add a config.\n"
+            L"/config-remove  Remove a config.\n"
+            L"/config-cleanup Cleanup all configs.\n"
         );
+        return 0;
     }
 
-    string invalidParamMsg = "Invalid parameter, enter `--help` or `-h` for usage.";
+    string invalidParamError = "Invalid parameter, enter `/help` for usage.";
 
     try {
         // Initialize NtFreezerAdmin.
@@ -51,44 +78,47 @@ int __cdecl wmain(
         if (command == L"/query-config") {
             // Find a NtFreezer configuration.
             if (argc == 3) {
-                auto config = admin.TellCoreQueryConfig(wstring(argv[2]));
+                auto config = admin.TellCoreQueryConfig(formatConfigPathParam(argv[2]));
                 cout << "Result config: "
                     << "\nType: " << config->FreezeType 
-                    << "\nPath: " << config->Path 
+                    << "\nPath: " << config->Path
                     << endl;
                 return 0;
             }
-            throw invalidParamMsg;
+            throw invalidParamError;
 
         } else if (command == L"/add-config") {
             // Add a NtFreezer configuration.
             if (argc >= 3) {
-                wstring configPath(argv[2]);
+                wstring configPath = formatConfigPathParam(argv[2]);
+                if (configPath.empty()) throw invalidParamError;
+
                 if (argc == 3) {
                     admin.TellCoreAddConfig(configPath);                    
-                } else if (argc == 5 && wstring(argv[3]) == L"/config-type") {                   
+                } else if (argc == 5 && wstring(argv[3]) == L"/config-type") {
                     admin.TellCoreAddConfig(wstring(argv[4]), configPath);                    
                 }
+                wcout << L"Add config successfully." << endl;
                 return 0;
             }
-            throw invalidParamMsg;
+            throw invalidParamError;
 
         } else if (command == L"/remove-config") {
             // Remove NtFreezer configuration.
-            if (argc == 3) {               
-                admin.TellCoreRemoveConfig(wstring(argv[2]));
+            if (argc == 3) {
+                admin.TellCoreRemoveConfig(formatConfigPathParam(argv[2]));
                 return 0;
             }
-            throw invalidParamMsg;
+            throw invalidParamError;
 
         } else if (command == L"/cleanup-config") {
             // Clean up all configurations.
-            if (argc > 2) throw invalidParamMsg;
+            if (argc > 2) throw invalidParamError;
             admin.TellCoreCleanupConfigs();
 
         } else if (command == L"/version") {
             // Print NtFreezerAdmin and NtFreezerCore version information.
-            if (argc > 2) throw invalidParamMsg;
+            if (argc > 2) throw invalidParamError;
             admin.TellCorePrintVersion();
 
         } else {
