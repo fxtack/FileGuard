@@ -31,13 +31,13 @@ inline NTSTATUS HandlerQueryConfig(
     _Out_ PULONG ReturnBytes
 ) {
     NTSTATUS status = STATUS_SUCCESS;
-    PNTFZ_CONFIG qQueryResult;
+    PNTFZ_CONFIG qQueryResult = NULL;
 
     if (Input == NULL || InputBytes != sizeof(REQUEST_QUERY_CONFIG) ||
         Output == NULL || OutputBytes != sizeof(RESPONSE_QUERY_CONFIG) ||
-        ReturnBytes == NULL)
-        status = STATUS_INVALID_PARAMETER;
-    goto returnWithStatus;
+        ReturnBytes == NULL) {
+        return STATUS_INVALID_PARAMETER;
+    }
 
     try {
         status = QueryConfigFromTable(((PNTFZ_CONFIG)Input)->Path,
@@ -61,12 +61,18 @@ inline NTSTATUS HandlerAddConfig(
     _In_reads_bytes_opt_(InputBytes) PVOID Input,
     _In_ ULONG InputBytes
 ) {
+    NTSTATUS status = STATUS_SUCCESS;
+
     if (Input == NULL || InputBytes != sizeof(REQUEST_ADD_CONFIG))
         return STATUS_INVALID_PARAMETER;
 
-
+    try {
+        status = AddConfigToTable((PNTFZ_CONFIG_ENTRY)Input);
+    } except(AsMessageException(GetExceptionInformation(), TRUE)) {
+        status = GetExceptionCode();
+    }
     
-    return STATUS_SUCCESS;
+    return status;
 }
 
 
@@ -74,22 +80,23 @@ inline NTSTATUS HandlerRemoveConfig(
     _In_reads_bytes_opt_(InputBytes) PVOID Input,
     _In_ ULONG InputBytes
 ) {
+    NTSTATUS status = STATUS_SUCCESS;
     if (Input == NULL || InputBytes != sizeof(REQUEST_REMOVE_CONFIG))
-        return STATUS_INVALID_PARAMETER;    
+        return STATUS_INVALID_PARAMETER;
 
     try {
-        // Find up configuration and remove it from table.
+        status = RemoveConfigFromTable(((PNTFZ_CONFIG)Input)->Path);
     } except (AsMessageException(GetExceptionInformation(), TRUE)) {
-        return GetExceptionCode();
+        status = GetExceptionCode();
     }
-    return STATUS_SUCCESS;
+    return status;
 }
 
 
-inline VOID HandlerCleanupConfig(
+inline NTSTATUS HandlerCleanupConfig(
     VOID
 ) {
-    CleanupConfigTable();
+    return CleanupConfigTable();
 }
 
 
@@ -164,7 +171,7 @@ NTSTATUS NTFZCoreMessageHandlerRoutine(
 
         break;
     case CleanupConfig:
-        HandlerCleanupConfig();
+        status = HandlerCleanupConfig();
         KdPrint(("NtFreezer!%s: Handle message type [CleanupConfig].", __func__));
 
         break;

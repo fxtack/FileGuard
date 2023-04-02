@@ -94,7 +94,7 @@ NTSTATUS QueryConfigFromTable(
 NTSTATUS AddConfigToTable(
 	_In_ PNTFZ_CONFIG_ENTRY InsertConfigEntry
 ) {
-	BOOLEAN inserted;
+	BOOLEAN inserted = FALSE;
 
 	// Set config entry index.
 	InsertConfigEntry->Index = InsertConfigEntry->Config.Path;
@@ -104,7 +104,7 @@ NTSTATUS AddConfigToTable(
 	                             (PVOID)InsertConfigEntry,
 	                             sizeof(NTFZ_CONFIG_ENTRY),
 	                             &inserted);
-	if (inserted == NULL || !inserted) 
+	if (!inserted) 
 		return STATUS_UNSUCCESSFUL;
 
 	return STATUS_SUCCESS;
@@ -133,7 +133,7 @@ NTSTATUS RemoveConfigFromTable(
 }
 
 // Clean all configs from table.
-VOID CleanupConfigTable(
+NTSTATUS CleanupConfigTable(
 	VOID
 ) {
 	PVOID entry;
@@ -142,4 +142,6 @@ VOID CleanupConfigTable(
 		entry = RtlGetElementGenericTable(&Globals.ConfigTable, 0);
 		RtlDeleteElementGenericTable(&Globals.ConfigTable, entry);
 	}
+
+	return STATUS_SUCCESS;
 }

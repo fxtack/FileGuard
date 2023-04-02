@@ -127,7 +127,7 @@ NTSTATUS RemoveConfigFromTable(
 );
 
 // Cleanup config table and release configs memory.
-VOID CleanupConfigTable(
+NTSTATUS CleanupConfigTable(
     VOID
 );
 
