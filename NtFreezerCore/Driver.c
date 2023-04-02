@@ -154,58 +154,48 @@ DriverEntry(
         Globals.ConfigEntryAllocated    = 0;
 
         KeInitializeSpinLock(&Globals.ConfigTableLock);
-        ExInitializeNPagedLookasideList(
-            &Globals.ConfigEntryFreeMemPool,
-            NULL,
-            NULL,
-            POOL_NX_ALLOCATION,
-            NTFZ_CONFIG_ENTRY_SIZE,
-            MEM_NPAGED_POOL_TAG_CONFIG_ENTRY,
-            0
-        );
 
-        RtlInitializeGenericTable (
-            &Globals.ConfigTable,
-            configEntryCompareRoutine,
-            configEntryAllocateRoutine,
-            configEntryFreeRoutine,
-            NULL
-        );
+        ExInitializeNPagedLookasideList(&Globals.ConfigEntryFreeMemPool,
+                                        NULL,
+                                        NULL,
+                                        POOL_NX_ALLOCATION,
+                                        NTFZ_CONFIG_ENTRY_SIZE,
+                                        MEM_NPAGED_POOL_TAG_CONFIG_ENTRY,
+                                        0);
+
+        RtlInitializeGenericTable (&Globals.ConfigTable,
+                                   configEntryCompareRoutine,
+                                   configEntryAllocateRoutine,
+                                   configEntryFreeRoutine,
+                                   NULL);
 
         // Register filter driver.
-        status = FltRegisterFilter(
-            DriverObject,
-            &FilterRegistration,
-            &Globals.Filter
-        );
+        status = FltRegisterFilter(DriverObject,
+                                   &FilterRegistration,
+                                   &Globals.Filter);
         if (!NT_SUCCESS(status)) leave;
 
-        status = FltBuildDefaultSecurityDescriptor(
-            &pSecurityDescriptor,
-            FLT_PORT_ALL_ACCESS);
+        status = FltBuildDefaultSecurityDescriptor(&pSecurityDescriptor,
+                                                   FLT_PORT_ALL_ACCESS);
         if (!NT_SUCCESS(status)) leave;
 
         // Make unicode string port name.
         RtlInitUnicodeString(&portName, NTFZ_PORT_NAME);
-        InitializeObjectAttributes(
-            &objAttr,
-            &portName,
-            OBJ_KERNEL_HANDLE | OBJ_CASE_INSENSITIVE,
-            NULL,
-            pSecurityDescriptor
-        );
+        InitializeObjectAttributes(&objAttr,
+                                   &portName,
+                                   OBJ_KERNEL_HANDLE | OBJ_CASE_INSENSITIVE,
+                                   NULL,
+                                   pSecurityDescriptor);
 
         // Create port.
-        status = FltCreateCommunicationPort(
-            Globals.Filter,
-            &Globals.CorePort,
-            &objAttr,
-            NULL,
-            NTFZCorePortConnectCallback,
-            NTFZCorePortDisconnectCallback,
-            NTFZCoreMessageHandlerRoutine,
-            1
-        );
+        status = FltCreateCommunicationPort(Globals.Filter,
+                                            &Globals.CorePort,
+                                            &objAttr,
+                                            NULL,
+                                            NTFZCorePortConnectCallback,
+                                            NTFZCorePortDisconnectCallback,
+                                            NTFZCoreMessageHandlerRoutine,
+                                            1);
         if (!NT_SUCCESS(status)) leave;
 
         // Start filter driver.

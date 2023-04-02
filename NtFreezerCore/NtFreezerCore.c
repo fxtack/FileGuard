@@ -1,18 +1,10 @@
-/*++
+/*
+    @File   NtFreezerCore.c
+    @Note   Operation callback.
 
-Module Name:
-
-    NtFreezer.c
-
-Abstract:
-
-    This is the main module of the NtFreezer miniFilter driver.
-
-Environment:
-
-    Kernel mode
-
---*/
+    @Mode   Kernel
+    @Author Fxtack
+*/
 
 #include "NtFreezerCore.h"
 
