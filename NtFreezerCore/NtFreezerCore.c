@@ -9,13 +9,6 @@
 #include "NtFreezerCore.h"
 
 
-
-FLT_PREOP_CALLBACK_STATUS
-NtFreezerPreOperation (
-    _Inout_ PFLT_CALLBACK_DATA Data,
-    _In_ PCFLT_RELATED_OBJECTS FltObjects,
-    _Flt_CompletionContext_Outptr_ PVOID *CompletionContext
-    )
 /*++
 
 Routine Description:
@@ -40,7 +33,12 @@ Return Value:
     The return value is the status of the operation.
 
 --*/
-{
+FLT_PREOP_CALLBACK_STATUS
+NtFreezerPreOperation (
+    _Inout_ PFLT_CALLBACK_DATA Data,
+    _In_ PCFLT_RELATED_OBJECTS FltObjects,
+    _Flt_CompletionContext_Outptr_ PVOID *CompletionContext
+) {
     NTSTATUS status = FLT_PREOP_SUCCESS_WITH_CALLBACK;
 
     UNREFERENCED_PARAMETER(Data);
@@ -55,13 +53,6 @@ Return Value:
 }
 
 
-FLT_POSTOP_CALLBACK_STATUS
-NtFreezerPostOperation (
-    _Inout_ PFLT_CALLBACK_DATA Data,
-    _In_ PCFLT_RELATED_OBJECTS FltObjects,
-    _In_opt_ PVOID CompletionContext,
-    _In_ FLT_POST_OPERATION_FLAGS Flags
-    )
 /*++
 
 Routine Description:
@@ -88,7 +79,13 @@ Return Value:
     The return value is the status of the operation.
 
 --*/
-{
+FLT_POSTOP_CALLBACK_STATUS
+NtFreezerPostOperation (
+    _Inout_ PFLT_CALLBACK_DATA Data,
+    _In_ PCFLT_RELATED_OBJECTS FltObjects,
+    _In_opt_ PVOID CompletionContext,
+    _In_ FLT_POST_OPERATION_FLAGS Flags
+) {
     UNREFERENCED_PARAMETER( Data );
     UNREFERENCED_PARAMETER( FltObjects );
     UNREFERENCED_PARAMETER( CompletionContext );
@@ -98,12 +95,6 @@ Return Value:
 }
 
 
-FLT_PREOP_CALLBACK_STATUS
-NtFreezerPreOperationNoPostOperation (
-    _Inout_ PFLT_CALLBACK_DATA Data,
-    _In_ PCFLT_RELATED_OBJECTS FltObjects,
-    _Flt_CompletionContext_Outptr_ PVOID *CompletionContext
-    )
 /*++
 
 Routine Description:
@@ -128,7 +119,12 @@ Return Value:
     The return value is the status of the operation.
 
 --*/
-{
+FLT_PREOP_CALLBACK_STATUS
+NtFreezerPreOperationNoPostOperation (
+    _Inout_ PFLT_CALLBACK_DATA Data,
+    _In_ PCFLT_RELATED_OBJECTS FltObjects,
+    _Flt_CompletionContext_Outptr_ PVOID *CompletionContext
+) {
     UNREFERENCED_PARAMETER( Data );
     UNREFERENCED_PARAMETER( FltObjects );
     UNREFERENCED_PARAMETER( CompletionContext );

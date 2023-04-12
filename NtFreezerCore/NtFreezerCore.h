@@ -51,8 +51,6 @@ typedef struct _NTFZ_CORE_GLOBALS {
 
     // Config table.
     RTL_AVL_TABLE ConfigTable;
-    // Config table lock.
-    KSPIN_LOCK ConfigTableLock;
 
 } NTFZ_CORE_GLOBALS, *PNTFZ_CORE_GLOBALS;
 
