@@ -19,9 +19,10 @@
 
 #define NTFZ_CORE_VERSION_MAJOR 0
 #define NTFZ_CORE_VERSION_MINOR 1
-#define NTFZ_CORE_VERSION_PATCH 0
+#define NTFZ_CORE_VERSION_PATCH 2
 
 #define MEM_NPAGED_POOL_TAG_CONFIG_ENTRY 'fzcg'
+#define MEM_NPAGED_POOL_TAG_SHARE_LOCK   'fzsl'
 
 #define MAX_CONFIG_ENTRY_ALLOCATED 1024
 
@@ -51,6 +52,8 @@ typedef struct _NTFZ_CORE_GLOBALS {
 
     // Config table.
     RTL_AVL_TABLE ConfigTable;
+    // Config table share lock.
+    PERESOURCE ConfigTableShareLock;
 
 } NTFZ_CORE_GLOBALS, *PNTFZ_CORE_GLOBALS;
 

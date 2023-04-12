@@ -153,8 +153,6 @@ DriverEntry(
         Globals.ConfigEntryMaxAllocated = MAX_CONFIG_ENTRY_ALLOCATED;
         Globals.ConfigEntryAllocated    = 0;
 
-        KeInitializeSpinLock(&Globals.ConfigTableLock);
-
         ExInitializeNPagedLookasideList(&Globals.ConfigEntryFreeMemPool,
                                         NULL,
                                         NULL,
@@ -163,11 +161,23 @@ DriverEntry(
                                         MEM_NPAGED_POOL_TAG_CONFIG_ENTRY,
                                         0);
 
-        RtlInitializeGenericTable (&Globals.ConfigTable,
-                                   configEntryCompareRoutine,
-                                   configEntryAllocateRoutine,
-                                   configEntryFreeRoutine,
-                                   NULL);
+        RtlInitializeGenericTable(&Globals.ConfigTable,
+                                  configEntryCompareRoutine,
+                                  configEntryAllocateRoutine,
+                                  configEntryFreeRoutine,
+                                  NULL);
+
+        // Allocate memory for config table share lock.
+        Globals.ConfigTableShareLock = (PERESOURCE)ExAllocatePool2(POOL_FLAG_NON_PAGED,
+                                                                   sizeof(ERESOURCE),
+                                                                   MEM_NPAGED_POOL_TAG_SHARE_LOCK);
+        if (Globals.ConfigTableShareLock == NULL) {
+            status = STATUS_NO_MEMORY;
+            leave;
+        }
+        // Initialize config table share lock.
+        status = ExInitializeResourceLite(Globals.ConfigTableShareLock);
+        if (!NT_SUCCESS(status)) leave;
 
         // Register filter driver.
         status = FltRegisterFilter(DriverObject,
@@ -211,6 +221,11 @@ DriverEntry(
         if (!NT_SUCCESS(status)) {
             KdPrint(("NtFreezerCore!%s: Driver loading failed.", __func__));
 
+            if (Globals.ConfigTableShareLock != NULL) {
+                ExDeleteResourceLite(Globals.ConfigTableShareLock);
+                ExFreePool(Globals.ConfigTableShareLock);
+            }
+
             if (Globals.CorePort != NULL)
                 FltCloseCommunicationPort(Globals.CorePort);
 
@@ -220,7 +235,8 @@ DriverEntry(
             ExDeleteNPagedLookasideList(&Globals.ConfigEntryFreeMemPool);
 
         } else {
-            KdPrint(("NtFreezerCore!%s: Driver loaded successfully.", __func__));
+            KdPrint(("NtFreezerCore!%s: Driver loaded successfully, version: v%lu.%lu.%lu",
+                __func__, NTFZ_CORE_VERSION_MAJOR, NTFZ_CORE_VERSION_MINOR, NTFZ_CORE_VERSION_PATCH));
         }
     }
 
@@ -244,6 +260,11 @@ NTFZCoreUnload(
         FltUnregisterFilter(Globals.Filter);
 
     CleanupConfigTable();
+
+    if (Globals.ConfigTableShareLock != NULL) {
+        ExDeleteResourceLite(Globals.ConfigTableShareLock);
+        ExFreePool(Globals.ConfigTableShareLock);
+    }
 
     ExDeleteNPagedLookasideList(&Globals.ConfigEntryFreeMemPool);
 
