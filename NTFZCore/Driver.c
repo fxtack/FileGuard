@@ -109,12 +109,12 @@ CONST FLT_OPERATION_REGISTRATION Callbacks[] = {
 //
 
 CONST FLT_REGISTRATION FilterRegistration = {
-    sizeof(FLT_REGISTRATION),           //  Size
-    FLT_REGISTRATION_VERSION,           //  Version
-    0,                                  //  Flags
+    sizeof(FLT_REGISTRATION),          //  Size
+    FLT_REGISTRATION_VERSION,          //  Version
+    0,                                 //  Flags
 
-    NULL,                               //  Context
-    Callbacks,                          //  Operation callbacks
+    NULL,                              //  Context
+    Callbacks,                         //  Operation callbacks
 
     NTFZCoreUnload,                    //  MiniFilterUnload
 
@@ -123,9 +123,9 @@ CONST FLT_REGISTRATION FilterRegistration = {
     NTFZCoreInstanceTeardownStart,     //  InstanceTeardownStart
     NTFZCoreInstanceTeardownComplete,  //  InstanceTeardownComplete
 
-    NULL,                               //  GenerateFileName
-    NULL,                               //  GenerateDestinationFileName
-    NULL                                //  NormalizeNameComponent
+    NULL,                              //  GenerateFileName
+    NULL,                              //  GenerateDestinationFileName
+    NULL                               //  NormalizeNameComponent
 };
 
 
@@ -161,6 +161,7 @@ DriverEntry(
                                         MEM_NPAGED_POOL_TAG_CONFIG_ENTRY,
                                         0);
 
+        // Setup config table.
         RtlInitializeGenericTable(&Globals.ConfigTable,
                                   configEntryCompareRoutine,
                                   configEntryAllocateRoutine,

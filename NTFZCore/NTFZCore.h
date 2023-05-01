@@ -36,24 +36,16 @@ RTL_GENERIC_FREE_ROUTINE     configEntryFreeRoutine;     // Free config entry.
 *************************************************************************/
 typedef struct _NTFZ_CORE_GLOBALS {
 
-    // Filter instances.
-    PFLT_FILTER Filter;
+    PFLT_FILTER Filter;                           // Filter instances.
+    PFLT_PORT CorePort;                           // Communication port exported for NTFZAdmin.
+    PFLT_PORT AdminPort;                          // Communication port that NTFZAdmin connecting to.
 
-    // The communication port.
-    PFLT_PORT CorePort;
-    PFLT_PORT AdminPort;
+    ULONG ConfigEntryMaxAllocated;                // Maxinum of config entry can be allocated.
+    __volatile ULONG ConfigEntryAllocated;        // Amount of allocated config entry.
+    NPAGED_LOOKASIDE_LIST ConfigEntryFreeMemPool; // Memory pool of config entry.
 
-    // Maxinum of config entry can be allocated.
-    ULONG ConfigEntryMaxAllocated;
-    // Amount of allocated config entry.
-    __volatile ULONG ConfigEntryAllocated;
-    // Memory pool of config entry.
-    NPAGED_LOOKASIDE_LIST ConfigEntryFreeMemPool;
-
-    // Config table.
-    RTL_AVL_TABLE ConfigTable;
-    // Config table share lock.
-    PERESOURCE ConfigTableShareLock;
+    RTL_AVL_TABLE ConfigTable;                    // Config table.
+    PERESOURCE ConfigTableShareLock;              // Config table share lock.
 
 } NTFZ_CORE_GLOBALS, *PNTFZ_CORE_GLOBALS;
 
