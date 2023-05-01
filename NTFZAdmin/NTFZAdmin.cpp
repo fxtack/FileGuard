@@ -1,5 +1,5 @@
 /*
-    @File   NtFreezerAdmin.cpp
+    @File   NTFZAdmin.cpp
     @Note   Admin function.
 
     @Mode   User
@@ -15,8 +15,8 @@
 #include <algorithm>
 #include <filesystem>
 
-#include "NtFreezer.h"
-#include "NtFreezerAdmin.h"
+#include "NTFZ.h"
+#include "NTFZAdmin.h"
 
 inline ULONG FzConfigTypeCode(
     _In_ std::wstring FzConfig
@@ -85,7 +85,7 @@ namespace ntfz {
 
         _port_= INVALID_HANDLE_VALUE;
 
-        // Initialize NtFreezerCore communication port.
+        // Initialize NTFZCore communication port.
         auto hResult = FilterConnectCommunicationPort(PortName,
                                                       0,
                                                       NULL,
@@ -224,10 +224,10 @@ namespace ntfz {
     }
 
     // Print version information of core and admin.
-    void Admin::TellCorePrintVersion() {
+    void Admin::PrintVersion() {
         printf(
-            "NtFreezerAdmin: v%lu.%lu.%lu\n"
-            "NtFreezerCore:  v%lu.%lu.%lu",
+            "NTFZAdmin: v%lu.%lu.%lu\n"
+            "NTFZCore:  v%lu.%lu.%lu",
             NTFZ_ADMIN_VERSION_MAJOR, NTFZ_ADMIN_VERSION_MINOR, NTFZ_ADMIN_VERSION_PATCH,
             _coreVersion_.Major, _coreVersion_.Minor, _coreVersion_.Patch
         );

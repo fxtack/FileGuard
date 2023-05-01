@@ -1,12 +1,12 @@
 /*
-    @File   NtFreezerCore.c
+    @File   NTFZCore.c
     @Note   Operation callback.
 
     @Mode   Kernel
     @Author Fxtack
 */
 
-#include "NtFreezerCore.h"
+#include "NTFZCore.h"
 
 
 /*++
@@ -34,7 +34,7 @@ Return Value:
 
 --*/
 FLT_PREOP_CALLBACK_STATUS
-NtFreezerPreOperation (
+NTFZPreOperationCallback (
     _Inout_ PFLT_CALLBACK_DATA Data,
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
     _Flt_CompletionContext_Outptr_ PVOID *CompletionContext
@@ -80,7 +80,7 @@ Return Value:
 
 --*/
 FLT_POSTOP_CALLBACK_STATUS
-NtFreezerPostOperation (
+NTFZPostOperationCallback (
     _Inout_ PFLT_CALLBACK_DATA Data,
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
     _In_opt_ PVOID CompletionContext,
@@ -120,7 +120,7 @@ Return Value:
 
 --*/
 FLT_PREOP_CALLBACK_STATUS
-NtFreezerPreOperationNoPostOperation (
+NTFZPreOperationNoPostOperationCallback (
     _Inout_ PFLT_CALLBACK_DATA Data,
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
     _Flt_CompletionContext_Outptr_ PVOID *CompletionContext

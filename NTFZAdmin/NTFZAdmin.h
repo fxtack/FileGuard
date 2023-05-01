@@ -1,6 +1,6 @@
 /*
-    @File   NtFreezerAdmin.h
-    @Note   NtFreezerAdmin header file.
+    @File   NTFZAdmin.h
+    @Note   NTFZAdmin header file.
 
     @Mode   User
     @Author Fxtack
@@ -51,7 +51,7 @@ namespace ntfz {
         void TellCoreCleanupConfigs();
 
         // Print version information of core and admin.
-        void TellCorePrintVersion();
+        void PrintVersion();
 
     private:
         HANDLE _port_;

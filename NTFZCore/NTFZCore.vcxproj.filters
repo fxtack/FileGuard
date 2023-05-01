@@ -19,12 +19,12 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <Inf Include="NtFreezerCore.inf">
+    <Inf Include="NTFZCore.inf">
       <Filter>Driver Files</Filter>
     </Inf>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="NtFreezerCore.c">
+    <ClCompile Include="NTFZCore.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Driver.c">
@@ -38,12 +38,12 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="NtFreezerCore.rc">
+    <ResourceCompile Include="NTFZCore.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="NtFreezerCore.h">
+    <ClInclude Include="NTFZCore.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.5.33502.453
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NtFreezerCore", "NtFreezerCore\NtFreezer.vcxproj", "{83689296-9019-4C8D-8E17-A010E40D6500}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NTFZCore", "NTFZCore\NTFZCore.vcxproj", "{83689296-9019-4C8D-8E17-A010E40D6500}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NtFreezerAdmin", "NtFreezerAdmin\NtFreezerAdmin.vcxproj", "{7253732E-E2A3-4146-9DAF-31E47CBEBCEF}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NTFZAdmin", "NTFZAdmin\NTFZAdmin.vcxproj", "{7253732E-E2A3-4146-9DAF-31E47CBEBCEF}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Project Files", "Project Files", "{F30979C7-8233-4973-8A0F-02DC343CDEFC}"
 	ProjectSection(SolutionItems) = preProject
@@ -15,7 +15,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Project Files", "Project Fi
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Include", "Include", "{5C090465-4FA4-42FC-8D45-561C477F25C4}"
 	ProjectSection(SolutionItems) = preProject
-		Include\NtFreezer.h = Include\NtFreezer.h
+		Include\NTFZ.h = Include\NTFZ.h
 	EndProjectSection
 EndProject
 Global

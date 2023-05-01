@@ -35,12 +35,12 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="NtFreezerCore.rc" />
+    <ResourceCompile Include="NTFZCore.rc" />
     <ClCompile Include="Config.c" />
     <ClCompile Include="Driver.c" />
     <ClCompile Include="Message.c" />
-    <ClCompile Include="NtFreezerCore.c" />
-    <Inf Include="NtFreezerCore.inf" />
+    <ClCompile Include="NTFZCore.c" />
+    <Inf Include="NTFZCore.inf" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{83689296-9019-4C8D-8E17-A010E40D6500}</ProjectGuid>
@@ -49,8 +49,8 @@
     <MinimumVisualStudioVersion>12.0</MinimumVisualStudioVersion>
     <Configuration>Debug</Configuration>
     <Platform Condition="'$(Platform)' == ''">Win32</Platform>
-    <RootNamespace>NtFreezer</RootNamespace>
-    <ProjectName>NtFreezerCore</ProjectName>
+    <RootNamespace>NTFZ</RootNamespace>
+    <ProjectName>NTFZCore</ProjectName>
     <WindowsTargetPlatformVersion>$(LatestTargetPlatformVersion)</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -206,7 +206,7 @@
     <FilesToPackage Include="$(TargetPath)" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="NtFreezerCore.h" />
+    <ClInclude Include="NTFZCore.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

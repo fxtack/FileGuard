@@ -1,6 +1,6 @@
 /*
-    @File   NtFreezerCore.h
-    @Note   NtFreezerCore module header file.
+    @File   NTFZCore.h
+    @Note   NTFZCore module header file.
 
     @Mode   Kernel
     @Author Fxtack
@@ -15,7 +15,7 @@
 #include <ntddk.h>
 #include <dontuse.h>
 
-#include "NtFreezer.h"
+#include "NTFZ.h"
 
 #define NTFZ_CORE_VERSION_MAJOR 0
 #define NTFZ_CORE_VERSION_MINOR 1
@@ -63,14 +63,14 @@ extern NTFZ_CORE_GLOBALS Globals;
     MiniFilter callback routines.
 *************************************************************************/
 FLT_PREOP_CALLBACK_STATUS
-NtFreezerPreOperation(
+NTFZPreOperationCallback(
     _Inout_ PFLT_CALLBACK_DATA Data,
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
     _Flt_CompletionContext_Outptr_ PVOID* CompletionContext
 );
 
 FLT_POSTOP_CALLBACK_STATUS
-NtFreezerPostOperation(
+NTFZPostOperationCallback(
     _Inout_ PFLT_CALLBACK_DATA Data,
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
     _In_opt_ PVOID CompletionContext,
@@ -78,7 +78,7 @@ NtFreezerPostOperation(
 );
 
 FLT_PREOP_CALLBACK_STATUS
-NtFreezerPreOperationNoPostOperation(
+NTFZPreOperationNoPostOperationCallback(
     _Inout_ PFLT_CALLBACK_DATA Data,
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
     _Flt_CompletionContext_Outptr_ PVOID* CompletionContext

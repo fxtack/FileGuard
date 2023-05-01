@@ -1,5 +1,5 @@
 ;;;
-;;; NtFreezerCore
+;;; NTFZCore
 ;;;
 
 [Version]
@@ -9,7 +9,7 @@ Class       = "ActivityMonitor"                         ;This is determined by t
 ClassGuid   = {b86dff51-a31e-4bac-b3cf-e8cfe75c9fc2}    ;This value is determined by the Load Order Group value
 Provider    = %ManufacturerName%
 DriverVer   = 01/01/2024,0.1.0
-CatalogFile = NtFreezerCore.cat
+CatalogFile = NTFZCore.cat
 PnpLockDown = 1
 
 [DestinationDirs]
@@ -75,7 +75,7 @@ HKR,"Instances\"%Instance1.Name%,"Flags",0x00010001,%Instance1.Flags%
 %DriverName%.sys
 
 [SourceDisksFiles]
-NtFreezerCore.sys = 1,,
+NTFZCore.sys = 1,,
 
 [SourceDisksNames]
 1 = %DiskId1%,,,
@@ -86,14 +86,14 @@ NtFreezerCore.sys = 1,,
 
 [Strings]
 ManufacturerName        = "Your ManufacturerName"
-ServiceDescription      = "NtFreezerCore Mini-Filter Driver"
-ServiceName             = "NtFreezerCore"
-DriverName              = "NtFreezerCore"
-DiskId1                 = "NtFreezerCore Device Installation Disk"
+ServiceDescription      = "NTFZCore Mini-Filter Driver"
+ServiceName             = "NTFZCore"
+DriverName              = "NTFZCore"
+DiskId1                 = "NTFZCore Device Installation Disk"
 
 ;Instances specific information.
-DefaultInstance         = "NtFreezerCore Instance"
-Instance1.Name          = "NtFreezerCore Instance"
+DefaultInstance         = "NTFZCore Instance"
+Instance1.Name          = "NTFZCore Instance"
 ; Altitude value, see https://msdn.microsoft.com/en-us/windows/hardware/drivers/ifs/load-order-groups-and-altitudes-for-minifilter-drivers
 Instance1.Altitude      = "409599"
 Instance1.Flags         = 0x0              ; Allow all attachments

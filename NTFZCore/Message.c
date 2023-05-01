@@ -6,7 +6,7 @@
     @Author Fxtack
 */
 
-#include "NtFreezerCore.h"
+#include "NTFZCore.h"
 
 LONG AsMessageException(
     _In_ PEXCEPTION_POINTERS ExceptionPointer,

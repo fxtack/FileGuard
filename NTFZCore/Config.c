@@ -6,7 +6,7 @@
 	@Author Fxtack
 */
 
-#include "NtFreezerCore.h"
+#include "NTFZCore.h"
 
 // Generic table routine required.
 // Comparing two config entry that save in table and return the compare result.
@@ -74,15 +74,25 @@ NTSTATUS QueryConfigFromTable(
 	_In_  PNTFZ_CONFIG QueryConfigEntry,
 	_Out_ PNTFZ_CONFIG ResultConfigEntry
 ) {
+	NTSTATUS status = STATUS_SUCCESS;
 	PNTFZ_CONFIG pResultEntry = NULL;
 
-	pResultEntry = RtlLookupElementGenericTable(&Globals.ConfigTable, QueryConfigEntry);
-	if (pResultEntry == NULL)
-		return STATUS_UNSUCCESSFUL;
+	ExAcquireResourceSharedLite(Globals.ConfigTableShareLock, TRUE);
 
+	pResultEntry = RtlLookupElementGenericTable(&Globals.ConfigTable, QueryConfigEntry);
+	if (pResultEntry == NULL) {
+		status = STATUS_UNSUCCESSFUL;
+		goto returnWithUnlock;
+	}
+		
 	// Copy config result to output buffer.
 	RtlCopyMemory(ResultConfigEntry, pResultEntry, sizeof(NTFZ_CONFIG));
-	return STATUS_SUCCESS;
+
+returnWithUnlock:
+
+	ExReleaseResourceLite(Globals.ConfigTableShareLock);
+
+	return status;
 }
 
 // Add a config to table.
@@ -91,11 +101,15 @@ NTSTATUS AddConfigToTable(
 ) {
 	BOOLEAN inserted = FALSE;
 
+	ExAcquireResourceExclusiveLite(Globals.ConfigTableShareLock, TRUE);
+
 	// Insert config entry.
 	RtlInsertElementGenericTable(&Globals.ConfigTable,
 	                             (PVOID)InsertConfigEntry,
 	                             sizeof(NTFZ_CONFIG),
 	                             &inserted);
+
+	ExReleaseResourceLite(Globals.ConfigTableShareLock);
 
 	return inserted ? STATUS_SUCCESS : STATUS_UNSUCCESSFUL;
 }
@@ -104,8 +118,14 @@ NTSTATUS AddConfigToTable(
 NTSTATUS RemoveConfigFromTable(
 	_In_ PNTFZ_CONFIG RemoveConfigEntry
 ) {
-	return RtlDeleteElementGenericTable(&Globals.ConfigTable, RemoveConfigEntry) ?
+	ExAcquireResourceExclusiveLite(Globals.ConfigTableShareLock, TRUE);
+
+	NTSTATUS status = RtlDeleteElementGenericTable(&Globals.ConfigTable, RemoveConfigEntry) ?
 		STATUS_SUCCESS : STATUS_UNSUCCESSFUL;
+
+	ExReleaseResourceLite(Globals.ConfigTableShareLock);
+
+	return status;
 }
 
 // Clean all configs from table.
@@ -114,10 +134,13 @@ NTSTATUS CleanupConfigTable(
 ) {
 	PVOID entry;
 
+	ExAcquireResourceExclusiveLite(Globals.ConfigTableShareLock, TRUE);
+
 	while (!RtlIsGenericTableEmpty(&Globals.ConfigTable)) {
 		entry = RtlGetElementGenericTable(&Globals.ConfigTable, 0);
 		RtlDeleteElementGenericTable(&Globals.ConfigTable, entry);
 	}
+	ExReleaseResourceLite(Globals.ConfigTableShareLock);
 
 	return STATUS_SUCCESS;
 }

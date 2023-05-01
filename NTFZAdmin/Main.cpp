@@ -1,6 +1,6 @@
 ﻿/*
-    @File   NtFreezerAdmin.cpp
-    @Note   NtFreezerAdmin.
+    @File   Main.cpp
+    @Note   NTFZ Admin main.
 
     @Mode   User
     @Author Fxtack
@@ -18,8 +18,8 @@ _Analysis_mode_(_Analysis_code_type_user_code_)
 #include <Fileapi.h>
 #include <fltUser.h>
 
-#include "NtFreezer.h"
-#include "NtFreezerAdmin.h"
+#include "NTFZ.h"
+#include "NTFZAdmin.h"
 
 inline std::wstring formatConfigPathParam(
     _In_opt_ PCWSTR ConfigPathParam
@@ -60,7 +60,7 @@ int __cdecl wmain(
     wstring command(argv[1]);
     if (command == L"/help") {
         wprintf(
-            L"/version        Check NtFreezer version.\n"
+            L"/version        Check NTFZ version.\n"
             L"/config-add     Add a config.\n"
             L"/config-remove  Remove a config.\n"
             L"/config-cleanup Cleanup all configs.\n"
@@ -71,24 +71,24 @@ int __cdecl wmain(
     string invalidParamError = "Invalid parameter, enter `/help` for usage.";
 
     try {
-        // Initialize NtFreezerAdmin.
+        // Initialize NTFZAdmin.
         ntfz::Admin admin(NTFZ_PORT_NAME);
 
         // Command handling.
         if (command == L"/query-config") {
-            // Find a NtFreezer configuration.
+            // Find a NTFZ configuration.
             if (argc == 3) {
                 auto config = admin.TellCoreQueryConfig(formatConfigPathParam(argv[2]));
-                cout << "Result config: "
-                    << "\nType: " << config->FreezeType 
-                    << "\nPath: " << config->Path
+                wcout << L"Result config: "
+                    << L"\nType: " << config->FreezeType 
+                    << L"\nPath: " << wstring(config->Path)
                     << endl;
                 return 0;
             }
             throw invalidParamError;
 
         } else if (command == L"/add-config") {
-            // Add a NtFreezer configuration.
+            // Add a NTFZ configuration.
             if (argc >= 3) {
                 wstring configPath = formatConfigPathParam(argv[2]);
                 if (configPath.empty()) throw invalidParamError;
@@ -104,9 +104,10 @@ int __cdecl wmain(
             throw invalidParamError;
 
         } else if (command == L"/remove-config") {
-            // Remove NtFreezer configuration.
+            // Remove NTFZ configuration.
             if (argc == 3) {
                 admin.TellCoreRemoveConfig(formatConfigPathParam(argv[2]));
+                wcout << L"Remove config successfully." << endl;
                 return 0;
             }
             throw invalidParamError;
@@ -115,11 +116,12 @@ int __cdecl wmain(
             // Clean up all configurations.
             if (argc > 2) throw invalidParamError;
             admin.TellCoreCleanupConfigs();
+            wcout << L"Cleanup all configs successfully." << endl;
 
         } else if (command == L"/version") {
-            // Print NtFreezerAdmin and NtFreezerCore version information.
+            // Print NTFZAdmin and NTFZCore version information.
             if (argc > 2) throw invalidParamError;
-            admin.TellCorePrintVersion();
+            admin.PrintVersion();
 
         } else {
             cout << "Unknown command, use `-help` or `-h` for help." << endl;

@@ -6,7 +6,7 @@
 	@Author	Fxtack
 */
 
-#include "NtFreezerCore.h"
+#include "NTFZCore.h"
 
 #pragma prefast(disable:__WARNING_ENCODE_MEMBER_FUNCTION_POINTER, "Not valid for kernel mode drivers")
 
@@ -87,18 +87,18 @@ CONST FLT_OPERATION_REGISTRATION Callbacks[] = {
 
     { IRP_MJ_CREATE,
       0,
-      NtFreezerPreOperation,
-      NtFreezerPostOperation },
+      NTFZPreOperationCallback,
+      NTFZPostOperationCallback },
 
     { IRP_MJ_WRITE,
       0,
-      NtFreezerPreOperation,
-      NtFreezerPostOperation },
+      NTFZPreOperationCallback,
+      NTFZPostOperationCallback },
 
     { IRP_MJ_SET_INFORMATION,
       0,
-      NtFreezerPreOperation,
-      NtFreezerPostOperation },
+      NTFZPreOperationCallback,
+      NTFZPostOperationCallback },
 
 
     { IRP_MJ_OPERATION_END }
