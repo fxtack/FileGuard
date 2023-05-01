@@ -96,4 +96,4 @@ DefaultInstance         = "NTFZCore Instance"
 Instance1.Name          = "NTFZCore Instance"
 ; Altitude value, see https://msdn.microsoft.com/en-us/windows/hardware/drivers/ifs/load-order-groups-and-altitudes-for-minifilter-drivers
 Instance1.Altitude      = "409599"
-Instance1.Flags         = 0x0              ; Allow all attachments
+Instance1.Flags         = 0x1
