@@ -27,9 +27,9 @@
 #define MAX_CONFIG_ENTRY_ALLOCATED 1024
 
 // These routine is used by AVL tree (ConfigTable).
-RTL_GENERIC_COMPARE_ROUTINE  configEntryCompareRoutine;  // Compare two config entry.
-RTL_GENERIC_ALLOCATE_ROUTINE configEntryAllocateRoutine; // Allocate config entry.
-RTL_GENERIC_FREE_ROUTINE     configEntryFreeRoutine;     // Free config entry.
+RTL_GENERIC_COMPARE_ROUTINE  ConfigEntryCompareRoutine;  // Compare two config entry.
+RTL_GENERIC_ALLOCATE_ROUTINE ConfigEntryAllocateRoutine; // Allocate config entry.
+RTL_GENERIC_FREE_ROUTINE     ConfigEntryFreeRoutine;     // Free config entry.
 
 /*************************************************************************
     Global variabls.

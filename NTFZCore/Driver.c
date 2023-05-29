@@ -100,7 +100,6 @@ CONST FLT_OPERATION_REGISTRATION Callbacks[] = {
       NTFZPreOperationCallback,
       NTFZPostOperationCallback },
 
-
     { IRP_MJ_OPERATION_END }
 };
 
@@ -145,9 +144,9 @@ DriverEntry(
     UNREFERENCED_PARAMETER(RegistryPath);
     PAGED_CODE();
 
-    KdPrint(("NtFreezerCore!%s Driver entry initialization.", __func__));
+    KdPrint(("NtFZCore!%s: Driver entry initialization.", __func__));
 
-    //  Register with FltMgr to tell it our callback routines
+    // Register with FltMgr to tell it our callback routines
     try {
         // Setup global variables.
         Globals.ConfigEntryMaxAllocated = MAX_CONFIG_ENTRY_ALLOCATED;
@@ -163,9 +162,9 @@ DriverEntry(
 
         // Setup config table.
         RtlInitializeGenericTable(&Globals.ConfigTable,
-                                  configEntryCompareRoutine,
-                                  configEntryAllocateRoutine,
-                                  configEntryFreeRoutine,
+                                  ConfigEntryCompareRoutine,
+                                  ConfigEntryAllocateRoutine,
+                                  ConfigEntryFreeRoutine,
                                   NULL);
 
         // Allocate memory for config table share lock.
@@ -220,7 +219,7 @@ DriverEntry(
             FltFreeSecurityDescriptor(pSecurityDescriptor);
 
         if (!NT_SUCCESS(status)) {
-            KdPrint(("NtFreezerCore!%s: Driver loading failed.", __func__));
+            KdPrint(("NtFZCore!%s: Driver loading failed.", __func__));
 
             if (Globals.ConfigTableShareLock != NULL) {
                 ExDeleteResourceLite(Globals.ConfigTableShareLock);
@@ -236,7 +235,7 @@ DriverEntry(
             ExDeleteNPagedLookasideList(&Globals.ConfigEntryFreeMemPool);
 
         } else {
-            KdPrint(("NtFreezerCore!%s: Driver loaded successfully, version: v%lu.%lu.%lu",
+            KdPrint(("NtFZCore!%s: Driver loaded successfully, version: v%lu.%lu.%lu",
                 __func__, NTFZ_CORE_VERSION_MAJOR, NTFZ_CORE_VERSION_MINOR, NTFZ_CORE_VERSION_PATCH));
         }
     }
@@ -252,7 +251,7 @@ NTFZCoreUnload(
     UNREFERENCED_PARAMETER(Flags);
     PAGED_CODE();
 
-    KdPrint(("NtFreezerCore!%s: Driver unload.", __func__));
+    KdPrint(("NTFZCore!%s: Driver unload.", __func__));
 
     if (Globals.CorePort != NULL) 
         FltCloseCommunicationPort(Globals.CorePort);
@@ -286,7 +285,7 @@ NTFZCoreInstanceSetup(
     UNREFERENCED_PARAMETER(VolumeFilesystemType);
     PAGED_CODE();
 
-    KdPrint(("NtFreezerCore!%s: Instance setup.", __func__));
+    KdPrint(("NtFZCore!%s: Instance setup.", __func__));
 
     return STATUS_SUCCESS;
 }
@@ -301,7 +300,7 @@ NTFZCoreInstanceQueryTeardown(
     UNREFERENCED_PARAMETER(Flags);
     PAGED_CODE();
 
-    KdPrint(("NtFreezerCore!%s: Instance teardown.", __func__));
+    KdPrint(("NtFZCore!%s: Instance teardown.", __func__));
 
     return STATUS_SUCCESS;
 }
@@ -316,7 +315,7 @@ NTFZCoreInstanceTeardownStart(
     UNREFERENCED_PARAMETER(Flags);
     PAGED_CODE();
 
-    KdPrint(("NtFreezerCore!%s: Instance teardown start.", __func__));
+    KdPrint(("NtFZCore!%s: Instance teardown start.", __func__));
 }
 
 
@@ -329,7 +328,7 @@ NTFZCoreInstanceTeardownComplete(
     UNREFERENCED_PARAMETER(Flags);
     PAGED_CODE();
 
-    KdPrint(("NtFreezerCore!%s: Instance teardown comoplete.", __func__));
+    KdPrint(("NtFZCore!%s: Instance teardown comoplete.", __func__));
 }
 
 NTSTATUS NTFZCorePortConnectCallback(
@@ -349,7 +348,7 @@ NTSTATUS NTFZCorePortConnectCallback(
     FLT_ASSERT(Globals.AdminPort == NULL);
     Globals.AdminPort = AdminPort;
 
-    KdPrint(("NtFreezerCore!%s", __func__));
+    KdPrint(("NtFZCore!%s", __func__));
 
     return STATUS_SUCCESS;
 }
@@ -363,5 +362,5 @@ VOID NTFZCorePortDisconnectCallback(
     FLT_ASSERT(Globals.AdminPort != NULL);
     FltCloseClientPort(Globals.Filter, &Globals.AdminPort);
     
-    KdPrint(("NtFreezerCore!%s", __func__));
+    KdPrint(("NtFZCore!%s", __func__));
 }

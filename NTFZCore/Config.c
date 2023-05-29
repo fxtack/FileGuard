@@ -10,7 +10,7 @@
 
 // Generic table routine required.
 // Comparing two config entry that save in table and return the compare result.
-RTL_GENERIC_COMPARE_RESULTS NTAPI configEntryCompareRoutine(
+RTL_GENERIC_COMPARE_RESULTS NTAPI ConfigEntryCompareRoutine(
 	_In_ PRTL_GENERIC_TABLE Table,
 	_In_ PVOID LEntry,
 	_In_ PVOID REntry
@@ -24,7 +24,7 @@ RTL_GENERIC_COMPARE_RESULTS NTAPI configEntryCompareRoutine(
 	RtlInitUnicodeString(&lEntryPath, lEntry->Path);
 	RtlInitUnicodeString(&rEntryPath, rEntry->Path);
 
-	KdPrint(("[NtFreeCore!%s] comparing: [%wZ] [%wZ].", __func__, lEntryPath, rEntryPath));
+	KdPrint(("NTFZCore!%s: comparing: [%wZ] [%wZ].", __func__, lEntryPath, rEntryPath));
 
 	if (RtlPrefixUnicodeString(&rEntryPath, &lEntryPath, FALSE)) {
 		if (lEntryPath.Length == rEntryPath.Length) {
@@ -44,7 +44,7 @@ RTL_GENERIC_COMPARE_RESULTS NTAPI configEntryCompareRoutine(
 // Generic table routine required.
 // When table operation include config entry creation, this routine will be called for
 // memory allocation.
-PVOID NTAPI configEntryAllocateRoutine(
+PVOID NTAPI ConfigEntryAllocateRoutine(
 	_In_ PRTL_GENERIC_TABLE Table,
 	_In_ CLONG ByteSize
 ) {
@@ -58,7 +58,7 @@ PVOID NTAPI configEntryAllocateRoutine(
 // Generic table routine required.
 // When table operation include config entry delete, this routine will be called for free
 // config entry memory.
-VOID NTAPI configEntryFreeRoutine(
+VOID NTAPI ConfigEntryFreeRoutine(
 	_In_ PRTL_GENERIC_TABLE Table,
 	_In_ __drv_freesMem(Mem) _Post_invalid_ PVOID Entry
 ) {
