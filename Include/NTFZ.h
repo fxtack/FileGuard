@@ -64,25 +64,35 @@ typedef struct _NTFZ_CORE_VERSION {
 
 
 // Filesystem item, file or directory.
-#define FS_ITEM_FILE      ((ULONG) 0x00000001)
-#define FS_ITEM_DIRECTORY ((ULONG) 0x00000002)
-#define _VALID_FS_ITEM_ FS_ITEM_FILE |\
-                        FS_ITEM_DIRECTORY
-#define VALID_FS_ITEM(_T_) (_T_ & (_VALID_FS_ITEM_))
+typedef enum _FS_ITEM_TYPE {
+	FsItemFile,
+	FsItemDirectory
+} FS_ITEM_TYPE;
+
+#define _VALID_FS_ITEM_ FsItemFile |\
+                        FsItemDirectory
+#define VALID_FS_ITEM(_T_) ((_T_) & (_VALID_FS_ITEM_))
+
 
 // Freeze type, detail for wiki.
-#define FZ_TYPE_ACCESS_DENIED  ((ULONG) (1 << 1)) 
-#define FZ_TYPE_HIDE           ((ULONG) (1 << 2)) 
-#define FZ_TYPE_STATIC_REPARSE ((ULONG) (1 << 3))
-#define _VALID_FZ_TYPE_ FZ_TYPE_ACCESS_DENIED |\
-                        FZ_TYPE_HIDE |\
-                        FZ_TYPE_STATIC_REPARSE
-#define VALID_FZ_TYPE(_T_) (_T_ & (_VALID_FZ_TYPE_))
+typedef enum _NTFZ_CONFIG_TYPE {
+	FzTypeUndefined     = -1,
+	FzTypeNothing       = 0,
+	FzTypeAccessDenied  = 1 << 1,
+	FzTypeHide          = 1 << 2,
+	FzTypeStaticReparse = 1 << 3
+} NTFZ_CONFIG_TYPE;
+
+#define _VALID_FZ_TYPE_ FzTypeAccessDenied |\
+                        FzTypeHide |\
+                        FzTypeStaticReparse
+#define VALID_FZ_TYPE(_T_) ((_T_) & (_VALID_FZ_TYPE_))
+
 
 // NtFreezer configuration.
 typedef struct _NTFZ_CONFIG {
-	ULONG FsItem;
-	ULONG FreezeType;
+	FS_ITEM_TYPE FsItemType;
+	NTFZ_CONFIG_TYPE FreezeType;
 	WCHAR Path[MAX_PATH + 1];
 } NTFZ_CONFIG, * PNTFZ_CONFIG;
 

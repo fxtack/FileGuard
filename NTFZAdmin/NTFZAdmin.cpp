@@ -18,7 +18,7 @@
 #include "NTFZ.h"
 #include "NTFZAdmin.h"
 
-inline ULONG FzConfigTypeCode(
+inline NTFZ_CONFIG_TYPE FzConfigTypeCode(
     _In_ std::wstring FzConfig
 ) {
     std::transform(
@@ -27,13 +27,13 @@ inline ULONG FzConfigTypeCode(
         FzConfig.begin(),
         tolower);
     if (FzConfig == L"ACCESS_DENIED") {
-        return FZ_TYPE_ACCESS_DENIED;
+        return FzTypeAccessDenied;
     } else if (FzConfig == L"HIDE") {
-        return FZ_TYPE_HIDE;
+        return FzTypeHide;
     } else if (FzConfig == L"STATIC_REPARSE") {
-        return FZ_TYPE_STATIC_REPARSE;
+        return FzTypeStaticReparse;
     } else {
-        return 0;
+        return FzTypeUndefined;
     }
 }
 
@@ -130,7 +130,7 @@ namespace ntfz {
     std::unique_ptr<NTFZ_CONFIG> Admin::TellCoreQueryConfig(
         _In_ std::wstring Path
     ) {
-        REQUEST_QUERY_CONFIG request = { 0 };
+        REQUEST_QUERY_CONFIG request;
         memcpy(request.Path, Path.c_str(), Path.length() * sizeof(WCHAR));
 
         NTFZ_COMMAND msg;
@@ -157,9 +157,9 @@ namespace ntfz {
     ) {
         namespace fs = filesystem;
 
-        REQUEST_ADD_CONFIG request = { 0 };
+        REQUEST_ADD_CONFIG request;
         request.FreezeType = FzConfigTypeCode(ConfigType);
-        request.FsItem = fs::is_directory(Path) ? FS_ITEM_DIRECTORY : FS_ITEM_FILE;
+        request.FsItemType = fs::is_directory(Path) ? FsItemDirectory : FsItemFile;
         memcpy(request.Path, Path.c_str(), Path.length() * sizeof(WCHAR));
 
         NTFZ_COMMAND msg;
@@ -188,7 +188,7 @@ namespace ntfz {
     void Admin::TellCoreRemoveConfig(
         _In_ wstring Path
     ) {
-        REQUEST_REMOVE_CONFIG request = { 0 };
+        REQUEST_REMOVE_CONFIG request;
         memcpy(request.Path, Path.c_str(), Path.length() * sizeof(WCHAR));
 
         NTFZ_COMMAND msg;

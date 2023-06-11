@@ -110,4 +110,10 @@ NTSTATUS CleanupConfigTable(
     VOID
 );
 
+// Query and match NTFZ config.
+NTFZ_CONFIG_TYPE MatchConfig(
+    _In_ FS_ITEM_TYPE FsItemType,
+    _In_ PUNICODE_STRING Path
+);
+
 #endif

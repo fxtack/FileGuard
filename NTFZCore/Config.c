@@ -149,3 +149,10 @@ NTSTATUS CleanupConfigTable(
 
 	return STATUS_SUCCESS;
 }
+
+NTFZ_CONFIG_TYPE MatchConfig(
+	_In_ FS_ITEM_TYPE FsItemType,
+	_In_ PUNICODE_STRING Path
+) {
+	// TODO
+}

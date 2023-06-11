@@ -167,7 +167,7 @@ NTFZPreOperationCallback (
     //  Set the status to STATUS_REPARSE
     status = STATUS_REPARSE;
 
-SimRepPreCreateCleanup:
+Cleanup:
 
     //  Release the references we have acquired
     SimRepFreeUnicodeString(&newFileName);
