@@ -72,7 +72,7 @@ int __cdecl wmain(
 
     try {
         // Initialize NTFZAdmin.
-        ntfz::Admin admin(NTFZ_PORT_NAME);
+        ntfz::Admin admin(NTFZ_COMMAND_PORT_NAME);
 
         // Command handling.
         if (command == L"/query-config") {

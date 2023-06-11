@@ -11,10 +11,11 @@
 
 #define MAX_PATH 260
 
-#define NTFZ_PORT_NAME L"\\NtFreezerPort"
+#define NTFZ_COMMAND_PORT_NAME L"\\NTFZCommandPort"
+#define NTFZ_LOG_PORT_NAME     L"\\NTFZLogPort"
 
 // The type of message that sending from admin to core.
-typedef enum _NTFZ_A2CMSG_TYPE {
+typedef enum _NTFZ_COMMAND_TYPE {
 
 	// Get core version.
 	GetCoreVersion,
@@ -31,14 +32,14 @@ typedef enum _NTFZ_A2CMSG_TYPE {
 	// Cleanup all configurations.
 	CleanupConfig
 
-} NTFZ_A2CMSG_TYPE;
+} NTFZ_COMMAND_TYPE;
 
 
 // The message sending from admin to core.
-typedef struct _NTFZ_A2CMSG {
+typedef struct _NTFZ_COMMAND {
 
 	// Message type.
-	NTFZ_A2CMSG_TYPE MsgType;
+	NTFZ_COMMAND_TYPE MsgType;
 
 	// Message metadata.
 	_Field_size_opt_(MetadataBytes)
@@ -46,11 +47,11 @@ typedef struct _NTFZ_A2CMSG {
 	ULONG MetadataBytes;
 
 	// Message data is a pointer to a request structure instance typically.
-	_Field_size_opt_(DataBytes) 
+	_Field_size_opt_(DataBytes)
 	PVOID Data;
 	ULONG DataBytes;
 
-} NTFZ_A2CMSG, *PNTFZ_A2CMSG;
+} NTFZ_COMMAND, *PNTFZ_COMMAND;
 
 
 // NtFreezer core version.
@@ -70,14 +71,12 @@ typedef struct _NTFZ_CORE_VERSION {
 #define VALID_FS_ITEM(_T_) (_T_ & (_VALID_FS_ITEM_))
 
 // Freeze type, detail for wiki.
-#define FZ_TYPE_HIDE        ((ULONG) (1 << 1)) 
-#define FZ_TYPE_READONLY    ((ULONG) (1 << 2)) 
-#define FZ_TYPE_EMPTY_DIR   ((ULONG) (1 << 3))
-#define FZ_TYPE_REPARSE_DIR ((ULONG) (1 << 4))
-#define _VALID_FZ_TYPE_ FZ_TYPE_HIDE |\
-                        FZ_TYPE_READONLY |\
-                        FZ_TYPE_EMPTY_DIR |\
-                        FZ_TYPE_REPARSE_DIR
+#define FZ_TYPE_ACCESS_DENIED  ((ULONG) (1 << 1)) 
+#define FZ_TYPE_HIDE           ((ULONG) (1 << 2)) 
+#define FZ_TYPE_STATIC_REPARSE ((ULONG) (1 << 3))
+#define _VALID_FZ_TYPE_ FZ_TYPE_ACCESS_DENIED |\
+                        FZ_TYPE_HIDE |\
+                        FZ_TYPE_STATIC_REPARSE
 #define VALID_FZ_TYPE(_T_) (_T_ & (_VALID_FZ_TYPE_))
 
 // NtFreezer configuration.

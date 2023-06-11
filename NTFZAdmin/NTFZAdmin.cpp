@@ -26,14 +26,12 @@ inline ULONG FzConfigTypeCode(
         FzConfig.end(),
         FzConfig.begin(),
         tolower);
-    if (FzConfig == L"hide") {
+    if (FzConfig == L"ACCESS_DENIED") {
+        return FZ_TYPE_ACCESS_DENIED;
+    } else if (FzConfig == L"HIDE") {
         return FZ_TYPE_HIDE;
-    } else if (FzConfig == L"readonly") {
-        return FZ_TYPE_READONLY;
-    } else if (FzConfig == L"empty-dir") {
-        return FZ_TYPE_EMPTY_DIR;
-    } else if (FzConfig == L"reparse-dir") {
-        return FZ_TYPE_REPARSE_DIR;
+    } else if (FzConfig == L"STATIC_REPARSE") {
+        return FZ_TYPE_STATIC_REPARSE;
     } else {
         return 0;
     }
@@ -95,13 +93,13 @@ namespace ntfz {
         if (IS_ERROR(hResult))
             throw AdminError(hResult, "Connect to core failed, ensure that the core driver is loaded.");    
 
-        NTFZ_A2CMSG msg;
+        NTFZ_COMMAND msg;
         RESPONSE_GET_VERSION respVersion = { 0 };
         DWORD returnBytes;
         msg.MsgType = GetCoreVersion;
         
         hResult = FilterSendMessage(_port_,
-                                    &msg, sizeof(NTFZ_A2CMSG),
+                                    &msg, sizeof(NTFZ_COMMAND),
                                     &respVersion, sizeof(RESPONSE_GET_VERSION),
                                     &returnBytes);
         if (IS_ERROR(hResult) || returnBytes != sizeof(RESPONSE_GET_VERSION))
@@ -135,7 +133,7 @@ namespace ntfz {
         REQUEST_QUERY_CONFIG request = { 0 };
         memcpy(request.Path, Path.c_str(), Path.length() * sizeof(WCHAR));
 
-        NTFZ_A2CMSG msg;
+        NTFZ_COMMAND msg;
         msg.MsgType = QueryConfig;
         msg.Data = (PVOID)&request;
         msg.DataBytes = sizeof(request);
@@ -143,7 +141,7 @@ namespace ntfz {
         NTFZ_CONFIG resp;
         DWORD returneBytes;
         auto hResult = FilterSendMessage(_port_,
-                                         &msg, sizeof(NTFZ_A2CMSG),
+                                         &msg, sizeof(NTFZ_COMMAND),
                                          &resp, sizeof(NTFZ_CONFIG),
                                          &returneBytes);
         if (IS_ERROR(hResult))
@@ -164,7 +162,7 @@ namespace ntfz {
         request.FsItem = fs::is_directory(Path) ? FS_ITEM_DIRECTORY : FS_ITEM_FILE;
         memcpy(request.Path, Path.c_str(), Path.length() * sizeof(WCHAR));
 
-        NTFZ_A2CMSG msg;
+        NTFZ_COMMAND msg;
         msg.MsgType = AddConfig;
         msg.Data = (PVOID) &request;
         msg.DataBytes = sizeof(request);
@@ -172,7 +170,7 @@ namespace ntfz {
         DWORD returnBytes;
         auto hResult = FilterSendMessage(_port_,
                                          &msg,
-                                         sizeof(NTFZ_A2CMSG),
+                                         sizeof(NTFZ_COMMAND),
                                          NULL,
                                          0,
                                          &returnBytes);
@@ -193,14 +191,14 @@ namespace ntfz {
         REQUEST_REMOVE_CONFIG request = { 0 };
         memcpy(request.Path, Path.c_str(), Path.length() * sizeof(WCHAR));
 
-        NTFZ_A2CMSG msg;
+        NTFZ_COMMAND msg;
         msg.MsgType = RemoveConfig;
         msg.Data = (PVOID)&request;
         msg.DataBytes = sizeof(request);
 
         DWORD returnBytes;
         auto hResult = FilterSendMessage(_port_,
-                                         &msg, sizeof(NTFZ_A2CMSG),
+                                         &msg, sizeof(NTFZ_COMMAND),
                                          NULL,
                                          0,
                                          &returnBytes);
@@ -210,12 +208,12 @@ namespace ntfz {
 
     // Send a message to the core to clean up all configurations.
     void Admin::TellCoreCleanupConfigs() {
-        NTFZ_A2CMSG msg;
+        NTFZ_COMMAND msg;
         msg.MsgType = CleanupConfig;
         
         DWORD returnBytes;
         auto hResult = FilterSendMessage(_port_,
-                                         &msg, sizeof(NTFZ_A2CMSG),
+                                         &msg, sizeof(NTFZ_COMMAND),
                                          NULL,
                                          0,
                                          &returnBytes);

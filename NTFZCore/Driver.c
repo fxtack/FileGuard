@@ -181,7 +181,7 @@ DriverEntry(
         if (!NT_SUCCESS(status)) leave;
 
         // Make unicode string port name.
-        RtlInitUnicodeString(&portName, NTFZ_PORT_NAME);
+        RtlInitUnicodeString(&portName, NTFZ_COMMAND_PORT_NAME);
         InitializeObjectAttributes(&objAttr,
                                    &portName,
                                    OBJ_KERNEL_HANDLE | OBJ_CASE_INSENSITIVE,

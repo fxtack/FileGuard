@@ -137,18 +137,18 @@ NTSTATUS NTFZCoreMessageHandlerRoutine(
     UNREFERENCED_PARAMETER(ConnectionCookie);
 
     NTSTATUS status = STATUS_INVALID_PARAMETER;
-    PNTFZ_A2CMSG pMsg;
+    PNTFZ_COMMAND pMsg;
 
     PAGED_CODE();
 
     ASSERT(ReturnSize != NULL);
 
     if ((Input == NULL) ||
-        (InputBytes < (FIELD_OFFSET(NTFZ_A2CMSG, MsgType) + sizeof(NTFZ_A2CMSG)))) {
+        (InputBytes < (FIELD_OFFSET(NTFZ_COMMAND, MsgType) + sizeof(NTFZ_COMMAND)))) {
         KdPrint(("NTFZCore!%s: Bad message from admin.", __func__));
         return status;
     } else {
-        pMsg = (PNTFZ_A2CMSG)Input;
+        pMsg = (PNTFZ_COMMAND)Input;
         *ReturnSize = 0;
     }
 
