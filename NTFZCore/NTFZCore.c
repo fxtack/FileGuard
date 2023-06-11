@@ -48,6 +48,7 @@ NTFZPreOperationCallback (
     NTSTATUS status;
     FLT_PREOP_CALLBACK_STATUS callbackStatus;
     UNICODE_STRING newFileName;
+    UNICODE_STRING temporaryPrefix;
 
     // Initialize defaults
     status = STATUS_SUCCESS;
@@ -135,8 +136,14 @@ NTFZPreOperationCallback (
         goto Cleanup;
     }
 
-    Data->IoStatus.Status = STATUS_ACCESS_DENIED;
-    callbackStatus = FLT_PREOP_COMPLETE;
+    RtlInitUnicodeString(&temporaryPrefix, L"test-dir");
+
+    KdPrint(("NTFZ!%s: %wZ %wZ", __func__, nameInfo->Name, temporaryPrefix));
+
+    if(RtlSuffixUnicodeString(&temporaryPrefix, &nameInfo->Name, FALSE)) {
+        Data->IoStatus.Status = STATUS_ACCESS_DENIED;
+        callbackStatus = FLT_PREOP_COMPLETE;
+    }
 
 Cleanup:
 
