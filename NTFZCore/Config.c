@@ -75,9 +75,10 @@ NTSTATUS QueryConfigFromTable(
 	_Out_ PNTFZ_CONFIG ResultConfigEntry
 ) {
 	NTSTATUS status = STATUS_SUCCESS;
+	KIRQL originalIRQL;
 	PNTFZ_CONFIG pResultEntry = NULL;
 
-	ExAcquireResourceSharedLite(Globals.ConfigTableShareLock, TRUE);
+	KeAcquireSpinLock(&Globals.ConfigTableLock, &originalIRQL);
 
 	pResultEntry = RtlLookupElementGenericTable(&Globals.ConfigTable, QueryConfigEntry);
 	if (pResultEntry == NULL) {
@@ -90,7 +91,7 @@ NTSTATUS QueryConfigFromTable(
 
 returnWithUnlock:
 
-	ExReleaseResourceLite(Globals.ConfigTableShareLock);
+	KeReleaseSpinLock(&Globals.ConfigTableLock, originalIRQL);
 
 	return status;
 }
@@ -99,9 +100,10 @@ returnWithUnlock:
 NTSTATUS AddConfigToTable(
 	_In_ PNTFZ_CONFIG InsertConfigEntry
 ) {
+	KIRQL originalIRQL;
 	BOOLEAN inserted = FALSE;
 
-	ExAcquireResourceExclusiveLite(Globals.ConfigTableShareLock, TRUE);
+	KeAcquireSpinLock(&Globals.ConfigTableLock, &originalIRQL);
 
 	// Insert config entry.
 	RtlInsertElementGenericTable(&Globals.ConfigTable,
@@ -109,7 +111,7 @@ NTSTATUS AddConfigToTable(
 	                             sizeof(NTFZ_CONFIG),
 	                             &inserted);
 
-	ExReleaseResourceLite(Globals.ConfigTableShareLock);
+	KeReleaseSpinLock(&Globals.ConfigTableLock, originalIRQL);
 
 	return inserted ? STATUS_SUCCESS : STATUS_UNSUCCESSFUL;
 }
@@ -118,12 +120,14 @@ NTSTATUS AddConfigToTable(
 NTSTATUS RemoveConfigFromTable(
 	_In_ PNTFZ_CONFIG RemoveConfigEntry
 ) {
-	ExAcquireResourceExclusiveLite(Globals.ConfigTableShareLock, TRUE);
+	KIRQL originalIRQL;
+
+	KeAcquireSpinLock(&Globals.ConfigTableLock, &originalIRQL);
 
 	NTSTATUS status = RtlDeleteElementGenericTable(&Globals.ConfigTable, RemoveConfigEntry) ?
 		STATUS_SUCCESS : STATUS_UNSUCCESSFUL;
 
-	ExReleaseResourceLite(Globals.ConfigTableShareLock);
+	KeReleaseSpinLock(&Globals.ConfigTableLock, originalIRQL);
 
 	return status;
 }
@@ -132,15 +136,16 @@ NTSTATUS RemoveConfigFromTable(
 NTSTATUS CleanupConfigTable(
 	VOID
 ) {
+	KIRQL originalIRQL;
 	PVOID entry;
 
-	ExAcquireResourceExclusiveLite(Globals.ConfigTableShareLock, TRUE);
+	KeAcquireSpinLock(&Globals.ConfigTableLock, &originalIRQL);
 
 	while (!RtlIsGenericTableEmpty(&Globals.ConfigTable)) {
 		entry = RtlGetElementGenericTable(&Globals.ConfigTable, 0);
 		RtlDeleteElementGenericTable(&Globals.ConfigTable, entry);
 	}
-	ExReleaseResourceLite(Globals.ConfigTableShareLock);
+	KeReleaseSpinLock(&Globals.ConfigTableLock, originalIRQL);
 
 	return STATUS_SUCCESS;
 }

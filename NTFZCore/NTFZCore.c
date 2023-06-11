@@ -39,17 +39,12 @@ NTFZPreOperationCallback (
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
     _Flt_CompletionContext_Outptr_ PVOID *CompletionContext
 ) {
-    NTSTATUS status = FLT_PREOP_SUCCESS_WITH_CALLBACK;
 
     UNREFERENCED_PARAMETER(Data);
     UNREFERENCED_PARAMETER(FltObjects);
     UNREFERENCED_PARAMETER(CompletionContext);
 
-    // This template code does not do anything with the callbackData, but
-    // rather returns FLT_PREOP_SUCCESS_WITH_CALLBACK.
-    // This passes the request down to the next miniFilter in the chain.
-
-    return status;
+    return FLT_POSTOP_FINISHED_PROCESSING;
 }
 
 

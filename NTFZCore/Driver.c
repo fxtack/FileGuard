@@ -167,17 +167,8 @@ DriverEntry(
                                   ConfigEntryFreeRoutine,
                                   NULL);
 
-        // Allocate memory for config table share lock.
-        Globals.ConfigTableShareLock = (PERESOURCE)ExAllocatePool2(POOL_FLAG_NON_PAGED,
-                                                                   sizeof(ERESOURCE),
-                                                                   MEM_NPAGED_POOL_TAG_SHARE_LOCK);
-        if (Globals.ConfigTableShareLock == NULL) {
-            status = STATUS_NO_MEMORY;
-            leave;
-        }
-        // Initialize config table share lock.
-        status = ExInitializeResourceLite(Globals.ConfigTableShareLock);
-        if (!NT_SUCCESS(status)) leave;
+        // Initialize config table share spin lock.
+        KeInitializeSpinLock(&Globals.ConfigTableLock);
 
         // Register filter driver.
         status = FltRegisterFilter(DriverObject,
@@ -221,11 +212,6 @@ DriverEntry(
         if (!NT_SUCCESS(status)) {
             KdPrint(("NtFZCore!%s: Driver loading failed.", __func__));
 
-            if (Globals.ConfigTableShareLock != NULL) {
-                ExDeleteResourceLite(Globals.ConfigTableShareLock);
-                ExFreePool(Globals.ConfigTableShareLock);
-            }
-
             if (Globals.CorePort != NULL)
                 FltCloseCommunicationPort(Globals.CorePort);
 
@@ -260,11 +246,6 @@ NTFZCoreUnload(
         FltUnregisterFilter(Globals.Filter);
 
     CleanupConfigTable();
-
-    if (Globals.ConfigTableShareLock != NULL) {
-        ExDeleteResourceLite(Globals.ConfigTableShareLock);
-        ExFreePool(Globals.ConfigTableShareLock);
-    }
 
     ExDeleteNPagedLookasideList(&Globals.ConfigEntryFreeMemPool);
 

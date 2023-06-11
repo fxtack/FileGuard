@@ -45,7 +45,7 @@ typedef struct _NTFZ_CORE_GLOBALS {
     NPAGED_LOOKASIDE_LIST ConfigEntryFreeMemPool; // Memory pool of config entry.
 
     RTL_AVL_TABLE ConfigTable;                    // Config table.
-    PERESOURCE ConfigTableShareLock;              // Config table share lock.
+    KSPIN_LOCK ConfigTableLock;              // Config table share lock.
 
 } NTFZ_CORE_GLOBALS, *PNTFZ_CORE_GLOBALS;
 
