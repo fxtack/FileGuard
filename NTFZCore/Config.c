@@ -154,5 +154,10 @@ NTFZ_CONFIG_TYPE MatchConfig(
 	_In_ FS_ITEM_TYPE FsItemType,
 	_In_ PUNICODE_STRING Path
 ) {
+	UNREFERENCED_PARAMETER(FsItemType);
+	UNREFERENCED_PARAMETER(Path);
+	
 	// TODO
+
+	return FzTypeUndefined;
 }
