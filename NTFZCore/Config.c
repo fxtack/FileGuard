@@ -27,9 +27,6 @@ RTL_GENERIC_COMPARE_RESULTS NTAPI ConfigEntryCompareRoutine(
 	ASSERT(lPath != NULL && lPathLen != 0);
 	ASSERT(rPath != NULL && rPathLen != 0);
 
-	KdPrint(("NTFZCore!%s: Compare NTFZ config entry, left index: [%ws], right index: [%ws].",
-		__func__, lPath, rPath));
-
 	prefixCompareResult = wcsncmp(lPath, rPath, rPathLen);
 	if (prefixCompareResult == 0) {
 		
