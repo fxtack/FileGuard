@@ -155,16 +155,14 @@ namespace ntfz {
         _In_ wstring ConfigType,
         _In_ wstring Path
     ) {
-        namespace fs = filesystem;
-
         REQUEST_ADD_CONFIG request;
         request.FreezeType = FzConfigTypeCode(ConfigType);
         memcpy(request.Path, Path.c_str(), Path.length() * sizeof(WCHAR));
 
         NTFZ_COMMAND msg;
         msg.MsgType = AddConfig;
-        msg.Data = (PVOID) &request;
-        msg.DataBytes = sizeof(request);
+        msg.Data = (PVOID)&request;
+        msg.DataBytes = sizeof(REQUEST_ADD_CONFIG);
 
         DWORD returnBytes;
         auto hResult = FilterSendMessage(_port_,
@@ -180,7 +178,7 @@ namespace ntfz {
     void Admin::TellCoreAddConfig(
         _In_ std::wstring Path
     ) {
-        this->TellCoreAddConfig(L"readonly", Path);
+        this->TellCoreAddConfig(L"ACCESS_DENIED", Path);
     }
 
     // Send a message to the core to find and delete a configuration.
