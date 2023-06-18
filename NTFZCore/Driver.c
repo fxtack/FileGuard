@@ -144,7 +144,7 @@ DriverEntry(
     UNREFERENCED_PARAMETER(RegistryPath);
     PAGED_CODE();
 
-    KdPrint(("NtFZCore!%s: Driver entry initialization.", __func__));
+    KdPrint(("NtFZCore!%s: Driver entry initialization\n", __func__));
 
     // Register with FltMgr to tell it our callback routines
     try {
@@ -210,7 +210,7 @@ DriverEntry(
             FltFreeSecurityDescriptor(pSecurityDescriptor);
 
         if (!NT_SUCCESS(status)) {
-            KdPrint(("NtFZCore!%s: Driver loading failed.", __func__));
+            KdPrint(("NtFZCore!%s: Driver loading failed\n", __func__));
 
             if (Globals.CorePort != NULL)
                 FltCloseCommunicationPort(Globals.CorePort);
@@ -221,7 +221,7 @@ DriverEntry(
             ExDeleteNPagedLookasideList(&Globals.ConfigEntryFreeMemPool);
 
         } else {
-            KdPrint(("NtFZCore!%s: Driver loaded successfully, version: v%lu.%lu.%lu",
+            KdPrint(("NtFZCore!%s: Driver loaded successfully, version: v%lu.%lu.%lu\n",
                 __func__, NTFZ_CORE_VERSION_MAJOR, NTFZ_CORE_VERSION_MINOR, NTFZ_CORE_VERSION_PATCH));
         }
     }
@@ -237,7 +237,7 @@ NTFZCoreUnload(
     UNREFERENCED_PARAMETER(Flags);
     PAGED_CODE();
 
-    KdPrint(("NTFZCore!%s: Driver unload.", __func__));
+    KdPrint(("NTFZCore!%s: Driver unload\n", __func__));
 
     if (Globals.CorePort != NULL) 
         FltCloseCommunicationPort(Globals.CorePort);
@@ -266,7 +266,7 @@ NTFZCoreInstanceSetup(
     UNREFERENCED_PARAMETER(VolumeFilesystemType);
     PAGED_CODE();
 
-    KdPrint(("NtFZCore!%s: Instance setup.", __func__));
+    KdPrint(("NtFZCore!%s: Instance setup\n", __func__));
 
     return STATUS_SUCCESS;
 }
@@ -281,7 +281,7 @@ NTFZCoreInstanceQueryTeardown(
     UNREFERENCED_PARAMETER(Flags);
     PAGED_CODE();
 
-    KdPrint(("NtFZCore!%s: Instance teardown.", __func__));
+    KdPrint(("NtFZCore!%s: Instance teardown\n", __func__));
 
     return STATUS_SUCCESS;
 }
@@ -296,7 +296,7 @@ NTFZCoreInstanceTeardownStart(
     UNREFERENCED_PARAMETER(Flags);
     PAGED_CODE();
 
-    KdPrint(("NtFZCore!%s: Instance teardown start.", __func__));
+    KdPrint(("NtFZCore!%s: Instance teardown starting\n", __func__));
 }
 
 
@@ -309,7 +309,7 @@ NTFZCoreInstanceTeardownComplete(
     UNREFERENCED_PARAMETER(Flags);
     PAGED_CODE();
 
-    KdPrint(("NtFZCore!%s: Instance teardown comoplete.", __func__));
+    KdPrint(("NtFZCore!%s: Instance teardown comopleted\n", __func__));
 }
 
 NTSTATUS NTFZCorePortConnectCallback(
@@ -329,7 +329,7 @@ NTSTATUS NTFZCorePortConnectCallback(
     FLT_ASSERT(Globals.AdminPort == NULL);
     Globals.AdminPort = AdminPort;
 
-    KdPrint(("NtFZCore!%s", __func__));
+    KdPrint(("NtFZCore!%s: Communication port connected\n", __func__));
 
     return STATUS_SUCCESS;
 }
@@ -343,5 +343,5 @@ VOID NTFZCorePortDisconnectCallback(
     FLT_ASSERT(Globals.AdminPort != NULL);
     FltCloseClientPort(Globals.Filter, &Globals.AdminPort);
     
-    KdPrint(("NtFZCore!%s", __func__));
+    KdPrint(("NtFZCore!%s: Communication port disconnected\n", __func__));
 }

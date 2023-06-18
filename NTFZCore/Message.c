@@ -14,8 +14,7 @@ LONG AsMessageException(
 ) {
     NTSTATUS status = ExceptionPointer->ExceptionRecord->ExceptionCode;
 
-    if (!FsRtlIsNtstatusExpected(status) &&
-        !AccessingUserBuffer) {
+    if (!FsRtlIsNtstatusExpected(status) && !AccessingUserBuffer) {
         return EXCEPTION_CONTINUE_SEARCH;
     }
 
@@ -63,14 +62,12 @@ inline NTSTATUS HandlerAddConfig(
     NTSTATUS status = STATUS_SUCCESS;
 
     if (AddConfig == NULL || AddConfigSize != sizeof(REQUEST_ADD_CONFIG)) {
-        KdPrint(("NTFZCore!%s: Invalid input buffer.", __func__));
         return STATUS_INVALID_PARAMETER;
     }
 
     try {
         status = AddConfigToTable((PNTFZ_CONFIG)AddConfig);
     } except(AsMessageException(GetExceptionInformation(), TRUE)) {
-        KdPrint(("NTFZCore!%s: Get exception.", __func__));
         status = GetExceptionCode();
     }
     
@@ -145,7 +142,7 @@ NTSTATUS NTFZCoreMessageHandlerRoutine(
 
     if ((Input == NULL) ||
         (InputBytes < (FIELD_OFFSET(NTFZ_COMMAND, MsgType) + sizeof(NTFZ_COMMAND)))) {
-        KdPrint(("NTFZCore!%s: Bad message from admin.", __func__));
+        KdPrint(("NTFZCore!%s: Bad message from admin\n", __func__));
         return status;
     } else {
         pMsg = (PNTFZ_COMMAND)Input;
@@ -159,31 +156,31 @@ NTSTATUS NTFZCoreMessageHandlerRoutine(
                                     Output,
                                     OutputBytes,
                                     ReturnSize);
-        KdPrint(("NTFZCore!%s: Handle message type [QueryConfig], status: [%x].", __func__, status));
+        KdPrint(("NTFZCore!%s: Handle message type 'QueryConfig', status: 0x%08x\n", __func__, status));
 
         break;
     case AddConfig:
         status = HandlerAddConfig(pMsg->Data, pMsg->DataBytes);
-        KdPrint(("NTFZCore!%s: Handle message type [AddConfig], status: [%x].", __func__, status));
+        KdPrint(("NTFZCore!%s: Handle message type 'AddConfig', status: 0x%08x\n", __func__, status));
 
         break;
     case RemoveConfig:
         status = HandlerRemoveConfig(pMsg->Data, pMsg->DataBytes);
-        KdPrint(("NTFZCore!%s: Handle message type [RemoveConfig], status��[%x].", __func__, status));
+        KdPrint(("NTFZCore!%s: Handle message type: 'RemoveConfig', status: 0x%08x\n", __func__, status));
 
         break;
     case CleanupConfig:
         status = HandlerCleanupConfig();
-        KdPrint(("NTFZCore!%s: Handle message type [CleanupConfig], status: [%x].", __func__, status));
+        KdPrint(("NTFZCore!%s: Handle message type 'CleanupConfig', status: 0x%08x\n", __func__, status));
 
         break;
     case GetCoreVersion:
         status = HandlerGetVersion(Output, OutputBytes, ReturnSize);
-        KdPrint(("NTFZCore!%s: Handle message type [GetCoreVersion], status: [%x].", __func__, status));
+        KdPrint(("NTFZCore!%s: Handle message type 'GetCoreVersion', status: 0x%08x\n", __func__, status));
 
         break;
     default:
-        KdPrint(("NTFZCore!%s: Unknown message type.", __func__));
+        KdPrint(("NTFZCore!%s: Unknown message type: %d\n", __func__, pMsg->MsgType));
     }
 
     return status;
