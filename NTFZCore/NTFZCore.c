@@ -136,9 +136,9 @@ NTFZPreOperationCallback (
         goto Cleanup;
     }
 
-    RtlInitUnicodeString(&temporaryPrefix, L"test-dir");
+    KdPrint(("NTFZCore!%s: Operation file path: %wZ.\n", __func__, nameInfo->Name));
 
-    KdPrint(("NTFZ!%s: %wZ %wZ", __func__, nameInfo->Name, temporaryPrefix));
+    RtlInitUnicodeString(&temporaryPrefix, L"test-dir");
 
     if(RtlSuffixUnicodeString(&temporaryPrefix, &nameInfo->Name, FALSE)) {
         Data->IoStatus.Status = STATUS_ACCESS_DENIED;

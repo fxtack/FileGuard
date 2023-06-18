@@ -97,12 +97,12 @@ NTSTATUS QueryConfigFromTable(
 
 // Add a config to table.
 NTSTATUS AddConfigToTable(
-    _In_ PNTFZ_CONFIG InsertConfigEntry
+    _In_ PNTFZ_CONFIG InsertConfig
 );
 
 // Find the config from table by index and remove it.
 NTSTATUS RemoveConfigFromTable(
-    _In_ PNTFZ_CONFIG RemoveConfigEntry
+    _In_ PNTFZ_CONFIG RemoveConfig
 );
 
 // Cleanup config table and release configs memory.
@@ -112,7 +112,6 @@ NTSTATUS CleanupConfigTable(
 
 // Query and match NTFZ config.
 NTFZ_CONFIG_TYPE MatchConfig(
-    _In_ FS_ITEM_TYPE FsItemType,
     _In_ PUNICODE_STRING Path
 );
 

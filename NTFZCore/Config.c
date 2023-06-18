@@ -17,28 +17,42 @@ RTL_GENERIC_COMPARE_RESULTS NTAPI ConfigEntryCompareRoutine(
 ) {
 	UNREFERENCED_PARAMETER(Table);
 
-	PNTFZ_CONFIG lEntry = (PNTFZ_CONFIG)LEntry;
-	PNTFZ_CONFIG rEntry = (PNTFZ_CONFIG)REntry;
-	UNICODE_STRING lEntryPath = { 0 }, rEntryPath = { 0 };
+	INT prefixCompareResult;
+	PWCHAR lPath = ((PNTFZ_CONFIG)LEntry)->Path;
+	PWCHAR rPath = ((PNTFZ_CONFIG)REntry)->Path;
 
-	RtlInitUnicodeString(&lEntryPath, lEntry->Path);
-	RtlInitUnicodeString(&rEntryPath, rEntry->Path);
+	SIZE_T lPathLen = wcslen(lPath);
+	SIZE_T rPathLen = wcslen(rPath);
 
-	KdPrint(("NTFZCore!%s: comparing: [%wZ] [%wZ].", __func__, lEntryPath, rEntryPath));
+	ASSERT(lPath != NULL && lPathLen != 0);
+	ASSERT(rPath != NULL && rPathLen != 0);
 
-	if (RtlPrefixUnicodeString(&rEntryPath, &lEntryPath, FALSE)) {
-		if (lEntryPath.Length == rEntryPath.Length) {
+	KdPrint(("NTFZCore!%s: Compare NTFZ config entry, left index: [%ws], right index: [%ws].",
+		__func__, lPath, rPath));
 
-			// When file or directory (lEntryPath) equal config path (rEntryPath).
+	prefixCompareResult = wcsncmp(lPath, rPath, rPathLen);
+	if (prefixCompareResult == 0) {
+		
+		if (lPathLen == rPathLen) {
+		/*
+			example:
+			Left path:  \Device\HarddiskVolume7\dir
+			Right path: \Device\HarddiskVolume7\dir
+		*/
 			return GenericEqual;
-		} else if (lEntryPath.Buffer[rEntryPath.Length / sizeof(WCHAR)] == OBJ_NAME_PATH_SEPARATOR) {
+		}
 
-			// When the file or directory (lEntryPath) under the config path (rEntryPath).
+		if (lPath[rPathLen] == OBJ_NAME_PATH_SEPARATOR) {
+			/*
+				example:
+				Left path:  \Device\HarddiskVolume7\dir\file
+				Right path: \Device\HarddiskVolume7\dir
+			*/
 			return GenericEqual;
 		}
 	}
-	return RtlCompareUnicodeString(&lEntryPath, &rEntryPath, FALSE) > 0 ?
-		GenericGreaterThan : GenericLessThan;
+
+	return prefixCompareResult > 0 ? GenericGreaterThan : GenericLessThan;
 }
 
 // Generic table routine required.
@@ -80,7 +94,7 @@ NTSTATUS QueryConfigFromTable(
 
 	KeAcquireSpinLock(&Globals.ConfigTableLock, &originalIRQL);
 
-	pResultEntry = RtlLookupElementGenericTable(&Globals.ConfigTable, QueryConfigEntry);
+	pResultEntry = RtlLookupElementGenericTable(&Globals.ConfigTable, (PVOID)QueryConfigEntry);
 	if (pResultEntry == NULL) {
 		status = STATUS_UNSUCCESSFUL;
 		goto returnWithUnlock;
@@ -98,7 +112,7 @@ returnWithUnlock:
 
 // Add a config to table.
 NTSTATUS AddConfigToTable(
-	_In_ PNTFZ_CONFIG InsertConfigEntry
+	_In_ PNTFZ_CONFIG InsertConfig
 ) {
 	KIRQL originalIRQL;
 	BOOLEAN inserted = FALSE;
@@ -107,7 +121,7 @@ NTSTATUS AddConfigToTable(
 
 	// Insert config entry.
 	RtlInsertElementGenericTable(&Globals.ConfigTable,
-	                             (PVOID)InsertConfigEntry,
+	                             (PVOID)InsertConfig,
 	                             sizeof(NTFZ_CONFIG),
 	                             &inserted);
 
@@ -118,13 +132,13 @@ NTSTATUS AddConfigToTable(
 
 // Find up the config by index and remove it.
 NTSTATUS RemoveConfigFromTable(
-	_In_ PNTFZ_CONFIG RemoveConfigEntry
+	_In_ PNTFZ_CONFIG RemoveConfig
 ) {
 	KIRQL originalIRQL;
 
 	KeAcquireSpinLock(&Globals.ConfigTableLock, &originalIRQL);
 
-	NTSTATUS status = RtlDeleteElementGenericTable(&Globals.ConfigTable, RemoveConfigEntry) ?
+	NTSTATUS status = RtlDeleteElementGenericTable(&Globals.ConfigTable, RemoveConfig) ?
 		STATUS_SUCCESS : STATUS_UNSUCCESSFUL;
 
 	KeReleaseSpinLock(&Globals.ConfigTableLock, originalIRQL);
@@ -151,13 +165,24 @@ NTSTATUS CleanupConfigTable(
 }
 
 NTFZ_CONFIG_TYPE MatchConfig(
-	_In_ FS_ITEM_TYPE FsItemType,
 	_In_ PUNICODE_STRING Path
 ) {
-	UNREFERENCED_PARAMETER(FsItemType);
-	UNREFERENCED_PARAMETER(Path);
-	
-	// TODO
+	KIRQL originalIRQL;
+	NTFZ_CONFIG_TYPE matchConfigType = FzTypeNothing;
+	NTFZ_CONFIG queryEntry = { 0 };
+	PNTFZ_CONFIG resultEntry;
 
-	return FzTypeUndefined;
+	RtlCopyMemory(queryEntry.Path, Path->Buffer, Path->Length);
+
+	KeAcquireSpinLock(&Globals.ConfigTableLock, &originalIRQL);
+
+	resultEntry = RtlLookupElementGenericTable(&Globals.ConfigTable,
+											   &queryEntry);
+	if (resultEntry != NULL) {
+		matchConfigType = resultEntry->FreezeType;
+	}
+
+	KeReleaseSpinLock(&Globals.ConfigTableLock, originalIRQL);
+
+	return matchConfigType;
 }

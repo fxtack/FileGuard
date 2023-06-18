@@ -63,17 +63,6 @@ typedef struct _NTFZ_CORE_VERSION {
   RESPONSE_GET_VERSION, *PREPONSE_GET_VERSION;
 
 
-// Filesystem item, file or directory.
-typedef enum _FS_ITEM_TYPE {
-	FsItemFile,
-	FsItemDirectory
-} FS_ITEM_TYPE;
-
-#define _VALID_FS_ITEM_ FsItemFile |\
-                        FsItemDirectory
-#define VALID_FS_ITEM(_T_) ((_T_) & (_VALID_FS_ITEM_))
-
-
 // Freeze type, detail for wiki.
 typedef enum _NTFZ_CONFIG_TYPE {
 	FzTypeUndefined     = -1,
@@ -91,7 +80,6 @@ typedef enum _NTFZ_CONFIG_TYPE {
 
 // NtFreezer configuration.
 typedef struct _NTFZ_CONFIG {
-	FS_ITEM_TYPE FsItemType;
 	NTFZ_CONFIG_TYPE FreezeType;
 	WCHAR Path[MAX_PATH + 1];
 } NTFZ_CONFIG, * PNTFZ_CONFIG;

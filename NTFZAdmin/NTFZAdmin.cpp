@@ -159,7 +159,6 @@ namespace ntfz {
 
         REQUEST_ADD_CONFIG request;
         request.FreezeType = FzConfigTypeCode(ConfigType);
-        request.FsItemType = fs::is_directory(Path) ? FsItemDirectory : FsItemFile;
         memcpy(request.Path, Path.c_str(), Path.length() * sizeof(WCHAR));
 
         NTFZ_COMMAND msg;
