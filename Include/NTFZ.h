@@ -68,12 +68,12 @@ typedef enum _NTFZ_CONFIG_TYPE {
 	FzTypeUndefined     = -1,
 	FzTypeNothing       = 0,
 	FzTypeAccessDenied  = 1 << 1,
-	FzTypeHide          = 1 << 2,
+	FzTypeNotFound      = 1 << 2,
 	FzTypeStaticReparse = 1 << 3
 } NTFZ_CONFIG_TYPE;
 
 #define _VALID_FZ_TYPE_ FzTypeAccessDenied |\
-                        FzTypeHide |\
+                        FzTypeNotFound |\
                         FzTypeStaticReparse
 #define VALID_FZ_TYPE(_T_) ((_T_) & (_VALID_FZ_TYPE_))
 

@@ -19,10 +19,11 @@
 
 #define NTFZ_CORE_VERSION_MAJOR 0
 #define NTFZ_CORE_VERSION_MINOR 1
-#define NTFZ_CORE_VERSION_PATCH 2
+#define NTFZ_CORE_VERSION_PATCH 8
 
-#define MEM_NPAGED_POOL_TAG_CONFIG_ENTRY 'fzcg'
-#define MEM_NPAGED_POOL_TAG_SHARE_LOCK   'fzsl'
+#define MEM_NPAGED_POOL_TAG_CONFIG_ENTRY  'fzcg'
+#define MEM_NPAGED_POOL_TAG_CONFIG_OBJECT 'fzco'
+#define MEM_NPAGED_POOL_TAG_SHARE_LOCK    'fzsl'
 
 #define MAX_CONFIG_ENTRY_ALLOCATED 1024
 
@@ -42,10 +43,11 @@ typedef struct _NTFZ_CORE_GLOBALS {
 
     ULONG ConfigEntryMaxAllocated;                // Maxinum of config entry can be allocated.
     __volatile ULONG ConfigEntryAllocated;        // Amount of allocated config entry.
-    NPAGED_LOOKASIDE_LIST ConfigEntryFreeMemPool; // Memory pool of config entry.
+    NPAGED_LOOKASIDE_LIST ConfigEntryMemoryPool;  // Memory pool of config entry.
+    NPAGED_LOOKASIDE_LIST ConfigObjectMemoryPool; // Memoory pool of config object.
 
     RTL_AVL_TABLE ConfigTable;                    // Config table.
-    KSPIN_LOCK ConfigTableLock;              // Config table share lock.
+    KSPIN_LOCK ConfigTableLock;                   // Config table share lock.
 
 } NTFZ_CORE_GLOBALS, *PNTFZ_CORE_GLOBALS;
 
@@ -89,10 +91,18 @@ NTSTATUS NTFZCoreMessageHandlerRoutine(
     _Out_ PULONG ReturnBytes
 );
 
+VOID DropConfig(
+    _In_ PNTFZ_CONFIG
+);
+
+PNTFZ_CONFIG NewConfig(
+    VOID
+);
+
 // Query a config from table by index.
 NTSTATUS QueryConfigFromTable(
-    _In_  PNTFZ_CONFIG QueryConfigEntry,
-    _Out_ PNTFZ_CONFIG ResultConfigEntry
+    _In_  PNTFZ_CONFIG QueryConfig,
+    _Out_ PNTFZ_CONFIG ResultConfig
 );
 
 // Add a config to table.

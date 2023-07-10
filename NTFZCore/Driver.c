@@ -152,12 +152,20 @@ DriverEntry(
         Globals.ConfigEntryMaxAllocated = MAX_CONFIG_ENTRY_ALLOCATED;
         Globals.ConfigEntryAllocated    = 0;
 
-        ExInitializeNPagedLookasideList(&Globals.ConfigEntryFreeMemPool,
+        ExInitializeNPagedLookasideList(&Globals.ConfigEntryMemoryPool,
                                         NULL,
                                         NULL,
                                         POOL_NX_ALLOCATION,
                                         sizeof(RTL_BALANCED_LINKS) + sizeof(NTFZ_CONFIG),
                                         MEM_NPAGED_POOL_TAG_CONFIG_ENTRY,
+                                        0);
+        
+        ExInitializeNPagedLookasideList(&Globals.ConfigObjectMemoryPool,
+                                        NULL,
+                                        NULL,
+                                        POOL_NX_ALLOCATION,
+                                        sizeof(NTFZ_CONFIG),
+                                        MEM_NPAGED_POOL_TAG_CONFIG_OBJECT,
                                         0);
 
         // Setup config table.
@@ -217,8 +225,9 @@ DriverEntry(
 
             if (Globals.Filter != NULL)
                 FltUnregisterFilter(Globals.Filter);
-
-            ExDeleteNPagedLookasideList(&Globals.ConfigEntryFreeMemPool);
+            
+            ExDeleteNPagedLookasideList(&Globals.ConfigEntryMemoryPool);
+            ExDeleteNPagedLookasideList(&Globals.ConfigObjectMemoryPool);
 
         } else {
             KdPrint(("NtFZCore!%s: Driver loaded successfully, version: v%lu.%lu.%lu\n",
@@ -247,7 +256,8 @@ NTFZCoreUnload(
 
     CleanupConfigTable();
 
-    ExDeleteNPagedLookasideList(&Globals.ConfigEntryFreeMemPool);
+    ExDeleteNPagedLookasideList(&Globals.ConfigEntryMemoryPool);
+    ExDeleteNPagedLookasideList(&Globals.ConfigObjectMemoryPool);
 
     return STATUS_SUCCESS;
 }

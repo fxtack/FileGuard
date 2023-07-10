@@ -25,11 +25,11 @@ inline NTFZ_CONFIG_TYPE FzConfigTypeCode(
         FzConfig.begin(),
         FzConfig.end(),
         FzConfig.begin(),
-        tolower);
+        toupper);
     if (FzConfig == L"ACCESS_DENIED") {
         return FzTypeAccessDenied;
-    } else if (FzConfig == L"HIDE") {
-        return FzTypeHide;
+    } else if (FzConfig == L"NOT_FOUND") {
+        return FzTypeNotFound;
     } else if (FzConfig == L"STATIC_REPARSE") {
         return FzTypeStaticReparse;
     } else {
@@ -157,6 +157,7 @@ namespace ntfz {
     ) {
         REQUEST_ADD_CONFIG request;
         request.FreezeType = FzConfigTypeCode(ConfigType);
+        memset(request.Path, '\0', MAX_PATH+1);
         memcpy(request.Path, Path.c_str(), Path.length() * sizeof(WCHAR));
 
         NTFZ_COMMAND msg;

@@ -44,11 +44,10 @@ NTFZPreOperationCallback (
 
     PAGED_CODE();
 
-    PFLT_FILE_NAME_INFORMATION nameInfo = NULL;
     NTSTATUS status;
+    PFLT_FILE_NAME_INFORMATION nameInfo = NULL;
     FLT_PREOP_CALLBACK_STATUS callbackStatus;
     UNICODE_STRING newFileName;
-    UNICODE_STRING temporaryPrefix;
 
     // Initialize defaults
     status = STATUS_SUCCESS;
@@ -136,13 +135,21 @@ NTFZPreOperationCallback (
         goto Cleanup;
     }
 
-    KdPrint(("NTFZCore!%s: Operation file path: %wZ.\n", __func__, nameInfo->Name));
+    KdPrint(("NTFZCore!%s: Operation file path: '%wZ'\n", __func__, nameInfo->Name));
 
-    RtlInitUnicodeString(&temporaryPrefix, L"test-dir");
-
-    if(RtlSuffixUnicodeString(&temporaryPrefix, &nameInfo->Name, FALSE)) {
+    switch(MatchConfig(&nameInfo->Name)) {
+    case FzTypeNothing:
+        break;
+    case FzTypeAccessDenied:
         Data->IoStatus.Status = STATUS_ACCESS_DENIED;
         callbackStatus = FLT_PREOP_COMPLETE;
+        break;
+    case FzTypeNotFound:
+        Data->IoStatus.Status = STATUS_NOT_FOUND;
+        callbackStatus = FLT_PREOP_COMPLETE;
+        break;
+    default:
+        KdPrint(("NTFZCore!%s: Unknown NTFZ type.", __func__));
     }
 
 Cleanup:
