@@ -1,10 +1,8 @@
-# NtFreezer
+# NTFZ
 
-By using NtFreezer, you can dynamically set files or directories under NTFS to read-only status by specifying configurations. Files or directories set as read-only by NtFreezer cannot be modified at all, even if the operator has the highest permissions.
+By using NTFZ, files or directories under NTFS can be dynamically set to no permissions, read-only, or hidden state by specifying configurations.
 
+NTFZ consists of two parts:
 
-
-NtFreezer has two parts：
-
-* NtFreezerAdmin: Communicate with driver to manage configuration.
-* NtFreezerCore: Driver running at windows  kernel implemented by minifilter.
+* NTFZAdmin: Communicate with driver to manage configuration.
+* NTFZCore: Driver running at windows  kernel implemented by minifilter.
