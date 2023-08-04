@@ -1,10 +1,8 @@
-# NtFreezer
+# Cannot
 
-By using NtFreezer, you can dynamically set files or directories under NTFS to read-only status by specifying configurations. Files or directories set as read-only by NtFreezer cannot be modified at all, even if the operator has the highest permissions.
+By using the Cannot, you can control files and directories access dynamically by config.
 
+The Cannot contains two major modules:
 
-
-NtFreezer has two parts：
-
-* NtFreezerAdmin: Communicate with driver to manage configuration.
-* NtFreezerCore: Driver running at windows  kernel implemented by minifilter.
+* CannotAdmin: Communicate with driver to manage configuration.
+* CannotCore: Driver running at Windows  kernel implemented by minifilter.

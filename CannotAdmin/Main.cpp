@@ -1,6 +1,6 @@
 ﻿/*
     @File   Main.cpp
-    @Note   NTFZ Admin main.
+    @Note   CannotAdmin main.
 
     @Mode   User
     @Author Fxtack
@@ -18,8 +18,8 @@ _Analysis_mode_(_Analysis_code_type_user_code_)
 #include <Fileapi.h>
 #include <fltUser.h>
 
-#include "NTFZ.h"
-#include "NTFZAdmin.h"
+#include "Cannot.h"
+#include "CannotAdmin.h"
 
 inline std::wstring formatConfigPathParam(
     _In_opt_ PCWSTR ConfigPathParam
@@ -60,7 +60,7 @@ int __cdecl wmain(
     wstring command(argv[1]);
     if (command == L"--help") {
         wprintf(
-            L"--version        Check NTFZ version.\n"
+            L"--version        Check Cannot version.\n"
             L"--add-config     Add a config.\n"
             L"--remove-config  Remove a config.\n"
             L"--cleanup-config Cleanup all configs.\n"
@@ -71,12 +71,12 @@ int __cdecl wmain(
     string invalidParamError = "Invalid parameter, enter `--help` for usage.";
 
     try {
-        // Initialize NTFZAdmin.
-        ntfz::Admin admin(NTFZ_COMMAND_PORT_NAME);
+        // Initialize CannotAdmin.
+        cannot::Admin admin(CANNOT_COMMAND_PORT_NAME);
 
         // Command handling.
         if (command == L"--query-config") {
-            // Find a NTFZ configuration.
+            // Find a Cannot configuration.
             if (argc == 3) {
                 auto config = admin.TellCoreQueryConfig(formatConfigPathParam(argv[2]));
                 wcout << L"Result config: "
@@ -88,7 +88,7 @@ int __cdecl wmain(
             throw invalidParamError;
 
         } else if (command == L"--add-config") {
-            // Add a NTFZ configuration.
+            // Add a Cannot configuration.
             if (argc >= 3) {
                 wstring configPath = formatConfigPathParam(argv[2]);
                 if (configPath.empty()) throw invalidParamError;
@@ -104,7 +104,7 @@ int __cdecl wmain(
             throw invalidParamError;
 
         } else if (command == L"--remove-config") {
-            // Remove NTFZ configuration.
+            // Remove Cannot configuration.
             if (argc == 3) {
                 admin.TellCoreRemoveConfig(formatConfigPathParam(argv[2]));
                 wcout << L"Remove config successfully." << endl;
@@ -119,7 +119,7 @@ int __cdecl wmain(
             wcout << L"Cleanup all configs successfully." << endl;
 
         } else if (command == L"--version") {
-            // Print NTFZAdmin and NTFZCore version information.
+            // Print CannotAdmin and CannotCore version information.
             if (argc > 2) throw invalidParamError;
             admin.PrintVersion();
 
@@ -127,7 +127,7 @@ int __cdecl wmain(
             cout << "Unknown command, use `--help` for help." << endl;
         }
 
-    } catch (ntfz::AdminError error) {
+    } catch (cannot::AdminError error) {
         cout << error << endl;
     } catch (string cmdError) {
         cout << cmdError << endl;

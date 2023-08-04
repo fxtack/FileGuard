@@ -1,12 +1,12 @@
 /*
-    @File   NTFZCore.c
+    @File   CannotCore.c
     @Note   Operation callback.
 
     @Mode   Kernel
     @Author Fxtack
 */
 
-#include "NTFZCore.h"
+#include "CannotCore.h"
 
 
 /*++
@@ -34,7 +34,7 @@ Return Value:
 
 --*/
 FLT_PREOP_CALLBACK_STATUS
-NTFZPreOperationCallback (
+CannotPreOperationCallback (
     _Inout_ PFLT_CALLBACK_DATA Data,
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
     _Flt_CompletionContext_Outptr_ PVOID *CompletionContext
@@ -135,7 +135,7 @@ NTFZPreOperationCallback (
         goto Cleanup;
     }
 
-    KdPrint(("NTFZCore!%s: Operation file path: '%wZ'\n", __func__, nameInfo->Name));
+    KdPrint(("CannotCore!%s: Operation file path: '%wZ'\n", __func__, nameInfo->Name));
 
     switch(MatchConfig(&nameInfo->Name)) {
     case FzTypeNothing:
@@ -149,7 +149,7 @@ NTFZPreOperationCallback (
         callbackStatus = FLT_PREOP_COMPLETE;
         break;
     default:
-        KdPrint(("NTFZCore!%s: Unknown NTFZ type.", __func__));
+        KdPrint(("CannotCore!%s: Unknown Cannot type.", __func__));
     }
 
 Cleanup:
@@ -195,7 +195,7 @@ Return Value:
 
 --*/
 FLT_POSTOP_CALLBACK_STATUS
-NTFZPostOperationCallback (
+CannotPostOperationCallback (
     _Inout_ PFLT_CALLBACK_DATA Data,
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
     _In_opt_ PVOID CompletionContext,
@@ -235,7 +235,7 @@ Return Value:
 
 --*/
 FLT_PREOP_CALLBACK_STATUS
-NTFZPreOperationNoPostOperationCallback (
+CannotPreOperationNoPostOperationCallback (
     _Inout_ PFLT_CALLBACK_DATA Data,
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
     _Flt_CompletionContext_Outptr_ PVOID *CompletionContext
