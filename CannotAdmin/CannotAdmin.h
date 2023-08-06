@@ -1,19 +1,19 @@
 /*
-    @File   NTFZAdmin.h
-    @Note   NTFZAdmin header file.
+    @File   CannotAdmin.h
+    @Note   CannotAdmin header file.
 
     @Mode   User
     @Author Fxtack
 */
 
-#ifndef _NTFZ_ADMIN_H_
-#define _NTFZ_ADMIN_H_
+#ifndef _CANNOT_ADMIN_H_
+#define _CANNOT_ADMIN_H_
 
-#define NTFZ_ADMIN_VERSION_MAJOR 0
-#define NTFZ_ADMIN_VERSION_MINOR 1
-#define NTFZ_ADMIN_VERSION_PATCH 0
+#define CANNOT_ADMIN_VERSION_MAJOR 0
+#define CANNOT_ADMIN_VERSION_MINOR 1
+#define CANNOT_ADMIN_VERSION_PATCH 0
 
-namespace ntfz {
+namespace cannot {
     class Admin {
     public:
         Admin(
@@ -29,7 +29,7 @@ namespace ntfz {
         );
 
         // Send message to the core to query a configuration.
-        std::unique_ptr<NTFZ_CONFIG> TellCoreQueryConfig(
+        std::unique_ptr<CANNOT_CONFIG> TellCoreQueryConfig(
             _In_ std::wstring Path
         );
 
@@ -55,7 +55,7 @@ namespace ntfz {
 
     private:
         HANDLE _port_;
-        NTFZ_CORE_VERSION _coreVersion_;
+        CANNOT_CORE_VERSION _coreVersion_;
     };
 
     class AdminError : public std::runtime_error {

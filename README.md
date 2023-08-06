@@ -1,8 +1,8 @@
-# NTFZ
+# Cannot
 
-By using NTFZ, files or directories under NTFS can be dynamically set to no permissions, read-only, or hidden state by specifying configurations.
+By using the Cannot, you can control files and directories access dynamically by config.
 
-NTFZ consists of two parts:
+The Cannot contains two major modules:
 
-* NTFZAdmin: Communicate with driver to manage configuration.
-* NTFZCore: Driver running at windows  kernel implemented by minifilter.
+* CannotAdmin: Communicate with driver to manage configuration.
+* CannotCore: Driver running at Windows  kernel implemented by minifilter.

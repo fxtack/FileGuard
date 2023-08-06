@@ -1,6 +1,6 @@
 /*
-    @File   NTFZCore.h
-    @Note   NTFZCore module header file.
+    @File   CannotCore.h
+    @Note   CannotCore module header file.
 
     @Mode   Kernel
     @Author Fxtack
@@ -8,18 +8,18 @@
 
 #define RTL_USE_AVL_TABLES 0
 
-#ifndef _NTFZ_CORE_H_
-#define _NTFZ_CORE_H_
+#ifndef _CANNOT_CORE_H_
+#define _CANNOT_CORE_H_
 
 #include <fltKernel.h>
 #include <ntddk.h>
 #include <dontuse.h>
 
-#include "NTFZ.h"
+#include "Cannot.h"
 
-#define NTFZ_CORE_VERSION_MAJOR 0
-#define NTFZ_CORE_VERSION_MINOR 1
-#define NTFZ_CORE_VERSION_PATCH 8
+#define CANNOT_CORE_VERSION_MAJOR 0
+#define CANNOT_CORE_VERSION_MINOR 1
+#define CANNOT_CORE_VERSION_PATCH 8
 
 #define MEM_NPAGED_POOL_TAG_CONFIG_ENTRY  'fzcg'
 #define MEM_NPAGED_POOL_TAG_CONFIG_OBJECT 'fzco'
@@ -35,11 +35,11 @@ RTL_GENERIC_FREE_ROUTINE     ConfigEntryFreeRoutine;     // Free config entry.
 /*************************************************************************
     Global variabls.
 *************************************************************************/
-typedef struct _NTFZ_CORE_GLOBALS {
+typedef struct _CANNOT_CORE_GLOBALS {
 
     PFLT_FILTER Filter;                           // Filter instances.
-    PFLT_PORT CorePort;                           // Communication port exported for NTFZAdmin.
-    PFLT_PORT AdminPort;                          // Communication port that NTFZAdmin connecting to.
+    PFLT_PORT CorePort;                           // Communication port exported for CannotAdmin.
+    PFLT_PORT AdminPort;                          // Communication port that CannotAdmin connecting to.
 
     ULONG ConfigEntryMaxAllocated;                // Maxinum of config entry can be allocated.
     __volatile ULONG ConfigEntryAllocated;        // Amount of allocated config entry.
@@ -49,22 +49,22 @@ typedef struct _NTFZ_CORE_GLOBALS {
     RTL_AVL_TABLE ConfigTable;                    // Config table.
     KSPIN_LOCK ConfigTableLock;                   // Config table share lock.
 
-} NTFZ_CORE_GLOBALS, *PNTFZ_CORE_GLOBALS;
+} CANNOT_CORE_GLOBALS, *PCANNOT_CORE_GLOBALS;
 
-extern NTFZ_CORE_GLOBALS Globals;
+extern CANNOT_CORE_GLOBALS Globals;
 
 /*************************************************************************
     MiniFilter callback routines.
 *************************************************************************/
 FLT_PREOP_CALLBACK_STATUS
-NTFZPreOperationCallback(
+CannotPreOperationCallback(
     _Inout_ PFLT_CALLBACK_DATA Data,
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
     _Flt_CompletionContext_Outptr_ PVOID* CompletionContext
 );
 
 FLT_POSTOP_CALLBACK_STATUS
-NTFZPostOperationCallback(
+CannotPostOperationCallback(
     _Inout_ PFLT_CALLBACK_DATA Data,
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
     _In_opt_ PVOID CompletionContext,
@@ -72,7 +72,7 @@ NTFZPostOperationCallback(
 );
 
 FLT_PREOP_CALLBACK_STATUS
-NTFZPreOperationNoPostOperationCallback(
+CannotPreOperationNoPostOperationCallback(
     _Inout_ PFLT_CALLBACK_DATA Data,
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
     _Flt_CompletionContext_Outptr_ PVOID* CompletionContext
@@ -82,7 +82,7 @@ NTFZPreOperationNoPostOperationCallback(
 /*************************************************************************
     Message handler routine.
 *************************************************************************/
-NTSTATUS NTFZCoreMessageHandlerRoutine(
+NTSTATUS CannotCoreMessageHandlerRoutine(
     _In_opt_ PVOID ConnectionCookie,
     _In_reads_bytes_opt_(InputBytes) PVOID Input,
     _In_ ULONG InputBytes,
@@ -92,27 +92,27 @@ NTSTATUS NTFZCoreMessageHandlerRoutine(
 );
 
 VOID DropConfig(
-    _In_ PNTFZ_CONFIG
+    _In_ PCANNOT_CONFIG
 );
 
-PNTFZ_CONFIG NewConfig(
+PCANNOT_CONFIG NewConfig(
     VOID
 );
 
 // Query a config from table by index.
 NTSTATUS QueryConfigFromTable(
-    _In_  PNTFZ_CONFIG QueryConfig,
-    _Out_ PNTFZ_CONFIG ResultConfig
+    _In_  PCANNOT_CONFIG QueryConfig,
+    _Out_ PCANNOT_CONFIG ResultConfig
 );
 
 // Add a config to table.
 NTSTATUS AddConfigToTable(
-    _In_ PNTFZ_CONFIG InsertConfig
+    _In_ PCANNOT_CONFIG InsertConfig
 );
 
 // Find the config from table by index and remove it.
 NTSTATUS RemoveConfigFromTable(
-    _In_ PNTFZ_CONFIG RemoveConfig
+    _In_ PCANNOT_CONFIG RemoveConfig
 );
 
 // Cleanup config table and release configs memory.
@@ -120,8 +120,8 @@ NTSTATUS CleanupConfigTable(
     VOID
 );
 
-// Query and match NTFZ config.
-NTFZ_CONFIG_TYPE MatchConfig(
+// Query and match Cannot config.
+CANNOT_CONFIG_TYPE MatchConfig(
     _In_ PUNICODE_STRING Path
 );
 

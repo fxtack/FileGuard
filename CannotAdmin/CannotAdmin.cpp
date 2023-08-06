@@ -1,5 +1,5 @@
 /*
-    @File   NTFZAdmin.cpp
+    @File   CannotAdmin.cpp
     @Note   Admin function.
 
     @Mode   User
@@ -15,10 +15,10 @@
 #include <algorithm>
 #include <filesystem>
 
-#include "NTFZ.h"
-#include "NTFZAdmin.h"
+#include "Cannot.h"
+#include "CannotAdmin.h"
 
-inline NTFZ_CONFIG_TYPE FzConfigTypeCode(
+inline CANNOT_CONFIG_TYPE FzConfigTypeCode(
     _In_ std::wstring FzConfig
 ) {
     std::transform(
@@ -72,7 +72,7 @@ inline std::wstring DevicePath(
     return deviceName + path.substr(path.find_first_of(L"\\"));
 }
 
-namespace ntfz {
+namespace cannot {
     using namespace std;
     // Admin.
     Admin::Admin(
@@ -83,7 +83,7 @@ namespace ntfz {
 
         _port_= INVALID_HANDLE_VALUE;
 
-        // Initialize NTFZCore communication port.
+        // Initialize CannotCore communication port.
         auto hResult = FilterConnectCommunicationPort(PortName,
                                                       0,
                                                       NULL,
@@ -93,24 +93,24 @@ namespace ntfz {
         if (IS_ERROR(hResult))
             throw AdminError(hResult, "Connect to core failed, ensure that the core driver is loaded.");    
 
-        NTFZ_COMMAND msg;
+        CANNOT_COMMAND msg;
         RESPONSE_GET_VERSION respVersion = { 0 };
         DWORD returnBytes;
         msg.MsgType = GetCoreVersion;
         
         hResult = FilterSendMessage(_port_,
-                                    &msg, sizeof(NTFZ_COMMAND),
+                                    &msg, sizeof(CANNOT_COMMAND),
                                     &respVersion, sizeof(RESPONSE_GET_VERSION),
                                     &returnBytes);
         if (IS_ERROR(hResult) || returnBytes != sizeof(RESPONSE_GET_VERSION))
             throw AdminError(hResult, "Get core version failed, admin and core version may not match.");       
 
         // Different major versions of Admin and Core are incompatible with each other.
-        if (respVersion.Major != NTFZ_ADMIN_VERSION_MAJOR)
+        if (respVersion.Major != CANNOT_ADMIN_VERSION_MAJOR)
             throw AdminError("Version mismatch, please select an admin and core version that can match");      
 
         // If the Admin minor version higher than Core minor version is incompatible.
-        if (respVersion.Minor < NTFZ_ADMIN_VERSION_MINOR)
+        if (respVersion.Minor < CANNOT_ADMIN_VERSION_MINOR)
             throw AdminError("ERROR: Admin version too high, please select an admin and core that can match");
 
         _coreVersion_ = respVersion;
@@ -127,27 +127,27 @@ namespace ntfz {
         throw "Implement me";
     }
 
-    std::unique_ptr<NTFZ_CONFIG> Admin::TellCoreQueryConfig(
+    std::unique_ptr<CANNOT_CONFIG> Admin::TellCoreQueryConfig(
         _In_ std::wstring Path
     ) {
         REQUEST_QUERY_CONFIG request;
         memcpy(request.Path, Path.c_str(), Path.length() * sizeof(WCHAR));
 
-        NTFZ_COMMAND msg;
+        CANNOT_COMMAND msg;
         msg.MsgType = QueryConfig;
         msg.Data = (PVOID)&request;
         msg.DataBytes = sizeof(request);
 
-        NTFZ_CONFIG resp;
+        CANNOT_CONFIG resp;
         DWORD returneBytes;
         auto hResult = FilterSendMessage(_port_,
-                                         &msg, sizeof(NTFZ_COMMAND),
-                                         &resp, sizeof(NTFZ_CONFIG),
+                                         &msg, sizeof(CANNOT_COMMAND),
+                                         &resp, sizeof(CANNOT_CONFIG),
                                          &returneBytes);
         if (IS_ERROR(hResult))
             throw AdminError(hResult, "Query a config failed.");
 
-        return std::move(std::make_unique<NTFZ_CONFIG>(resp));
+        return std::move(std::make_unique<CANNOT_CONFIG>(resp));
     }
 
     // Send a message to the core to add a configuration.
@@ -160,7 +160,7 @@ namespace ntfz {
         memset(request.Path, '\0', MAX_PATH+1);
         memcpy(request.Path, Path.c_str(), Path.length() * sizeof(WCHAR));
 
-        NTFZ_COMMAND msg;
+        CANNOT_COMMAND msg;
         msg.MsgType = AddConfig;
         msg.Data = (PVOID)&request;
         msg.DataBytes = sizeof(REQUEST_ADD_CONFIG);
@@ -168,7 +168,7 @@ namespace ntfz {
         DWORD returnBytes;
         auto hResult = FilterSendMessage(_port_,
                                          &msg,
-                                         sizeof(NTFZ_COMMAND),
+                                         sizeof(CANNOT_COMMAND),
                                          NULL,
                                          0,
                                          &returnBytes);
@@ -189,14 +189,14 @@ namespace ntfz {
         REQUEST_REMOVE_CONFIG request;
         memcpy(request.Path, Path.c_str(), Path.length() * sizeof(WCHAR));
 
-        NTFZ_COMMAND msg;
+        CANNOT_COMMAND msg;
         msg.MsgType = RemoveConfig;
         msg.Data = (PVOID)&request;
         msg.DataBytes = sizeof(request);
 
         DWORD returnBytes;
         auto hResult = FilterSendMessage(_port_,
-                                         &msg, sizeof(NTFZ_COMMAND),
+                                         &msg, sizeof(CANNOT_COMMAND),
                                          NULL,
                                          0,
                                          &returnBytes);
@@ -206,12 +206,12 @@ namespace ntfz {
 
     // Send a message to the core to clean up all configurations.
     void Admin::TellCoreCleanupConfigs() {
-        NTFZ_COMMAND msg;
+        CANNOT_COMMAND msg;
         msg.MsgType = CleanupConfig;
         
         DWORD returnBytes;
         auto hResult = FilterSendMessage(_port_,
-                                         &msg, sizeof(NTFZ_COMMAND),
+                                         &msg, sizeof(CANNOT_COMMAND),
                                          NULL,
                                          0,
                                          &returnBytes);
@@ -222,9 +222,9 @@ namespace ntfz {
     // Print version information of core and admin.
     void Admin::PrintVersion() {
         printf(
-            "NTFZAdmin: v%lu.%lu.%lu\n"
-            "NTFZCore:  v%lu.%lu.%lu",
-            NTFZ_ADMIN_VERSION_MAJOR, NTFZ_ADMIN_VERSION_MINOR, NTFZ_ADMIN_VERSION_PATCH,
+            "CannotAdmin: v%lu.%lu.%lu\n"
+            "CannotCore:  v%lu.%lu.%lu",
+            CANNOT_ADMIN_VERSION_MAJOR, CANNOT_ADMIN_VERSION_MINOR, CANNOT_ADMIN_VERSION_PATCH,
             _coreVersion_.Major, _coreVersion_.Minor, _coreVersion_.Patch
         );
     }

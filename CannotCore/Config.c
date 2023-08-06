@@ -1,12 +1,12 @@
 /*
-	@File   ConfigEntry.c
+	@File   Config.c
 	@Note   Config entry and operations.
 
 	@Mode   Kernel
 	@Author Fxtack
 */
 
-#include "NTFZCore.h"
+#include "CannotCore.h"
 
 // Generic table routine required.
 // Comparing two config entry that save in table and return the compare result.
@@ -19,8 +19,8 @@ RTL_GENERIC_COMPARE_RESULTS NTAPI ConfigEntryCompareRoutine(
 
 	RTL_GENERIC_COMPARE_RESULTS configCompareResult;
 	INT pathCompareResult;
-	PCWSTR lPath = ((PNTFZ_CONFIG)LEntry)->Path;
-	PCWSTR rPath = ((PNTFZ_CONFIG)REntry)->Path;
+	PCWSTR lPath = ((PCANNOT_CONFIG)LEntry)->Path;
+	PCWSTR rPath = ((PCANNOT_CONFIG)REntry)->Path;
 
 	SIZE_T lPathLen = wcslen(lPath);
 	SIZE_T rPathLen = wcslen(rPath);
@@ -30,7 +30,7 @@ RTL_GENERIC_COMPARE_RESULTS NTAPI ConfigEntryCompareRoutine(
 
 	pathCompareResult = wcsncmp(lPath, rPath, rPathLen);
 
-	KdPrint(("NTFZCore!%s: '%ws' ? '%ws' = %d", __func__, lPath, rPath, pathCompareResult));
+	KdPrint(("CannotCore!%s: '%ws' ? '%ws' = %d", __func__, lPath, rPath, pathCompareResult));
 
 	if (pathCompareResult == 0) {
 		
@@ -71,7 +71,7 @@ PVOID NTAPI ConfigEntryAllocateRoutine(
 ) {
 	UNREFERENCED_PARAMETER(Table);
 
-	ASSERT(ByteSize == (ULONG)(sizeof(RTL_BALANCED_LINKS) + sizeof(NTFZ_CONFIG)));
+	ASSERT(ByteSize == (ULONG)(sizeof(RTL_BALANCED_LINKS) + sizeof(CANNOT_CONFIG)));
 
 	PVOID mem = ExAllocateFromNPagedLookasideList(&Globals.ConfigEntryMemoryPool);
 
@@ -96,24 +96,24 @@ VOID NTAPI ConfigEntryFreeRoutine(
 }
 
 // Allocate memory to new a config object.
-PNTFZ_CONFIG NewConfig(
+PCANNOT_CONFIG NewConfig(
 	VOID
 ) {
 	ASSERT(&Globals.ConfigObjectMemoryPool != NULL);
 
-	PNTFZ_CONFIG configMemory = (PNTFZ_CONFIG)ExAllocateFromNPagedLookasideList(&Globals.ConfigObjectMemoryPool);
+	PCANNOT_CONFIG configMemory = (PCANNOT_CONFIG)ExAllocateFromNPagedLookasideList(&Globals.ConfigObjectMemoryPool);
 
 	if (configMemory != NULL)
-		RtlZeroMemory(configMemory, sizeof(PNTFZ_CONFIG));
+		RtlZeroMemory(configMemory, sizeof(PCANNOT_CONFIG));
 
-	KdPrint(("NTFZCore!%s: Allocate config object memory: %p\n", __func__, configMemory));
+	KdPrint(("CannotCore!%s: Allocate config object memory: %p\n", __func__, configMemory));
 
 	return configMemory;
 }
 
 // Release memory to drop config object.
 VOID DropConfig(
-	_In_ PNTFZ_CONFIG configObject
+	_In_ PCANNOT_CONFIG configObject
 ) {
 	ASSERT(&Globals.ConfigObjectMemoryPool != NULL);
 	
@@ -121,21 +121,21 @@ VOID DropConfig(
 
 		ExFreeToNPagedLookasideList(&Globals.ConfigObjectMemoryPool, configObject);
 
-		KdPrint(("NTFZCore!%s: Config object memory released\n", __func__));
+		KdPrint(("CannotCore!%s: Config object memory released\n", __func__));
 	}
 }
 
 // Query config from table and return it by memory copying.
 NTSTATUS QueryConfigFromTable(
-	_In_  PNTFZ_CONFIG QueryConfig,
-	_Out_ PNTFZ_CONFIG ResultConfig
+	_In_  PCANNOT_CONFIG QueryConfig,
+	_Out_ PCANNOT_CONFIG ResultConfig
 ) {
 	NTSTATUS status = STATUS_SUCCESS;
 	//KIRQL originalIRQL;
-	PNTFZ_CONFIG pQueryEntry = NewConfig();
-	PNTFZ_CONFIG pResultEntry = NULL;
+	PCANNOT_CONFIG pQueryEntry = NewConfig();
+	PCANNOT_CONFIG pResultEntry = NULL;
 	
-	RtlCopyMemory(pQueryEntry, QueryConfig, sizeof(NTFZ_CONFIG));
+	RtlCopyMemory(pQueryEntry, QueryConfig, sizeof(CANNOT_CONFIG));
 
 	//KeAcquireSpinLock(&Globals.ConfigTableLock, &originalIRQL);
 
@@ -146,7 +146,7 @@ NTSTATUS QueryConfigFromTable(
 	}
 		
 	// Copy config result to output buffer.
-	RtlCopyMemory(ResultConfig, pResultEntry, sizeof(NTFZ_CONFIG));
+	RtlCopyMemory(ResultConfig, pResultEntry, sizeof(CANNOT_CONFIG));
 
 returnWithUnlock:
 
@@ -159,22 +159,22 @@ returnWithUnlock:
 
 // Add a config to table.
 NTSTATUS AddConfigToTable(
-	_In_ PNTFZ_CONFIG InsertConfig
+	_In_ PCANNOT_CONFIG InsertConfig
 ) {
 	//KIRQL originalIRQL;
 	BOOLEAN inserted = FALSE;
-	PNTFZ_CONFIG pAddConfigEntry = NewConfig();
+	PCANNOT_CONFIG pAddConfigEntry = NewConfig();
 
-	RtlCopyMemory(pAddConfigEntry, InsertConfig, sizeof(NTFZ_CONFIG));
+	RtlCopyMemory(pAddConfigEntry, InsertConfig, sizeof(CANNOT_CONFIG));
 
 	//KeAcquireSpinLock(&Globals.ConfigTableLock, &originalIRQL);
 
-	KdPrint(("NTFZCore!%s: '%ws', '%ws'\n", __func__, InsertConfig->Path, pAddConfigEntry->Path));
+	KdPrint(("CannotCore!%s: '%ws', '%ws'\n", __func__, InsertConfig->Path, pAddConfigEntry->Path));
 
 	// Insert config entry.
 	RtlInsertElementGenericTable(&Globals.ConfigTable,
 	                             (PVOID)pAddConfigEntry,
-	                             sizeof(NTFZ_CONFIG),
+	                             sizeof(CANNOT_CONFIG),
 	                             &inserted);
 
 	//KeReleaseSpinLock(&Globals.ConfigTableLock, originalIRQL);
@@ -186,13 +186,13 @@ NTSTATUS AddConfigToTable(
 
 // Find up the config by index and remove it.
 NTSTATUS RemoveConfigFromTable(
-	_In_ PNTFZ_CONFIG RemoveConfig
+	_In_ PCANNOT_CONFIG RemoveConfig
 ) {
 	NTSTATUS status;
 	//KIRQL originalIRQL;
-	PNTFZ_CONFIG pRemoveConfigEntry = NewConfig();
+	PCANNOT_CONFIG pRemoveConfigEntry = NewConfig();
 
-	RtlCopyMemory(pRemoveConfigEntry, RemoveConfig, sizeof(NTFZ_CONFIG));
+	RtlCopyMemory(pRemoveConfigEntry, RemoveConfig, sizeof(CANNOT_CONFIG));
 
 	//KeAcquireSpinLock(&Globals.ConfigTableLock, &originalIRQL);
 
@@ -224,13 +224,13 @@ NTSTATUS CleanupConfigTable(
 	return STATUS_SUCCESS;
 }
 
-NTFZ_CONFIG_TYPE MatchConfig(
+CANNOT_CONFIG_TYPE MatchConfig(
 	_In_ PUNICODE_STRING Path
 ) {
 	//KIRQL originalIRQL;
-	NTFZ_CONFIG_TYPE matchConfigType = FzTypeNothing;
-	PNTFZ_CONFIG pQueryEntry = NewConfig();
-	PNTFZ_CONFIG pResultEntry;
+	CANNOT_CONFIG_TYPE matchConfigType = FzTypeNothing;
+	PCANNOT_CONFIG pQueryEntry = NewConfig();
+	PCANNOT_CONFIG pResultEntry;
 	
 	RtlCopyMemory(pQueryEntry->Path, Path->Buffer, Path->Length);
 
@@ -245,7 +245,7 @@ NTFZ_CONFIG_TYPE MatchConfig(
 
 	DropConfig(pQueryEntry);
 
-	KdPrint(("NTFZCore!%s: Try match path: '%wZ', match result: %d\n",
+	KdPrint(("CannotCore!%s: Try match path: '%wZ', match result: %d\n",
 		__func__, Path, matchConfigType));
 
 	return matchConfigType;

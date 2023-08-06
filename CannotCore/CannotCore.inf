@@ -1,5 +1,5 @@
 ;;;
-;;; NTFZCore
+;;; CannotCore
 ;;;
 
 [Version]
@@ -9,12 +9,12 @@ Class       = "ActivityMonitor"                         ;This is determined by t
 ClassGuid   = {b86dff51-a31e-4bac-b3cf-e8cfe75c9fc2}    ;This value is determined by the Load Order Group value
 Provider    = %ManufacturerName%
 DriverVer   = 01/01/2024,0.1.0
-CatalogFile = NTFZCore.cat
+CatalogFile = CannotCore.cat
 PnpLockDown = 1
 
 [DestinationDirs]
-DefaultDestDir          = 13
-MiniFilter.DriverFiles  = 13            ;%windir%\system32\drivers
+DefaultDestDir          = 12
+CannotCore.DriverFiles  = 12            ;%windir%\system32\drivers
 
 ;;
 ;; Default install sections
@@ -22,17 +22,17 @@ MiniFilter.DriverFiles  = 13            ;%windir%\system32\drivers
 
 [DefaultInstall.NTAMD64]
 OptionDesc          = %ServiceDescription%
-CopyFiles           = MiniFilter.DriverFiles
+CopyFiles           = CannotCore.DriverFiles
 
 [DefaultInstall.NTAMD64.Services]
-AddService          = %ServiceName%,,MiniFilter.Service
+AddService          = %ServiceName%,,CannotCore.Service
 
 ;;
 ;; Default uninstall sections
 ;;
 
 [DefaultUninstall.NTAMD64]
-DelFiles   = MiniFilter.DriverFiles
+DelFiles   = CannotCore.DriverFiles
 
 [DefaultUnistall.NT*]
 LegacyUninstall = 1
@@ -44,23 +44,23 @@ DelService = %ServiceName%,0x200      ;Ensure service is stopped before deleting
 ; Services Section
 ;
 
-[MiniFilter.Service]
+[CannotCore.Service]
 DisplayName      = %ServiceName%
 Description      = %ServiceDescription%
 ServiceBinary    = %12%\%DriverName%.sys        ;%windir%\system32\drivers\
 Dependencies     = "FltMgr"
 ServiceType      = 2                            ;SERVICE_FILE_SYSTEM_DRIVER
-StartType        = 3                            ;SERVICE_DEMAND_START
+StartType        = 1                            ;SERVICE_DEMAND_START
 ErrorControl     = 1                            ;SERVICE_ERROR_NORMAL
 ; TODO - Change the Load Order Group value
 LoadOrderGroup   = "FSFilter Activity Monitor"
-AddReg           = MiniFilter.AddRegistry
+AddReg           = CannotCore.AddRegistry
 
 ;
 ; Registry Modifications
 ;
 
-[MiniFilter.AddRegistry]
+[CannotCore.AddRegistry]
 HKR,,"DebugFlags",0x00010001 ,0x0
 HKR,,"SupportedFeatures",0x00010001,0x3
 HKR,"Instances","DefaultInstance",0x00000000,%DefaultInstance%
@@ -71,11 +71,11 @@ HKR,"Instances\"%Instance1.Name%,"Flags",0x00010001,%Instance1.Flags%
 ; Copy Files
 ;
 
-[MiniFilter.DriverFiles]
+[CannotCore.DriverFiles]
 %DriverName%.sys
 
 [SourceDisksFiles]
-NTFZCore.sys = 1,,
+CannotCore.sys = 1,,
 
 [SourceDisksNames]
 1 = %DiskId1%,,,
@@ -86,14 +86,14 @@ NTFZCore.sys = 1,,
 
 [Strings]
 ManufacturerName        = "Your ManufacturerName"
-ServiceDescription      = "NTFZCore Mini-Filter Driver"
-ServiceName             = "NTFZCore"
-DriverName              = "NTFZCore"
-DiskId1                 = "NTFZCore Device Installation Disk"
+ServiceDescription      = "CannotCore Mini-Filter Driver"
+ServiceName             = "CannotCore"
+DriverName              = "CannotCore"
+DiskId1                 = "CannotCore Device Installation Disk"
 
 ;Instances specific information.
-DefaultInstance         = "NTFZCore Instance"
-Instance1.Name          = "NTFZCore Instance"
+DefaultInstance         = "CannotCore Instance"
+Instance1.Name          = "CannotCore Instance"
 ; Altitude value, see https://msdn.microsoft.com/en-us/windows/hardware/drivers/ifs/load-order-groups-and-altitudes-for-minifilter-drivers
 Instance1.Altitude      = "409599"
 Instance1.Flags         = 0x1

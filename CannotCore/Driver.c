@@ -6,12 +6,12 @@
 	@Author	Fxtack
 */
 
-#include "NTFZCore.h"
+#include "CannotCore.h"
 
 #pragma prefast(disable:__WARNING_ENCODE_MEMBER_FUNCTION_POINTER, "Not valid for kernel mode drivers")
 
 // Driver global variables.
-NTFZ_CORE_GLOBALS Globals;
+CANNOT_CORE_GLOBALS Globals;
 
 EXTERN_C_START
 
@@ -24,12 +24,12 @@ DriverEntry(
 );
 
 NTSTATUS
-NTFZCoreUnload(
+CannotCoreUnload(
     _In_ FLT_FILTER_UNLOAD_FLAGS Flags
 );
 
 NTSTATUS
-NTFZCoreInstanceSetup(
+CannotCoreInstanceSetup(
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
     _In_ FLT_INSTANCE_SETUP_FLAGS Flags,
     _In_ DEVICE_TYPE VolumeDeviceType,
@@ -37,24 +37,25 @@ NTFZCoreInstanceSetup(
 );
 
 VOID
-NTFZCoreInstanceTeardownStart(
+CannotCoreInstanceTeardownStart(
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
     _In_ FLT_INSTANCE_TEARDOWN_FLAGS Flags
 );
 
 VOID
-NTFZCoreInstanceTeardownComplete(
+CannotCoreInstanceTeardownComplete(
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
     _In_ FLT_INSTANCE_TEARDOWN_FLAGS Flags
 );
 
 NTSTATUS
-NTFZCoreInstanceQueryTeardown(
+CannotCoreInstanceQueryTeardown(
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
     _In_ FLT_INSTANCE_QUERY_TEARDOWN_FLAGS Flags
 );
 
-NTSTATUS NTFZCorePortConnectCallback(
+NTSTATUS
+CannotCorePortConnectCallback(
     _In_ PFLT_PORT AdminPort,
     _In_ PVOID CorePortCookie,
     _In_reads_bytes_(ContextBytes) PVOID ConnectionContext,
@@ -62,7 +63,7 @@ NTSTATUS NTFZCorePortConnectCallback(
     _Flt_ConnectionCookie_Outptr_ PVOID *ConnectionCookie
 );
 
-VOID NTFZCorePortDisconnectCallback(
+VOID CannotCorePortDisconnectCallback(
     _In_opt_ PVOID ConnectionCookie
 );
 
@@ -72,13 +73,13 @@ EXTERN_C_END
 //  Assign text sections for each routine.
 #ifdef ALLOC_PRAGMA
 #pragma alloc_text(INIT, DriverEntry)
-#pragma alloc_text(PAGE, NTFZCoreUnload)
-#pragma alloc_text(PAGE, NTFZCoreInstanceQueryTeardown)
-#pragma alloc_text(PAGE, NTFZCoreInstanceSetup)
-#pragma alloc_text(PAGE, NTFZCoreInstanceTeardownStart)
-#pragma alloc_text(PAGE, NTFZCoreInstanceTeardownComplete)
-#pragma alloc_text(PAGE, NTFZCorePortConnectCallback)
-#pragma alloc_text(PAGE, NTFZCorePortDisconnectCallback)
+#pragma alloc_text(PAGE, CannotCoreUnload)
+#pragma alloc_text(PAGE, CannotCoreInstanceQueryTeardown)
+#pragma alloc_text(PAGE, CannotCoreInstanceSetup)
+#pragma alloc_text(PAGE, CannotCoreInstanceTeardownStart)
+#pragma alloc_text(PAGE, CannotCoreInstanceTeardownComplete)
+#pragma alloc_text(PAGE, CannotCorePortConnectCallback)
+#pragma alloc_text(PAGE, CannotCorePortDisconnectCallback)
 #endif
 
 
@@ -87,18 +88,18 @@ CONST FLT_OPERATION_REGISTRATION Callbacks[] = {
 
     { IRP_MJ_CREATE,
       0,
-      NTFZPreOperationCallback,
-      NTFZPostOperationCallback },
+      CannotPreOperationCallback,
+      CannotPostOperationCallback },
 
     { IRP_MJ_WRITE,
       0,
-      NTFZPreOperationCallback,
-      NTFZPostOperationCallback },
+      CannotPreOperationCallback,
+      CannotPostOperationCallback },
 
     { IRP_MJ_SET_INFORMATION,
       0,
-      NTFZPreOperationCallback,
-      NTFZPostOperationCallback },
+      CannotPreOperationCallback,
+      CannotPostOperationCallback },
 
     { IRP_MJ_OPERATION_END }
 };
@@ -108,23 +109,23 @@ CONST FLT_OPERATION_REGISTRATION Callbacks[] = {
 //
 
 CONST FLT_REGISTRATION FilterRegistration = {
-    sizeof(FLT_REGISTRATION),          //  Size
-    FLT_REGISTRATION_VERSION,          //  Version
-    0,                                 //  Flags
+    sizeof(FLT_REGISTRATION),           //  Size
+    FLT_REGISTRATION_VERSION,           //  Version
+    0,                                  //  Flags
 
-    NULL,                              //  Context
-    Callbacks,                         //  Operation callbacks
+    NULL,                               //  Context
+    Callbacks,                          //  Operation callbacks
 
-    NTFZCoreUnload,                    //  MiniFilterUnload
+    CannotCoreUnload,                   //  MiniFilterUnload
 
-    NTFZCoreInstanceSetup,             //  InstanceSetup
-    NTFZCoreInstanceQueryTeardown,     //  InstanceQueryTeardown
-    NTFZCoreInstanceTeardownStart,     //  InstanceTeardownStart
-    NTFZCoreInstanceTeardownComplete,  //  InstanceTeardownComplete
+    CannotCoreInstanceSetup,            //  InstanceSetup
+    CannotCoreInstanceQueryTeardown,    //  InstanceQueryTeardown
+    CannotCoreInstanceTeardownStart,    //  InstanceTeardownStart
+    CannotCoreInstanceTeardownComplete, //  InstanceTeardownComplete
 
-    NULL,                              //  GenerateFileName
-    NULL,                              //  GenerateDestinationFileName
-    NULL                               //  NormalizeNameComponent
+    NULL,                               //  GenerateFileName
+    NULL,                               //  GenerateDestinationFileName
+    NULL                                //  NormalizeNameComponent
 };
 
 
@@ -144,7 +145,7 @@ DriverEntry(
     UNREFERENCED_PARAMETER(RegistryPath);
     PAGED_CODE();
 
-    KdPrint(("NtFZCore!%s: Driver entry initialization\n", __func__));
+    KdPrint(("CannotCore!%s: Driver entry initialization\n", __func__));
 
     // Register with FltMgr to tell it our callback routines
     try {
@@ -156,7 +157,7 @@ DriverEntry(
                                         NULL,
                                         NULL,
                                         POOL_NX_ALLOCATION,
-                                        sizeof(RTL_BALANCED_LINKS) + sizeof(NTFZ_CONFIG),
+                                        sizeof(RTL_BALANCED_LINKS) + sizeof(CANNOT_CONFIG),
                                         MEM_NPAGED_POOL_TAG_CONFIG_ENTRY,
                                         0);
         
@@ -164,7 +165,7 @@ DriverEntry(
                                         NULL,
                                         NULL,
                                         POOL_NX_ALLOCATION,
-                                        sizeof(NTFZ_CONFIG),
+                                        sizeof(CANNOT_CONFIG),
                                         MEM_NPAGED_POOL_TAG_CONFIG_OBJECT,
                                         0);
 
@@ -189,7 +190,7 @@ DriverEntry(
         if (!NT_SUCCESS(status)) leave;
 
         // Make unicode string port name.
-        RtlInitUnicodeString(&portName, NTFZ_COMMAND_PORT_NAME);
+        RtlInitUnicodeString(&portName, CANNOT_COMMAND_PORT_NAME);
         InitializeObjectAttributes(&objAttr,
                                    &portName,
                                    OBJ_KERNEL_HANDLE | OBJ_CASE_INSENSITIVE,
@@ -201,9 +202,9 @@ DriverEntry(
                                             &Globals.CorePort,
                                             &objAttr,
                                             NULL,
-                                            NTFZCorePortConnectCallback,
-                                            NTFZCorePortDisconnectCallback,
-                                            NTFZCoreMessageHandlerRoutine,
+                                            CannotCorePortConnectCallback,
+                                            CannotCorePortDisconnectCallback,
+                                            CannotCoreMessageHandlerRoutine,
                                             1);
         if (!NT_SUCCESS(status)) leave;
 
@@ -218,7 +219,7 @@ DriverEntry(
             FltFreeSecurityDescriptor(pSecurityDescriptor);
 
         if (!NT_SUCCESS(status)) {
-            KdPrint(("NtFZCore!%s: Driver loading failed\n", __func__));
+            KdPrint(("CannotCore!%s: Driver loading failed\n", __func__));
 
             if (Globals.CorePort != NULL)
                 FltCloseCommunicationPort(Globals.CorePort);
@@ -230,8 +231,10 @@ DriverEntry(
             ExDeleteNPagedLookasideList(&Globals.ConfigObjectMemoryPool);
 
         } else {
-            KdPrint(("NtFZCore!%s: Driver loaded successfully, version: v%lu.%lu.%lu\n",
-                __func__, NTFZ_CORE_VERSION_MAJOR, NTFZ_CORE_VERSION_MINOR, NTFZ_CORE_VERSION_PATCH));
+            KdPrint(("CannotCore!%s: Driver loaded successfully, version: v%lu.%lu.%lu\n", __func__,
+                CANNOT_CORE_VERSION_MAJOR,
+                CANNOT_CORE_VERSION_MINOR,
+                CANNOT_CORE_VERSION_PATCH));
         }
     }
 
@@ -240,13 +243,13 @@ DriverEntry(
 
 
 NTSTATUS
-NTFZCoreUnload(
+CannotCoreUnload(
     _In_ FLT_FILTER_UNLOAD_FLAGS Flags
 ) {
     UNREFERENCED_PARAMETER(Flags);
     PAGED_CODE();
 
-    KdPrint(("NTFZCore!%s: Driver unload\n", __func__));
+    KdPrint(("CannotCore!%s: Driver unload\n", __func__));
 
     if (Globals.CorePort != NULL) 
         FltCloseCommunicationPort(Globals.CorePort);
@@ -264,7 +267,7 @@ NTFZCoreUnload(
 
 
 NTSTATUS
-NTFZCoreInstanceSetup(
+CannotCoreInstanceSetup(
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
     _In_ FLT_INSTANCE_SETUP_FLAGS Flags,
     _In_ DEVICE_TYPE VolumeDeviceType,
@@ -276,14 +279,14 @@ NTFZCoreInstanceSetup(
     UNREFERENCED_PARAMETER(VolumeFilesystemType);
     PAGED_CODE();
 
-    KdPrint(("NtFZCore!%s: Instance setup\n", __func__));
+    KdPrint(("CannotCore!%s: Instance setup\n", __func__));
 
     return STATUS_SUCCESS;
 }
 
 
 NTSTATUS
-NTFZCoreInstanceQueryTeardown(
+CannotCoreInstanceQueryTeardown(
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
     _In_ FLT_INSTANCE_QUERY_TEARDOWN_FLAGS Flags
 ) {
@@ -291,14 +294,14 @@ NTFZCoreInstanceQueryTeardown(
     UNREFERENCED_PARAMETER(Flags);
     PAGED_CODE();
 
-    KdPrint(("NtFZCore!%s: Instance teardown\n", __func__));
+    KdPrint(("CannotCore!%s: Instance teardown\n", __func__));
 
     return STATUS_SUCCESS;
 }
 
 
 VOID
-NTFZCoreInstanceTeardownStart(
+CannotCoreInstanceTeardownStart(
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
     _In_ FLT_INSTANCE_TEARDOWN_FLAGS Flags
 ) {
@@ -306,12 +309,12 @@ NTFZCoreInstanceTeardownStart(
     UNREFERENCED_PARAMETER(Flags);
     PAGED_CODE();
 
-    KdPrint(("NtFZCore!%s: Instance teardown starting\n", __func__));
+    KdPrint(("CannotCore!%s: Instance teardown starting\n", __func__));
 }
 
 
 VOID
-NTFZCoreInstanceTeardownComplete(
+CannotCoreInstanceTeardownComplete(
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
     _In_ FLT_INSTANCE_TEARDOWN_FLAGS Flags
 ) {
@@ -319,10 +322,10 @@ NTFZCoreInstanceTeardownComplete(
     UNREFERENCED_PARAMETER(Flags);
     PAGED_CODE();
 
-    KdPrint(("NtFZCore!%s: Instance teardown comopleted\n", __func__));
+    KdPrint(("CannotCore!%s: Instance teardown comopleted\n", __func__));
 }
 
-NTSTATUS NTFZCorePortConnectCallback(
+NTSTATUS CannotCorePortConnectCallback(
     _In_ PFLT_PORT AdminPort,
     _In_ PVOID CorePortCookie,
     _In_reads_bytes_(ContextBytes) PVOID ConnectionContext,
@@ -339,12 +342,12 @@ NTSTATUS NTFZCorePortConnectCallback(
     FLT_ASSERT(Globals.AdminPort == NULL);
     Globals.AdminPort = AdminPort;
 
-    KdPrint(("NtFZCore!%s: Communication port connected\n", __func__));
+    KdPrint(("CannotCore!%s: Communication port connected\n", __func__));
 
     return STATUS_SUCCESS;
 }
 
-VOID NTFZCorePortDisconnectCallback(
+VOID CannotCorePortDisconnectCallback(
     _In_opt_ PVOID ConnectionCookie
 ) {
     UNREFERENCED_PARAMETER(ConnectionCookie);
@@ -353,5 +356,5 @@ VOID NTFZCorePortDisconnectCallback(
     FLT_ASSERT(Globals.AdminPort != NULL);
     FltCloseClientPort(Globals.Filter, &Globals.AdminPort);
     
-    KdPrint(("NtFZCore!%s: Communication port disconnected\n", __func__));
+    KdPrint(("CannotCore!%s: Communication port disconnected\n", __func__));
 }
