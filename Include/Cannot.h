@@ -54,7 +54,7 @@ typedef struct _CANNOT_COMMAND {
 } CANNOT_COMMAND, *PCANNOT_COMMAND;
 
 
-// NtFreezer core version.
+// Cannot core version.
 typedef struct _CANNOT_CORE_VERSION {
 	ULONG Major;
 	ULONG Minor;
@@ -78,7 +78,7 @@ typedef enum _CANNOT_CONFIG_TYPE {
 #define VALID_FZ_TYPE(_T_) ((_T_) & (_VALID_FZ_TYPE_))
 
 
-// NtFreezer configuration.
+// Cannot configuration.
 typedef struct _CANNOT_CONFIG {
 	CANNOT_CONFIG_TYPE FreezeType;
 	WCHAR Path[MAX_PATH + 1];

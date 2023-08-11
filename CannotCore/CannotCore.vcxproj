@@ -128,14 +128,14 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
-    <OutDir>$(SolutionDir)Output\$(Platform)\$(ConfigurationName)\</OutDir>
-    <IntDir>Output\$(Platform)\$(ConfigurationName)\</IntDir>
+    <OutDir>$(SolutionDir)Output\$(Configuration)-$(Platform)\$(ProjectName)</OutDir>
+    <IntDir>$(SolutionDir)Intermediate\$(Configuration)-$(Platform)\$(ProjectName)</IntDir>
     <Inf2CatUseLocalTime>true</Inf2CatUseLocalTime>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
-    <OutDir>$(SolutionDir)Output\$(Platform)\$(ConfigurationName)\</OutDir>
-    <IntDir>Output\$(Platform)\$(ConfigurationName)\</IntDir>
+    <OutDir>$(SolutionDir)Output\$(Configuration)-$(Platform)\$(ProjectName)</OutDir>
+    <IntDir>$(SolutionDir)Intermediate\$(Configuration)-$(Platform)\$(ProjectName)</IntDir>
     <Inf2CatUseLocalTime>true</Inf2CatUseLocalTime>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
