@@ -141,8 +141,11 @@ CannotPreOperationCallback (
     case CannotTypeNothing:
         break;
     case CannotTypeReadOnly:
-        Data->IoStatus.Status = STATUS_NOT_FOUND;
-        callbackStatus = FLT_PREOP_COMPLETE;
+        if (Data->Iopb->MajorFunction == IRP_MJ_WRITE) {
+            Data->IoStatus.Status = STATUS_ACCESS_DENIED;
+            callbackStatus = FLT_PREOP_COMPLETE;
+        }
+
         break;
     case CannotTypeAccessDenied:
         Data->IoStatus.Status = STATUS_ACCESS_DENIED;
