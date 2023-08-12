@@ -17,49 +17,25 @@ RTL_GENERIC_COMPARE_RESULTS NTAPI ConfigEntryCompareRoutine(
 ) {
 	UNREFERENCED_PARAMETER(Table);
 
-	RTL_GENERIC_COMPARE_RESULTS configCompareResult;
-	INT pathCompareResult;
-	PCWSTR lPath = ((PCANNOT_CONFIG)LEntry)->Path;
-	PCWSTR rPath = ((PCANNOT_CONFIG)REntry)->Path;
+	UNICODE_STRING lPath = { 0 }, rPath = { 0 };
 
-	SIZE_T lPathLen = wcslen(lPath);
-	SIZE_T rPathLen = wcslen(rPath);
-
-	ASSERT(lPath != NULL && lPathLen != 0);
-	ASSERT(rPath != NULL && rPathLen != 0);
-
-	pathCompareResult = wcsncmp(lPath, rPath, rPathLen);
+	RtlInitUnicodeString(&lPath, ((PCANNOT_CONFIG)LEntry)->Path);
+	RtlInitUnicodeString(&rPath, ((PCANNOT_CONFIG)REntry)->Path);
+	
+	ASSERT(lPath.Buffer != NULL && lPathLen != 0);
+	ASSERT(rPath.Buffer != NULL && rPathLen != 0);
 
 	KdPrint(("CannotCore!%s: '%ws' ? '%ws' = %d", __func__, lPath, rPath, pathCompareResult));
-
-	if (pathCompareResult == 0) {
-		
-		if (lPathLen == rPathLen) {
-			/*
-				example:
-				Left path:  \Device\HarddiskVolume7\dir
-				Right path: \Device\HarddiskVolume7\dir
-			*/
-			configCompareResult = GenericEqual;
-			goto compareFinish;
-		}
-
-		if (lPath[rPathLen] == OBJ_NAME_PATH_SEPARATOR) {
-			/*
-				example:
-				Left path:  \Device\HarddiskVolume7\dir\file
-				Right path: \Device\HarddiskVolume7\dir
-			*/
-			configCompareResult = GenericEqual;
-			goto compareFinish;
+	
+	if (RtlPrefixUnicodeString(&rPath, &lPath, TRUE)) {
+		if (lPath.Length == rPath.Length) {
+			return GenericEqual;
+		} else if (lPath.Buffer != NULL && lPath.Buffer[(rPath.Length / sizeof(WCHAR))] == OBJ_NAME_PATH_SEPARATOR) {
+			return GenericEqual;
 		}
 	}
 
-	configCompareResult = pathCompareResult > 0 ? GenericGreaterThan : GenericLessThan;
-
-compareFinish:
-
-	return configCompareResult;
+	return RtlCompareUnicodeString(&lPath, &rPath, TRUE) > 0 ? GenericGreaterThan : GenericLessThan;
 }
 
 // Generic table routine required.
@@ -131,13 +107,16 @@ NTSTATUS QueryConfigFromTable(
 	_Out_ PCANNOT_CONFIG ResultConfig
 ) {
 	NTSTATUS status = STATUS_SUCCESS;
-	//KIRQL originalIRQL;
+
 	PCANNOT_CONFIG pQueryEntry = NewConfig();
 	PCANNOT_CONFIG pResultEntry = NULL;
 	
 	RtlCopyMemory(pQueryEntry, QueryConfig, sizeof(CANNOT_CONFIG));
 
-	//KeAcquireSpinLock(&Globals.ConfigTableLock, &originalIRQL);
+#ifndef DBG
+	KIRQL originalIRQL;
+	KeAcquireSpinLock(&Globals.ConfigTableLock, &originalIRQL);
+#endif
 
 	pResultEntry = RtlLookupElementGenericTable(&Globals.ConfigTable, (PVOID)pQueryEntry);
 	if (pResultEntry == NULL) {
@@ -150,7 +129,9 @@ NTSTATUS QueryConfigFromTable(
 
 returnWithUnlock:
 
-	//KeReleaseSpinLock(&Globals.ConfigTableLock, originalIRQL);
+#ifndef DBG
+	KeReleaseSpinLock(&Globals.ConfigTableLock, originalIRQL);
+#endif
 
 	DropConfig(pQueryEntry);
 
@@ -161,13 +142,15 @@ returnWithUnlock:
 NTSTATUS AddConfigToTable(
 	_In_ PCANNOT_CONFIG InsertConfig
 ) {
-	//KIRQL originalIRQL;
 	BOOLEAN inserted = FALSE;
 	PCANNOT_CONFIG pAddConfigEntry = NewConfig();
 
 	RtlCopyMemory(pAddConfigEntry, InsertConfig, sizeof(CANNOT_CONFIG));
 
-	//KeAcquireSpinLock(&Globals.ConfigTableLock, &originalIRQL);
+#ifndef DBG
+	KIRQL originalIRQL;
+	KeAcquireSpinLock(&Globals.ConfigTableLock, &originalIRQL);
+#endif
 
 	KdPrint(("CannotCore!%s: '%ws', '%ws'\n", __func__, InsertConfig->Path, pAddConfigEntry->Path));
 
@@ -177,7 +160,9 @@ NTSTATUS AddConfigToTable(
 	                             sizeof(CANNOT_CONFIG),
 	                             &inserted);
 
-	//KeReleaseSpinLock(&Globals.ConfigTableLock, originalIRQL);
+#ifndef DBG
+	KeReleaseSpinLock(&Globals.ConfigTableLock, originalIRQL);
+#endif
 
 	DropConfig(pAddConfigEntry);
 
@@ -189,17 +174,21 @@ NTSTATUS RemoveConfigFromTable(
 	_In_ PCANNOT_CONFIG RemoveConfig
 ) {
 	NTSTATUS status;
-	//KIRQL originalIRQL;
 	PCANNOT_CONFIG pRemoveConfigEntry = NewConfig();
 
 	RtlCopyMemory(pRemoveConfigEntry, RemoveConfig, sizeof(CANNOT_CONFIG));
 
-	//KeAcquireSpinLock(&Globals.ConfigTableLock, &originalIRQL);
+#ifndef DBG
+	KIRQL originalIRQL;
+	KeAcquireSpinLock(&Globals.ConfigTableLock, &originalIRQL);
+#endif
 
 	status = RtlDeleteElementGenericTable(&Globals.ConfigTable, pRemoveConfigEntry) ?
 		STATUS_SUCCESS : STATUS_UNSUCCESSFUL;
 
+#ifndef DBG
 	//KeReleaseSpinLock(&Globals.ConfigTableLock, originalIRQL);
+#endif
 
 	DropConfig(pRemoveConfigEntry);
 
@@ -210,16 +199,21 @@ NTSTATUS RemoveConfigFromTable(
 NTSTATUS CleanupConfigTable(
 	VOID
 ) {
-	//KIRQL originalIRQL;
 	PVOID entry;
 
-	//KeAcquireSpinLock(&Globals.ConfigTableLock, &originalIRQL);
+#ifndef DBG
+	KIRQL originalIRQL;
+	KeAcquireSpinLock(&Globals.ConfigTableLock, &originalIRQL);
+#endif
 
 	while (!RtlIsGenericTableEmpty(&Globals.ConfigTable)) {
 		entry = RtlGetElementGenericTable(&Globals.ConfigTable, 0);
 		RtlDeleteElementGenericTable(&Globals.ConfigTable, entry);
 	}
-	//KeReleaseSpinLock(&Globals.ConfigTableLock, originalIRQL);
+
+#ifndef DBG
+	KeReleaseSpinLock(&Globals.ConfigTableLock, originalIRQL);
+#endif
 
 	return STATUS_SUCCESS;
 }
@@ -227,21 +221,25 @@ NTSTATUS CleanupConfigTable(
 CANNOT_CONFIG_TYPE MatchConfig(
 	_In_ PUNICODE_STRING Path
 ) {
-	//KIRQL originalIRQL;
 	CANNOT_CONFIG_TYPE matchConfigType = CannotTypeNothing;
 	PCANNOT_CONFIG pQueryEntry = NewConfig();
 	PCANNOT_CONFIG pResultEntry;
 	
 	RtlCopyMemory(pQueryEntry->Path, Path->Buffer, Path->Length);
 
-	//KeAcquireSpinLock(&Globals.ConfigTableLock, &originalIRQL)
+#ifndef DBG
+	KIRQL originalIRQL;
+	KeAcquireSpinLock(&Globals.ConfigTableLock, &originalIRQL);
+#endif
 
 	pResultEntry = RtlLookupElementGenericTable(&Globals.ConfigTable, pQueryEntry);
 	if (pResultEntry != NULL) {
 		matchConfigType = pResultEntry->CannotType;
 	}
 
-	//KeReleaseSpinLock(&Globals.ConfigTableLock, originalIRQL);
+#ifndef DBG
+	KeReleaseSpinLock(&Globals.ConfigTableLock, originalIRQL);
+#endif
 
 	DropConfig(pQueryEntry);
 
