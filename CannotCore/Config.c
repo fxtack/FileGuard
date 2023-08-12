@@ -22,10 +22,10 @@ RTL_GENERIC_COMPARE_RESULTS NTAPI ConfigEntryCompareRoutine(
 	RtlInitUnicodeString(&lPath, ((PCANNOT_CONFIG)LEntry)->Path);
 	RtlInitUnicodeString(&rPath, ((PCANNOT_CONFIG)REntry)->Path);
 	
-	ASSERT(lPath.Buffer != NULL && lPathLen != 0);
-	ASSERT(rPath.Buffer != NULL && rPathLen != 0);
+	ASSERT(lPath.Buffer != NULL && lPath.Length != 0);
+	ASSERT(rPath.Buffer != NULL && rPath.Length != 0);
 
-	KdPrint(("CannotCore!%s: '%ws' ? '%ws' = %d", __func__, lPath, rPath, pathCompareResult));
+	KdPrint(("CannotCore!%s: '%wZ' ? '%wZ'\n", __func__, lPath, rPath));
 	
 	if (RtlPrefixUnicodeString(&rPath, &lPath, TRUE)) {
 		if (lPath.Length == rPath.Length) {
