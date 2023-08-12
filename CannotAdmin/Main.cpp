@@ -60,10 +60,12 @@ int __cdecl wmain(
     wstring command(argv[1]);
     if (command == L"--help") {
         wprintf(
-            L"--version        Check Cannot version.\n"
-            L"--add-config     Add a config.\n"
-            L"--remove-config  Remove a config.\n"
-            L"--cleanup-config Cleanup all configs.\n"
+            L"CannotAdmin usage:"
+            L"          --help : Usage information.\n"
+            L"       --version : Check Cannot version.\n"
+            L"    --add-config : Add a config.\n"
+            L" --remove-config : Remove a config.\n"
+            L"--cleanup-config : Cleanup all configs.\n"
         );
         return 0;
     }
