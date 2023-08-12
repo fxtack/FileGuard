@@ -80,7 +80,7 @@ int __cdecl wmain(
             if (argc == 3) {
                 auto config = admin.TellCoreQueryConfig(formatConfigPathParam(argv[2]));
                 wcout << L"Result config: "
-                    << L"\nType: " << config->FreezeType 
+                    << L"\nType: " << config->CannotType 
                     << L"\nPath: " << wstring(config->Path)
                     << endl;
                 return 0;

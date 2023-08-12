@@ -18,22 +18,18 @@
 #include "Cannot.h"
 #include "CannotAdmin.h"
 
-inline CANNOT_CONFIG_TYPE FzConfigTypeCode(
-    _In_ std::wstring FzConfig
+inline CANNOT_CONFIG_TYPE CannotConfigTypeCode(
+    _In_ std::wstring CannotConfig
 ) {
-    std::transform(
-        FzConfig.begin(),
-        FzConfig.end(),
-        FzConfig.begin(),
-        toupper);
-    if (FzConfig == L"ACCESS_DENIED") {
-        return FzTypeAccessDenied;
-    } else if (FzConfig == L"NOT_FOUND") {
-        return FzTypeNotFound;
-    } else if (FzConfig == L"STATIC_REPARSE") {
-        return FzTypeStaticReparse;
+    std::transform(CannotConfig.begin(), CannotConfig.end(), CannotConfig.begin(), toupper);
+    if (CannotConfig == L"READ_ONLY") {
+        return CannotTypeReadOnly;
+    } else if(CannotConfig == L"ACCESS_DENIED") {
+        return CannotTypeAccessDenied;
+    } else if (CannotConfig == L"REDIRECT") {
+        return CannotTypeRedirect;
     } else {
-        return FzTypeUndefined;
+        throw "invalid cannot config type";
     }
 }
 
@@ -156,7 +152,7 @@ namespace cannot {
         _In_ wstring Path
     ) {
         REQUEST_ADD_CONFIG request;
-        request.FreezeType = FzConfigTypeCode(ConfigType);
+        request.CannotType = CannotConfigTypeCode(ConfigType);
         memset(request.Path, '\0', MAX_PATH+1);
         memcpy(request.Path, Path.c_str(), Path.length() * sizeof(WCHAR));
 

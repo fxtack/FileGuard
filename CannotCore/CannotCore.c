@@ -138,18 +138,21 @@ CannotPreOperationCallback (
     KdPrint(("CannotCore!%s: Operation file path: '%wZ'\n", __func__, nameInfo->Name));
 
     switch(MatchConfig(&nameInfo->Name)) {
-    case FzTypeNothing:
+    case CannotTypeNothing:
         break;
-    case FzTypeAccessDenied:
-        Data->IoStatus.Status = STATUS_ACCESS_DENIED;
-        callbackStatus = FLT_PREOP_COMPLETE;
-        break;
-    case FzTypeNotFound:
+    case CannotTypeReadOnly:
         Data->IoStatus.Status = STATUS_NOT_FOUND;
         callbackStatus = FLT_PREOP_COMPLETE;
         break;
+    case CannotTypeAccessDenied:
+        Data->IoStatus.Status = STATUS_ACCESS_DENIED;
+        callbackStatus = FLT_PREOP_COMPLETE;
+        break;
+    case CannotTypeRedirect:
+        KdPrint(("CannotCore!%s: Cannot type not support yet\n", __func__));
+        break;
     default:
-        KdPrint(("CannotCore!%s: Unknown Cannot type.", __func__));
+        KdPrint(("CannotCore!%s: Unknown Cannot type\n", __func__));
     }
 
 Cleanup:

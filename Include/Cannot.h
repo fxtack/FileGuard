@@ -65,22 +65,19 @@ typedef struct _CANNOT_CORE_VERSION {
 
 // Freeze type, detail for wiki.
 typedef enum _CANNOT_CONFIG_TYPE {
-	FzTypeUndefined     = -1,
-	FzTypeNothing       = 0,
-	FzTypeAccessDenied  = 1 << 1,
-	FzTypeNotFound      = 1 << 2,
-	FzTypeStaticReparse = 1 << 3
+	CannotTypeNothing,
+	CannotTypeReadOnly,
+	CannotTypeAccessDenied,
+	CannotTypeRedirect,
+	CannotTypeMaximum
 } CANNOT_CONFIG_TYPE;
 
-#define _VALID_FZ_TYPE_ FzTypeAccessDenied |\
-                        FzTypeNotFound |\
-                        FzTypeStaticReparse
-#define VALID_FZ_TYPE(_T_) ((_T_) & (_VALID_FZ_TYPE_))
+#define VALID_CANNOT_TYPE(_CANNOT_TYPE_) ((_CANNOT_TYPE_) >= CannotTypeNothing && (_CANNOT_TYPE_ < CannotTypeMaximum))
 
 
 // Cannot configuration.
 typedef struct _CANNOT_CONFIG {
-	CANNOT_CONFIG_TYPE FreezeType;
+	CANNOT_CONFIG_TYPE CannotType;
 	WCHAR Path[MAX_PATH + 1];
 } CANNOT_CONFIG, * PCANNOT_CONFIG;
 

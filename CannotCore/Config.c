@@ -228,7 +228,7 @@ CANNOT_CONFIG_TYPE MatchConfig(
 	_In_ PUNICODE_STRING Path
 ) {
 	//KIRQL originalIRQL;
-	CANNOT_CONFIG_TYPE matchConfigType = FzTypeNothing;
+	CANNOT_CONFIG_TYPE matchConfigType = CannotTypeNothing;
 	PCANNOT_CONFIG pQueryEntry = NewConfig();
 	PCANNOT_CONFIG pResultEntry;
 	
@@ -238,7 +238,7 @@ CANNOT_CONFIG_TYPE MatchConfig(
 
 	pResultEntry = RtlLookupElementGenericTable(&Globals.ConfigTable, pQueryEntry);
 	if (pResultEntry != NULL) {
-		matchConfigType = pResultEntry->FreezeType;
+		matchConfigType = pResultEntry->CannotType;
 	}
 
 	//KeReleaseSpinLock(&Globals.ConfigTableLock, originalIRQL);
