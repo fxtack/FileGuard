@@ -33,6 +33,24 @@ inline CANNOT_CONFIG_TYPE CannotConfigTypeCode(
     }
 }
 
+bool IsValidWindowsPath(const std::wstring& path) {
+    if (path.length() < 3 || path.length() > 260) {
+        return false;
+    }
+
+    if (!(path[1] == L':')) {
+        return false;
+    }
+
+    const std::wstring invalidChars = L"<>:\"|?*";
+    if (std::any_of(std::next(path.begin(), 2), path.end(),
+        [&](wchar_t c) { return invalidChars.find(c) != std::wstring::npos;})) {
+        return false;
+    }
+
+    return true;
+}
+
 // Get path device names.
 // e.g. C:\dir\file -> \Device\HarddiskVolume8
 inline std::wstring PathDeviceName(
@@ -44,11 +62,9 @@ inline std::wstring PathDeviceName(
     if (pos == std::wstring::npos) {
         return L"";
     }
-    resultCode = QueryDosDeviceW(
-        path.substr(0, pos).c_str(),
-        deviceName,
-        1024
-    );
+    resultCode = QueryDosDeviceW(path.substr(0, pos).c_str(),
+                                 deviceName,
+                                 1024);
     if (resultCode == 0) {
         return std::wstring();
     }
@@ -151,6 +167,13 @@ namespace cannot {
         _In_ wstring ConfigType,
         _In_ wstring Path
     ) {
+        std::wcout << Path << std::endl;
+        if (!IsValidWindowsPath(Path)) {
+            throw AdminError("Invalid path");
+        } else {
+            Path = DevicePath(Path);
+        }
+
         REQUEST_ADD_CONFIG request;
         request.CannotType = CannotConfigTypeCode(ConfigType);
         memset(request.Path, '\0', MAX_PATH+1);
@@ -182,6 +205,12 @@ namespace cannot {
     void Admin::TellCoreRemoveConfig(
         _In_ wstring Path
     ) {
+        if (!IsValidWindowsPath(Path)) {
+            throw AdminError("Invalid path");
+        } else {
+            Path = DevicePath(Path);
+        }
+
         REQUEST_REMOVE_CONFIG request;
         memcpy(request.Path, Path.c_str(), Path.length() * sizeof(WCHAR));
 
