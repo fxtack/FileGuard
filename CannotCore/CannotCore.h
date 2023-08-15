@@ -47,7 +47,7 @@ typedef struct _CANNOT_CORE_GLOBALS {
     NPAGED_LOOKASIDE_LIST ConfigObjectMemoryPool; // Memoory pool of config object.
 
     RTL_AVL_TABLE ConfigTable;                    // Config table.
-    KSPIN_LOCK ConfigTableLock;                   // Config table share lock.
+    FAST_MUTEX ConfigTableLock;                   // Config table share lock.
 
 } CANNOT_CORE_GLOBALS, *PCANNOT_CORE_GLOBALS;
 

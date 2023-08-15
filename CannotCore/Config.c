@@ -80,7 +80,7 @@ PCANNOT_CONFIG NewConfig(
 	PCANNOT_CONFIG configMemory = (PCANNOT_CONFIG)ExAllocateFromNPagedLookasideList(&Globals.ConfigObjectMemoryPool);
 
 	if (configMemory != NULL)
-		RtlZeroMemory(configMemory, sizeof(PCANNOT_CONFIG));
+		RtlZeroMemory(configMemory, sizeof(CANNOT_CONFIG));
 
 	KdPrint(("CannotCore!%s: Allocate config object memory: %p\n", __func__, configMemory));
 
@@ -113,10 +113,7 @@ NTSTATUS QueryConfigFromTable(
 	
 	RtlCopyMemory(pQueryEntry, QueryConfig, sizeof(CANNOT_CONFIG));
 
-#ifndef DBG
-	KIRQL originalIRQL;
-	KeAcquireSpinLock(&Globals.ConfigTableLock, &originalIRQL);
-#endif
+	ExAcquireFastMutex(&Globals.ConfigTableLock);
 
 	pResultEntry = RtlLookupElementGenericTable(&Globals.ConfigTable, (PVOID)pQueryEntry);
 	if (pResultEntry == NULL) {
@@ -129,9 +126,7 @@ NTSTATUS QueryConfigFromTable(
 
 returnWithUnlock:
 
-#ifndef DBG
-	KeReleaseSpinLock(&Globals.ConfigTableLock, originalIRQL);
-#endif
+	ExReleaseFastMutex(&Globals.ConfigTableLock);
 
 	DropConfig(pQueryEntry);
 
@@ -147,10 +142,7 @@ NTSTATUS AddConfigToTable(
 
 	RtlCopyMemory(pAddConfigEntry, InsertConfig, sizeof(CANNOT_CONFIG));
 
-#ifndef DBG
-	KIRQL originalIRQL;
-	KeAcquireSpinLock(&Globals.ConfigTableLock, &originalIRQL);
-#endif
+	ExAcquireFastMutex(&Globals.ConfigTableLock);
 
 	KdPrint(("CannotCore!%s: '%ws', '%ws'\n", __func__, InsertConfig->Path, pAddConfigEntry->Path));
 
@@ -160,9 +152,7 @@ NTSTATUS AddConfigToTable(
 	                             sizeof(CANNOT_CONFIG),
 	                             &inserted);
 
-#ifndef DBG
-	KeReleaseSpinLock(&Globals.ConfigTableLock, originalIRQL);
-#endif
+	ExReleaseFastMutex(&Globals.ConfigTableLock);
 
 	DropConfig(pAddConfigEntry);
 
@@ -178,17 +168,12 @@ NTSTATUS RemoveConfigFromTable(
 
 	RtlCopyMemory(pRemoveConfigEntry, RemoveConfig, sizeof(CANNOT_CONFIG));
 
-#ifndef DBG
-	KIRQL originalIRQL;
-	KeAcquireSpinLock(&Globals.ConfigTableLock, &originalIRQL);
-#endif
+	ExAcquireFastMutex(&Globals.ConfigTableLock);
 
 	status = RtlDeleteElementGenericTable(&Globals.ConfigTable, pRemoveConfigEntry) ?
 		STATUS_SUCCESS : STATUS_UNSUCCESSFUL;
 
-#ifndef DBG
-	//KeReleaseSpinLock(&Globals.ConfigTableLock, originalIRQL);
-#endif
+	ExReleaseFastMutex(&Globals.ConfigTableLock);
 
 	DropConfig(pRemoveConfigEntry);
 
@@ -201,19 +186,14 @@ NTSTATUS CleanupConfigTable(
 ) {
 	PVOID entry;
 
-#ifndef DBG
-	KIRQL originalIRQL;
-	KeAcquireSpinLock(&Globals.ConfigTableLock, &originalIRQL);
-#endif
+	ExAcquireFastMutex(&Globals.ConfigTableLock);
 
 	while (!RtlIsGenericTableEmpty(&Globals.ConfigTable)) {
 		entry = RtlGetElementGenericTable(&Globals.ConfigTable, 0);
 		RtlDeleteElementGenericTable(&Globals.ConfigTable, entry);
 	}
 
-#ifndef DBG
-	KeReleaseSpinLock(&Globals.ConfigTableLock, originalIRQL);
-#endif
+	ExReleaseFastMutex(&Globals.ConfigTableLock);
 
 	return STATUS_SUCCESS;
 }
@@ -227,19 +207,14 @@ CANNOT_CONFIG_TYPE MatchConfig(
 	
 	RtlCopyMemory(pQueryEntry->Path, Path->Buffer, Path->Length);
 
-#ifndef DBG
-	KIRQL originalIRQL;
-	KeAcquireSpinLock(&Globals.ConfigTableLock, &originalIRQL);
-#endif
+	ExAcquireFastMutex(&Globals.ConfigTableLock);
 
 	pResultEntry = RtlLookupElementGenericTable(&Globals.ConfigTable, pQueryEntry);
 	if (pResultEntry != NULL) {
 		matchConfigType = pResultEntry->CannotType;
 	}
 
-#ifndef DBG
-	KeReleaseSpinLock(&Globals.ConfigTableLock, originalIRQL);
-#endif
+	ExReleaseFastMutex(&Globals.ConfigTableLock);
 
 	DropConfig(pQueryEntry);
 

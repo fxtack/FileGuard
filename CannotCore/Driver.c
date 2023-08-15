@@ -176,8 +176,8 @@ DriverEntry(
                                   ConfigEntryFreeRoutine,
                                   NULL);
 
-        // Initialize config table share spin lock.
-        KeInitializeSpinLock(&Globals.ConfigTableLock);
+        // Initialize config table mutex lock.
+        ExInitializeFastMutex(&Globals.ConfigTableLock);
 
         // Register filter driver.
         status = FltRegisterFilter(DriverObject,
