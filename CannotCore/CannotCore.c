@@ -44,14 +44,10 @@ CannotPreOperationCallback (
 
     PAGED_CODE();
 
-    NTSTATUS status;
+    NTSTATUS status = STATUS_SUCCESS;
+    FLT_PREOP_CALLBACK_STATUS callbackStatus = FLT_PREOP_SUCCESS_NO_CALLBACK;
     PFLT_FILE_NAME_INFORMATION nameInfo = NULL;
-    FLT_PREOP_CALLBACK_STATUS callbackStatus;
     UNICODE_STRING newFileName;
-
-    // Initialize defaults
-    status = STATUS_SUCCESS;
-    callbackStatus = FLT_PREOP_SUCCESS_NO_CALLBACK; // pass through - default is no post op callback
 
     RtlInitUnicodeString(&newFileName, NULL);
     

@@ -89,17 +89,17 @@ CONST FLT_OPERATION_REGISTRATION Callbacks[] = {
     { IRP_MJ_CREATE,
       0,
       CannotPreOperationCallback,
-      CannotPostOperationCallback },
+      NULL },
 
     { IRP_MJ_WRITE,
       0,
       CannotPreOperationCallback,
-      CannotPostOperationCallback },
+      NULL },
 
     { IRP_MJ_SET_INFORMATION,
       0,
       CannotPreOperationCallback,
-      CannotPostOperationCallback },
+      NULL },
 
     { IRP_MJ_OPERATION_END }
 };
