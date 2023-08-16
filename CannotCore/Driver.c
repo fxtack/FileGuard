@@ -70,7 +70,7 @@ VOID CannotCorePortDisconnectCallback(
 EXTERN_C_END
 
 
-//  Assign text sections for each routine.
+// Assign text sections for each routine.
 #ifdef ALLOC_PRAGMA
 #pragma alloc_text(INIT, DriverEntry)
 #pragma alloc_text(PAGE, CannotCoreUnload)

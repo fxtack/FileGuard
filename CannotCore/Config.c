@@ -198,6 +198,7 @@ NTSTATUS CleanupConfigTable(
 	return STATUS_SUCCESS;
 }
 
+// Match config by file path name.
 CANNOT_CONFIG_TYPE MatchConfig(
 	_In_ PUNICODE_STRING Path
 ) {
