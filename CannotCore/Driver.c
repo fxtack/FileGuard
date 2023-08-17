@@ -137,15 +137,16 @@ DriverEntry(
     _In_ PDRIVER_OBJECT DriverObject,
     _In_ PUNICODE_STRING RegistryPath
 ) {
+    PAGED_CODE();
+
     NTSTATUS status = STATUS_SUCCESS;
     OBJECT_ATTRIBUTES objAttr = { 0 };
     PSECURITY_DESCRIPTOR pSecurityDescriptor = NULL;
     UNICODE_STRING portName;
 
     UNREFERENCED_PARAMETER(RegistryPath);
-    PAGED_CODE();
 
-    KdPrint(("CannotCore!%s: Driver entry initialization\n", __func__));
+    DbgPrint("CannotCore!%s: Driver entry initializing.\n", __FUNCTION__);
 
     // Register with FltMgr to tell it our callback routines
     try {
@@ -231,10 +232,9 @@ DriverEntry(
             ExDeleteNPagedLookasideList(&Globals.ConfigObjectMemoryPool);
 
         } else {
-            KdPrint(("CannotCore!%s: Driver loaded successfully, version: v%lu.%lu.%lu\n", __func__,
-                CANNOT_CORE_VERSION_MAJOR,
-                CANNOT_CORE_VERSION_MINOR,
-                CANNOT_CORE_VERSION_PATCH));
+
+            DbgPrint("CannotCore!%s: Driver loaded successfully, version: v%lu.%lu.%lu.\n",
+                __FUNCTION__, CANNOT_CORE_VERSION_MAJOR, CANNOT_CORE_VERSION_MINOR, CANNOT_CORE_VERSION_PATCH);
         }
     }
 
@@ -246,10 +246,11 @@ NTSTATUS
 CannotCoreUnload(
     _In_ FLT_FILTER_UNLOAD_FLAGS Flags
 ) {
-    UNREFERENCED_PARAMETER(Flags);
     PAGED_CODE();
 
-    KdPrint(("CannotCore!%s: Driver unload\n", __func__));
+    UNREFERENCED_PARAMETER(Flags);
+
+    DbgPrint("CannotCore!%s: Driver unloading.\n", __FUNCTION__);
 
     if (Globals.CorePort != NULL) 
         FltCloseCommunicationPort(Globals.CorePort);
@@ -262,6 +263,8 @@ CannotCoreUnload(
     ExDeleteNPagedLookasideList(&Globals.ConfigEntryMemoryPool);
     ExDeleteNPagedLookasideList(&Globals.ConfigObjectMemoryPool);
 
+    DbgPrint("CannotCore!%s: Driver unloaded successfully.", __FUNCTION__);
+
     return STATUS_SUCCESS;
 }
 
@@ -273,13 +276,14 @@ CannotCoreInstanceSetup(
     _In_ DEVICE_TYPE VolumeDeviceType,
     _In_ FLT_FILESYSTEM_TYPE VolumeFilesystemType
 ) {
+    PAGED_CODE();
+
     UNREFERENCED_PARAMETER(FltObjects);
     UNREFERENCED_PARAMETER(Flags);
     UNREFERENCED_PARAMETER(VolumeDeviceType);
     UNREFERENCED_PARAMETER(VolumeFilesystemType);
-    PAGED_CODE();
 
-    KdPrint(("CannotCore!%s: Instance setup\n", __func__));
+    DbgPrint("CannotCore!%s: Instance setup.\n", __FUNCTION__);
 
     return STATUS_SUCCESS;
 }
@@ -290,11 +294,12 @@ CannotCoreInstanceQueryTeardown(
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
     _In_ FLT_INSTANCE_QUERY_TEARDOWN_FLAGS Flags
 ) {
-    UNREFERENCED_PARAMETER(FltObjects);
-    UNREFERENCED_PARAMETER(Flags);
     PAGED_CODE();
 
-    KdPrint(("CannotCore!%s: Instance teardown\n", __func__));
+    UNREFERENCED_PARAMETER(FltObjects);
+    UNREFERENCED_PARAMETER(Flags);
+
+    DbgPrint("CannotCore!%s: Instance teardown.\n", __FUNCTION__);
 
     return STATUS_SUCCESS;
 }
@@ -305,11 +310,12 @@ CannotCoreInstanceTeardownStart(
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
     _In_ FLT_INSTANCE_TEARDOWN_FLAGS Flags
 ) {
-    UNREFERENCED_PARAMETER(FltObjects);
-    UNREFERENCED_PARAMETER(Flags);
     PAGED_CODE();
 
-    KdPrint(("CannotCore!%s: Instance teardown starting\n", __func__));
+    UNREFERENCED_PARAMETER(FltObjects);
+    UNREFERENCED_PARAMETER(Flags);
+
+    DbgPrint("CannotCore!%s: Instance teardown start.\n", __FUNCTION__);
 }
 
 
@@ -318,11 +324,12 @@ CannotCoreInstanceTeardownComplete(
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
     _In_ FLT_INSTANCE_TEARDOWN_FLAGS Flags
 ) {
-    UNREFERENCED_PARAMETER(FltObjects);
-    UNREFERENCED_PARAMETER(Flags);
     PAGED_CODE();
 
-    KdPrint(("CannotCore!%s: Instance teardown comopleted\n", __func__));
+    UNREFERENCED_PARAMETER(FltObjects);
+    UNREFERENCED_PARAMETER(Flags);
+
+    DbgPrint("CannotCore!%s: Instance teardown comopleted.\n", __FUNCTION__);
 }
 
 NTSTATUS CannotCorePortConnectCallback(
@@ -332,17 +339,19 @@ NTSTATUS CannotCorePortConnectCallback(
     _In_ ULONG ContextBytes,
     _Flt_ConnectionCookie_Outptr_ PVOID* ConnectionCookie
 ) {
+    PAGED_CODE();
+
     UNREFERENCED_PARAMETER(AdminPort);
     UNREFERENCED_PARAMETER(CorePortCookie);
     UNREFERENCED_PARAMETER(ConnectionContext);
     UNREFERENCED_PARAMETER(ContextBytes);
     UNREFERENCED_PARAMETER(ConnectionCookie);
-    PAGED_CODE();
-
+    
     FLT_ASSERT(Globals.AdminPort == NULL);
+
     Globals.AdminPort = AdminPort;
 
-    KdPrint(("CannotCore!%s: Communication port connected\n", __func__));
+    DbgPrint("CannotCore!%s: Communicate port connected.\n", __FUNCTION__);
 
     return STATUS_SUCCESS;
 }
@@ -350,11 +359,13 @@ NTSTATUS CannotCorePortConnectCallback(
 VOID CannotCorePortDisconnectCallback(
     _In_opt_ PVOID ConnectionCookie
 ) {
-    UNREFERENCED_PARAMETER(ConnectionCookie);
     PAGED_CODE();
 
+    UNREFERENCED_PARAMETER(ConnectionCookie);
+
     FLT_ASSERT(Globals.AdminPort != NULL);
+
     FltCloseClientPort(Globals.Filter, &Globals.AdminPort);
     
-    KdPrint(("CannotCore!%s: Communication port disconnected\n", __func__));
+    DbgPrint("CannotCore!%s: Communicate port disconnected.\n", __FUNCTION__);
 }
