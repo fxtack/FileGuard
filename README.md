@@ -1,8 +1,8 @@
-# Cannot
+# FileGuard
 
-By using the Cannot, you can control files and directories access dynamically by config.
+FileGuard is implemented using a minifilter driver. By using FileGuard, you can set custom permission management under Windows' NTFS.
 
-The Cannot contains two major modules:
+The FileGuard contains two major modules:
 
-* CannotAdmin: Communicate with driver to manage configuration.
-* CannotCore: Driver running at Windows  kernel implemented by minifilter.
+* FileGuardAdmin: Communicate with driver(core) to manage configuration.
+* FileGuardCore: Driver running at Windows kernel implemented by minifilter.

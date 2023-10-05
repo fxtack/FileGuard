@@ -1,0 +1,91 @@
+#pragma once
+
+#ifndef __CONTEXT_H__
+#define __CONTEXT_H__
+
+typedef struct _FG_INSTANCE_CONTEXT {
+
+	//
+	// Instance context list entry.
+	//
+	LIST_ENTRY List;
+
+	//
+	// Instance volume.
+	//
+	PFLT_VOLUME Volume;
+
+	//
+	// Instance of context.
+	//
+	PFLT_INSTANCE Instance;
+
+	//
+	// The generic table save rules that apply in instance.
+	//
+	RTL_GENERIC_TABLE RulesTable;
+
+	//
+	// The rules table lock.
+	//
+	PERESOURCE RulesTableResource;
+
+} FG_INSTANCE_CONTEXT, *PFG_INSTANCE_CONTEXT;
+
+
+_Check_return_ 
+NTSTATUS 
+FgCreateInstanceContext(
+	_In_     PFLT_FILTER Filter,
+	_In_     PFLT_VOLUME Volume,
+	_In_     PFLT_INSTANCE Instance,
+	_Outptr_ PFG_INSTANCE_CONTEXT *InstanceContext
+);
+
+
+_Check_return_
+NTSTATUS
+FgSetInstanceContext(
+	_In_ PFLT_INSTANCE Instance,
+	_In_ FLT_SET_CONTEXT_OPERATION Operation,
+	_In_ PFLT_CONTEXT NewContext,
+	_Outptr_opt_result_maybenull_ PFLT_CONTEXT *OldContext
+);
+
+
+VOID
+FgCleanupInstanceContext(
+	_In_ PFLT_CONTEXT InstanceContext,
+	_In_ FLT_CONTEXT_TYPE ContextType
+);
+
+typedef struct _FG_STREAM_CONTEXT {
+
+	FG_RULE_CLASS RuleClass;
+
+} FG_STREAM_CONTEXT, *PFG_STREAM_CONTEXT;
+
+
+_Check_return_
+NTSTATUS
+FgCreateStreamContext(
+	_Outptr_ PFG_STREAM_CONTEXT *StreamContext
+);
+
+
+_Check_return_
+NTSTATUS
+FgFindOrCreateStreamContext(
+	_In_ PFLT_CALLBACK_DATA Data,
+	_In_ BOOLEAN CreateIfNotFound,
+	_Outptr_ PFG_STREAM_CONTEXT *StreamContext,
+	_Out_opt_ PBOOLEAN ContextCreated
+);
+
+VOID
+FgCleanupStreamContext(
+	_In_ PFLT_CONTEXT InstanceContext,
+	_In_ FLT_CONTEXT_TYPE ContextType
+);
+
+#endif

@@ -15,8 +15,8 @@
 #include <algorithm>
 #include <filesystem>
 
-#include "Cannot.h"
-#include "CannotAdmin.h"
+#include "FileGuard.h"
+#include "FileGuardAdmin.h"
 
 inline CANNOT_CONFIG_TYPE CannotConfigTypeCode(
     _In_ std::wstring CannotConfig

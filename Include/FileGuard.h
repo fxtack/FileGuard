@@ -1,18 +1,18 @@
 /*
-	@File	Cannot.h
+	@File	FileGuard.h
 	@Note	Public include.
 
 	@Mode	Kernel and User
 	@Author Fxtack
 */
 
-#ifndef _CANNOT_H_
-#define _CANNOT_H_
+#ifndef __FILE_GUARD_H__
+#define __FILE_GUARD_H__
 
 #define MAX_PATH 260
 
-#define CANNOT_COMMAND_PORT_NAME L"\\CannotCommandPort"
-#define CANNOT_LOG_PORT_NAME     L"\\CannotLogPort"
+#define FG_CORE_CONTROL_PORT_NAME L"\\FileGuardControlPort"
+#define FG_MONITOR_PORT_NAME      L"\\FileGuardMonitorPort"
 
 // The type of message that sending from admin to core.
 typedef enum _CANNOT_COMMAND_TYPE {
@@ -85,5 +85,30 @@ typedef CANNOT_CONFIG REQUEST_QUERY_CONFIG, * QREQUEST_QUERY_CONFIG;
 typedef CANNOT_CONFIG RESPONSE_QUERY_CONFIG, * QRESPONSE_QUERY_CONFIG;
 typedef CANNOT_CONFIG REQUEST_ADD_CONFIG, * QREQUEST_ADD_CONFIG;
 typedef CANNOT_CONFIG REQUEST_REMOVE_CONFIG, *QREQUEST_REMOVE_CONFIG;
+
+typedef enum _FG_RULE_CLASS {
+	RuleUnknown,
+	RuleAccessDenied,
+	RuleReadOnly,
+	RuleMaximum
+} FG_RULE_CLASS, *PFG_RULE_CLASS;
+
+typedef struct _FG_RULE {
+	FG_RULE_CLASS Class;
+
+} FG_RULE, *PFG_RULE;
+
+#define FG_RECORDS_MESSAGE_BODY_BUFFER_SIZE (32 * 1024)
+
+typedef struct _FG_RECORD_BODY {
+	ULONG DataSize;
+	UCHAR DataBuffer[FG_RECORDS_MESSAGE_BODY_BUFFER_SIZE];
+} FG_RECORDS_MESSAGE_BODY, *PFG_RECORDS_MESSAGE_BODY;
+
+typedef struct _FG_RECORDS_MESSAGE {
+	FILTER_MESSAGE_HEADER	MessageHeader;
+	FG_RECORDS_MESSAGE_BODY	MessageBody;
+} FG_RECORDS_MESSAGE, *PFG_RECORDS_MESSAGE;
+
 
 #endif

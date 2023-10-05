@@ -22,9 +22,9 @@
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
     <ProjectGuid>{7253732e-e2a3-4146-9daf-31e47cbebcef}</ProjectGuid>
-    <RootNamespace>Cannot</RootNamespace>
+    <RootNamespace>FileGuard</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
-    <ProjectName>CannotAdmin</ProjectName>
+    <ProjectName>FileGuardAdmin</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -151,10 +151,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Main.cpp" />
-    <ClCompile Include="CannotAdmin.cpp" />
+    <ClCompile Include="FileGuardAdmin.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="CannotAdmin.h" />
+    <ClInclude Include="FileGuardAdmin.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

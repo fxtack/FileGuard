@@ -18,8 +18,8 @@ _Analysis_mode_(_Analysis_code_type_user_code_)
 #include <Fileapi.h>
 #include <fltUser.h>
 
-#include "Cannot.h"
-#include "CannotAdmin.h"
+#include "FileGuard.h"
+#include "FileGuardAdmin.h"
 
 inline std::wstring formatConfigPathParam(
     _In_opt_ PCWSTR ConfigPathParam
@@ -60,9 +60,9 @@ int __cdecl wmain(
     wstring command(argv[1]);
     if (command == L"--help") {
         wprintf(
-            L"CannotAdmin usage:"
+            L"FileGuardAdmin usage:"
             L"          --help : Usage information.\n"
-            L"       --version : Check Cannot version.\n"
+            L"       --version : Check FileGuard version.\n"
             L"    --add-config : Add a config.\n"
             L" --remove-config : Remove a config.\n"
             L"--cleanup-config : Cleanup all configs.\n"
@@ -73,7 +73,7 @@ int __cdecl wmain(
     string invalidParamError = "Invalid parameter, enter `--help` for usage.";
 
     try {
-        // Initialize CannotAdmin.
+        // Initialize FileGuardAdmin.
         cannot::Admin admin(CANNOT_COMMAND_PORT_NAME);
 
         // Command handling.
