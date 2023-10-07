@@ -28,7 +28,7 @@ Module Name:
 
 Abstract:
 
-    FileGuardCore driver basic declarations.
+    Basic declarations of FileGuardCore driver.
 
 Environment:
 
@@ -36,10 +36,13 @@ Environment:
 
 --*/
 
-#define RTL_USE_AVL_TABLES 0
-
 #ifndef __FG_CORE_H__
 #define __FG_CORE_H__
+
+//
+// Configure the generic table routines to use AVL trees.
+//
+#define RTL_USE_AVL_TABLES 0 
 
 #include <fltKernel.h>
 #include <ntddk.h>
@@ -51,33 +54,28 @@ Environment:
 #include "Operations.h"
 #include "Context.h"
 #include "Communication.h"
+#include "Monitor.h"
 
+//
+// FileGuardCore version information.
+//
 #define FG_CORE_VERSION_MAJOR 0
 #define FG_CORE_VERSION_MINOR 1
 #define FG_CORE_VERSION_PATCH 8
 
-/////////////////////////////////
-// Memory tag.                 //
-/////////////////////////////////
-
+//
+// Memory pool tags.
+//
 #define FG_INSTANCE_CONTEXT_PAGED_MEM_TAG 'FGic'
 #define FG_STREAM_CONTEXT_PAGED_MEM_TAG   'FGsc'
+#define FG_UNICODE_STRING_PAGED_MEM_TAG   'FGus'
+#define FG_BUFFER_PAGED_MEM_TAG           'FGbf'
+#define FG_MONITOR_CONTEXT_PAGED_MEM_TAG  'FGmc'
+#define FG_ERESOURCE_NON_PAGED_MEM_TAG    'FGNr'
 
-#define FG_UNICODE_STRING_PAGED_MEM_TAG  'FGus'
-#define FG_BUFFER_PAGED_MEM_TAG          'FGbf'
-#define FG_MONITOR_CONTEXT_PAGED_MEM_TAG 'FGmc'
-#define FG_ERESOURCE_NON_PAGED_MEM_TAG   'FGNr'
-
-#define MAX_RULES_ENTRY_ALLOCATED 1024
-
-// Generic table callback routine.
-RTL_GENERIC_COMPARE_ROUTINE  RuleEntryCompareRoutine;
-RTL_GENERIC_ALLOCATE_ROUTINE RuleEntryAllocateRoutine;
-RTL_GENERIC_FREE_ROUTINE     RuleEntryFreeRoutine;
-
-/*************************************************************************
-    Global variabls.
-*************************************************************************/
+//
+// Global variables.
+//
 typedef struct _FG_CORE_GLOBALS {
 
     PFLT_FILTER Filter;            // Filter instances.
@@ -95,36 +93,15 @@ typedef struct _FG_CORE_GLOBALS {
     LIST_ENTRY MonitorRecordsQueue;
     FAST_MUTEX MonitorRecordsQueueLock;
 
-    ULONG MaxRuleEntriesAllocated;                // Maximum of rule entries that can be allocated.
-    __volatile ULONG RuleEntriesAllocated;        // Amount of rule entries allocated.
-    NPAGED_LOOKASIDE_LIST RuleEntryMemoryPool;    // Memory pool of rule entry.
+    ULONG MaxRuleEntriesAllocated;             // Maximum of rule entries that can be allocated.
+    __volatile ULONG RuleEntriesAllocated;     // Amount of rule entries allocated.
+    NPAGED_LOOKASIDE_LIST RuleEntryMemoryPool; // Memory pool of rule entry.
     
-    LIST_ENTRY InstanceContextList;               // Instance context list.
-    FAST_MUTEX InstanceContextListMutex;           // Instance context list lock.
+    LIST_ENTRY InstanceContextList;            // Instance context list.
+    FAST_MUTEX InstanceContextListMutex;       // Instance context list lock.
 
 } FG_CORE_GLOBALS, *PFG_CORE_GLOBALS;
 
 extern FG_CORE_GLOBALS Globals;
-
-/*************************************************************************
-    Message handler routine.
-*************************************************************************/
-NTSTATUS FgCoreMessageHandlerRoutine(
-    _In_opt_ PVOID ConnectionCookie,
-    _In_reads_bytes_opt_(InputBytes) PVOID Input,
-    _In_ ULONG InputBytes,
-    _Out_writes_bytes_to_opt_(OutputBytes, *ReturnBytes) PVOID Output,
-    _In_ ULONG OutputBytes,
-    _Out_ PULONG ReturnBytes
-);
-
-NTSTATUS FgAddRule();
-
-NTSTATUS FgRemoveRule();
-
-NTSTATUS FgListRules();
-
-NTSTATUS FgQueryRule();
-
 
 #endif

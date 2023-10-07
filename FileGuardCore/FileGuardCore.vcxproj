@@ -37,6 +37,7 @@
   <ItemGroup>
     <ClCompile Include="Communication.c" />
     <ClCompile Include="Context.c" />
+    <ClCompile Include="Monitor.c" />
     <ClCompile Include="Operations.c" />
     <ClCompile Include="Rule.c" />
     <ClCompile Include="Utilities.c" />
@@ -213,6 +214,7 @@
     <ClInclude Include="Communication.h" />
     <ClInclude Include="Context.h" />
     <ClInclude Include="FileGuardCore.h" />
+    <ClInclude Include="Monitor.h" />
     <ClInclude Include="Operations.h" />
     <ClInclude Include="Rule.h" />
     <ClInclude Include="Utilities.h" />

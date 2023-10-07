@@ -28,7 +28,7 @@ Module Name:
 
 Abstract:
 
-    Contains minifilter IRP callbacks.
+    Declarations of minifilter IRP callbacks.
 
 Environment:
 
@@ -48,7 +48,6 @@ FgPreCreateOperationCallback(
     _Flt_CompletionContext_Outptr_ PVOID* CompletionContext
 );
 
-
 FLT_POSTOP_CALLBACK_STATUS
 FgPostCreateOperationCallback(
     _Inout_ PFLT_CALLBACK_DATA Data,
@@ -63,7 +62,6 @@ FgPreWriteOperationCallback(
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
     _Flt_CompletionContext_Outptr_ PVOID* CompletionContext
 );
-
 
 FLT_POSTOP_CALLBACK_STATUS
 FgPostWriteOperationCallback(
@@ -80,7 +78,6 @@ FgPreSetInformationOperationCallback(
     _Flt_CompletionContext_Outptr_ PVOID* CompletionContext
 );
 
-
 FLT_POSTOP_CALLBACK_STATUS
 FgPostSetInformationOperationCallback(
     _Inout_ PFLT_CALLBACK_DATA Data,
@@ -96,7 +93,6 @@ FgPreCleanupOperationCallback(
     _Flt_CompletionContext_Outptr_ PVOID* CompletionContext
 );
 
-
 FLT_POSTOP_CALLBACK_STATUS
 FgPostCleanupOperationCallback(
     _Inout_ PFLT_CALLBACK_DATA Data,
@@ -104,6 +100,5 @@ FgPostCleanupOperationCallback(
     _In_opt_ PVOID CompletionContext,
     _In_ FLT_POST_OPERATION_FLAGS Flags
 );
-
 
 #endif

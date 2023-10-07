@@ -28,7 +28,7 @@ Module Name:
 
 Abstract:
 
-    Contains tool and development support functions.
+    Definitions of utility routines are contained.
 
 Environment:
 
@@ -110,7 +110,6 @@ Return Value:
     ExFreePoolWithTag(String, FG_UNICODE_STRING_PAGED_MEM_TAG);
 }
 
-
 _Check_return_
 NTSTATUS
 FgAllocateBuffer(
@@ -178,7 +177,6 @@ Return Value:
     ExFreePoolWithTag(Buffer, FG_BUFFER_PAGED_MEM_TAG);
 }
 
-
 _Check_return_
 NTSTATUS
 FgAllocateResource(
@@ -186,9 +184,9 @@ FgAllocateResource(
     )
 /*++
 
-Summary:
+Routine Description:
 
-    This function allocates a new ERESOURCE from the non-paged pool and initializes it.
+    This routine allocates a new ERESOURCE from the non-paged pool and initializes it.
 
 Arguments:
 
@@ -245,23 +243,20 @@ Cleanup:
     return status;
 }
 
-
 VOID
 FgFreeResource(
     _Inout_ PERESOURCE Resource
     )
 /*++
 
-Summary:
+Routine Description:
 
-    This function frees the PERESOURCE previously allocated using the 'LcAllocateResource' function.
+    This routine frees the PERESOURCE previously allocated by 'FgAllocateResource'.
 
 Arguments:
 
     Resource - Supplies pointer to the ERESOURCE to be freed.
                If it's NULL, this function will do nothing.
-               NOTE:  In order for this function to work properly, the resource given must be
-                      allocated using the 'LcAllocateResource' function.
 
 Return value:
 
@@ -278,7 +273,6 @@ Return value:
     ExFreePoolWithTag((PVOID)Resource, FG_ERESOURCE_NON_PAGED_MEM_TAG);
 }
 
-
 LONG AsMessageException(
     _In_ PEXCEPTION_POINTERS ExceptionPointer,
     _In_ BOOLEAN AccessingUserBuffer
@@ -291,7 +285,7 @@ Routine Description:
 
 Arguments:
 
-    ExceptionPointer - The exception record.
+    ExceptionPointer    - The exception record.
 
     AccessingUserBuffer - If TRUE, overrides FsRtlIsNtStatusExpected to allow
                           the caller to munge the error to a desired status.
@@ -299,7 +293,6 @@ Arguments:
 Return Value:
 
     EXCEPTION_EXECUTE_HANDLER - If the exception handler should be run.
-
     EXCEPTION_CONTINUE_SEARCH - If a higher exception handler should take care of
                                 this exception.
 

@@ -13,52 +13,52 @@ CatalogFile = FileGuardCore.cat
 PnpLockDown = 1
 
 [DestinationDirs]
-DefaultDestDir         = 12
-FileGuardCore.DriverFiles  = 12            ;%windir%\system32\drivers
+DefaultDestDir            = 12
+FileGuardCore.DriverFiles = 12 ;%windir%\system32\drivers
 
 ;;
 ;; Default install sections
 ;;
 
 [DefaultInstall.NTAMD64]
-OptionDesc          = %ServiceDescription%
-CopyFiles           = FileGuardCore.DriverFiles
+OptionDesc = %ServiceDescription%
+CopyFiles  = FileGuardCore.DriverFiles
 
 [DefaultInstall.NTAMD64.Services]
-AddService          = %ServiceName%,,FileGuardCore.Service
+AddService = %ServiceName%,,FileGuardCore.Service
 
 ;;
 ;; Default uninstall sections
 ;;
 
 [DefaultUninstall.NTAMD64]
-DelFiles   = FileGuardCore.DriverFiles
+DelFiles = FileGuardCore.DriverFiles
 
 [DefaultUnistall.NT*]
 LegacyUninstall = 1
 
 [DefaultUninstall.NTAMD64.Services]
-DelService = %ServiceName%,0x200      ;Ensure service is stopped before deleting
+DelService = %ServiceName%,0x200 ;Ensure service is stopped before deleting
 
-;
-; Services Section
-;
+;;
+;; Services Section
+;;
 
 [FileGuardCore.Service]
 DisplayName      = %ServiceName%
 Description      = %ServiceDescription%
-ServiceBinary    = %12%\%DriverName%.sys        ;%windir%\system32\drivers\
+ServiceBinary    = %12%\%DriverName%.sys ;%windir%\system32\drivers\
 Dependencies     = "FltMgr"
-ServiceType      = 2                            ;SERVICE_FILE_SYSTEM_DRIVER
-StartType        = 1                            ;SERVICE_DEMAND_START
-ErrorControl     = 1                            ;SERVICE_ERROR_NORMAL
+ServiceType      = 2                     ;SERVICE_FILE_SYSTEM_DRIVER
+StartType        = 1                     ;SERVICE_DEMAND_START
+ErrorControl     = 1                     ;SERVICE_ERROR_NORMAL
 ; TODO - Change the Load Order Group value
 LoadOrderGroup   = "FSFilter Activity Monitor"
 AddReg           = FileGuardCore.AddRegistry
 
-;
-; Registry Modifications
-;
+;;
+;; Registry Modifications
+;;
 
 [FileGuardCore.AddRegistry]
 HKR,,"LogLevel",0x00010001 ,0xf
@@ -66,9 +66,9 @@ HKR,"Instances","DefaultInstance",0x00000000,%DefaultInstance%
 HKR,"Instances\"%Instance1.Name%,"Altitude",0x00000000,%Instance1.Altitude%
 HKR,"Instances\"%Instance1.Name%,"Flags",0x00010001,%Instance1.Flags%
 
-;
-; Copy Files
-;
+;;
+;; Copy Files
+;;
 
 [FileGuardCore.DriverFiles]
 %DriverName%.sys
@@ -84,15 +84,15 @@ FileGuardCore.sys = 1,,
 ;;
 
 [Strings]
-ManufacturerName        = "Your ManufacturerName"
-ServiceDescription      = "FileGuard Mini-Filter Driver"
-ServiceName             = "FileGuardCore"
-DriverName              = "FileGuardCore"
-DiskId1                 = "FileGuard Device Installation Disk"
+ManufacturerName   = "Your ManufacturerName"
+ServiceDescription = "FileGuard Mini-Filter Driver"
+ServiceName        = "FileGuardCore"
+DriverName         = "FileGuardCore"
+DiskId1            = "FileGuard Device Installation Disk"
 
 ;Instances specific information.
-DefaultInstance         = "FileGuard Instance"
-Instance1.Name          = "FileGuard Instance"
+DefaultInstance    = "FileGuard Instance"
+Instance1.Name     = "FileGuard Instance"
 ; Altitude value, see https://msdn.microsoft.com/en-us/windows/hardware/drivers/ifs/load-order-groups-and-altitudes-for-minifilter-drivers
-Instance1.Altitude      = "409599"
-Instance1.Flags         = 0x1
+Instance1.Altitude = "409599"
+Instance1.Flags    = 0x1

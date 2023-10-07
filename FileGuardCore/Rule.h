@@ -28,7 +28,7 @@ Module Name:
 
 Abstract:
 
-    Rule function declarations.
+    Rule routine declarations.
 
 Environment:
 
@@ -49,14 +49,12 @@ FgRuleEntryCompareRoutine(
     _In_ PVOID REntry
 );
 
-
 PVOID 
 NTAPI 
 FgRuleEntryAllocateRoutine(
     _In_ PRTL_GENERIC_TABLE Table,
     _In_ CLONG Size
 );
-
 
 VOID 
 NTAPI 
@@ -65,13 +63,11 @@ FgRuleEntryFreeRoutine(
     _In_ __drv_freesMem(Mem) _Post_invalid_ PVOID Entry
 );
 
-
 _Check_return_
 NTSTATUS 
 FgCleanupRules(
     _In_ PRTL_GENERIC_TABLE Table,
     _In_ PERESOURCE Resource
 );
-
 
 #endif

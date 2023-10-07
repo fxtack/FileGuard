@@ -28,7 +28,7 @@ Module Name:
 
 Abstract:
 
-    Contains minifilter IRP callbacks.
+    Definitions of minifilter IRP callbacks.
 
 Environment:
 
@@ -56,11 +56,9 @@ Routine Description:
 Arguments:
 
     Data              - Pointer to the filter callbackData that is passed to us.
-
     FltObjects        - Pointer to the FLT_RELATED_OBJECTS data structure containing
                         opaque handles to this filter, instance, its associated volume and
                         file object.
-
     CompletionContext - The context for the completion routine for this
                         operation.
 
@@ -149,7 +147,6 @@ Cleanup:
     return callbackStatus;
 }
 
-
 FLT_POSTOP_CALLBACK_STATUS
 FgPostCreateOperationCallback(
     _Inout_ PFLT_CALLBACK_DATA Data,
@@ -193,7 +190,6 @@ Return Value:
     return FLT_POSTOP_FINISHED_PROCESSING;
 }
 
-
 FLT_PREOP_CALLBACK_STATUS
 FgPreWriteOperationCallback(
     _Inout_ PFLT_CALLBACK_DATA Data,
@@ -231,7 +227,6 @@ Return Value:
 
     return FLT_PREOP_SUCCESS_WITH_CALLBACK;
 }
-
 
 FLT_POSTOP_CALLBACK_STATUS
 FgPostWriteOperationCallback(
@@ -312,7 +307,6 @@ Return Value:
     return FLT_PREOP_SUCCESS_WITH_CALLBACK;
 }
 
-
 FLT_POSTOP_CALLBACK_STATUS
 FgPostSetInformationOperationCallback(
     _Inout_ PFLT_CALLBACK_DATA Data,
@@ -391,7 +385,6 @@ Return Value:
 
     return FLT_PREOP_SUCCESS_WITH_CALLBACK;
 }
-
 
 FLT_POSTOP_CALLBACK_STATUS
 FgPostCleanupOperationCallback(

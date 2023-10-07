@@ -28,7 +28,7 @@ Module Name:
 
 Abstract:
 
-    FileGuardCore driver basic definitions.
+    Basic definitions of FileGuardCore driver.
 
 Environment:
 

@@ -28,7 +28,7 @@ Module Name:
 
 Abstract:
 
-    Contains tool and development support functions.
+    Declarations of utility routines are contained.
 
 Environment:
 
@@ -41,17 +41,21 @@ Environment:
 #ifndef __UTILITIES_H__
 #define __UTILITIES_H__
 
-/////////////////////////////
-// Logger.                 //
-/////////////////////////////
+/*-------------------------------------------------------------
+    Logger macro.
+-------------------------------------------------------------*/
 
+//
 // Log level.
+//
 #define LOG_LEVEL_TRACE   ((ULONG)0x01)
 #define LOG_LEVEL_INFO    ((ULONG)0x02)
 #define LOG_LEVEL_WARNING ((ULONG)0x04)
 #define LOG_LEVEL_ERROR   ((ULONG)0x08)
 
+//
 // Default log level.
+//
 #define LOG_LEVEL_DEFAULT (LOG_LEVEL_WARNING | LOG_LEVEL_ERROR)
 
 #define LOG(_type_, _format_, ...) DbgPrint("[" _type_ "] FileGuard!%s@%d: " _format_ ".\n", \
@@ -71,7 +75,9 @@ Environment:
 
 #ifdef DBG
 
+//
 // Debug log.
+//
 #define DBG_TRACE(_format_, ...)   LOG_TRACE(_format_, __VA_ARGS__)
 #define DBG_INFO(_format_, ...)    LOG_INFO(_format_, __VA_ARGS__)
 #define DBG_WARNING(_format_, ...) LOG_WARNING(_format_, __VA_ARGS__)                                   
@@ -86,9 +92,9 @@ Environment:
 
 #endif
 
-/////////////////////////////////
-// Unicode string function.    //
-/////////////////////////////////
+/*-------------------------------------------------------------
+    Unicode string allocation/freeing routines.
+-------------------------------------------------------------*/
 
 _Check_return_
 NTSTATUS
@@ -102,9 +108,9 @@ FgFreeUnicodeString(
     _Inout_ PUNICODE_STRING String
 );
 
-/////////////////////////////////
-// Allocation functions.       //
-/////////////////////////////////
+/*-------------------------------------------------------------
+    Buffer allocation/freeing routines.
+-------------------------------------------------------------*/
 
 _Check_return_
 NTSTATUS
@@ -119,9 +125,9 @@ FgFreeBuffer(
     _Inout_ PVOID Buffer
 );
 
-/////////////////////////////////
-// Resource lock functions.    //
-/////////////////////////////////
+/*-------------------------------------------------------------
+    Resource routines.
+-------------------------------------------------------------*/
 
 _Check_return_
 NTSTATUS
@@ -129,19 +135,18 @@ FgAllocateResource(
     _Inout_ PERESOURCE *Resource
 );
 
-
 VOID
 FgFreeResource(
     _Inout_ PERESOURCE Resource
 );
-
 
 FORCEINLINE
 VOID
 _Acquires_lock_(_Global_critical_region_)
 FgAcquireResourceExclusive(
     _Inout_ _Acquires_exclusive_lock_(*Resource) PERESOURCE Resource
-) {
+    ) 
+{
     FLT_ASSERT(KeGetCurrentIrql() <= APC_LEVEL);
     FLT_ASSERT(ExIsResourceAcquiredExclusiveLite(Resource) ||
         !ExIsResourceAcquiredSharedLite(Resource));
@@ -150,19 +155,18 @@ FgAcquireResourceExclusive(
     (VOID)ExAcquireResourceExclusiveLite(Resource, TRUE);
 }
 
-
 FORCEINLINE
 VOID
 _Acquires_lock_(_Global_critical_region_)
 FgAcquireResourceShared(
     _Inout_ _Acquires_shared_lock_(*Resource) PERESOURCE Resource
-) {
+    )
+{
     FLT_ASSERT(KeGetCurrentIrql() <= APC_LEVEL);
 
     KeEnterCriticalRegion();
     (VOID)ExAcquireResourceSharedLite(Resource, TRUE);
 }
-
 
 FORCEINLINE
 VOID
@@ -170,7 +174,8 @@ _Releases_lock_(_Global_critical_region_)
 _Requires_lock_held_(_Global_critical_region_)
 FgReleaseResource(
     _Inout_ _Requires_lock_held_(*Resource) _Releases_lock_(*Resource) PERESOURCE Resource
-) {
+    ) 
+{
     FLT_ASSERT(KeGetCurrentIrql() <= APC_LEVEL);
     FLT_ASSERT(ExIsResourceAcquiredExclusiveLite(Resource) ||
         ExIsResourceAcquiredSharedLite(Resource));
@@ -179,9 +184,9 @@ FgReleaseResource(
     KeLeaveCriticalRegion();
 }
 
-/////////////////////////////////
-// Others.                     //
-/////////////////////////////////
+/*-------------------------------------------------------------
+    Other tool routines.
+-------------------------------------------------------------*/
 
 #define LIST_FOR_EACH_SAFE(curr, n, head) \
         for (curr = (head)->Flink, n = curr->Flink; curr != (head); \
@@ -189,9 +194,9 @@ FgReleaseResource(
 
 #define InterlockedExchangeBoolean(_bool_, _val_) InterlockedExchange8((__volatile char*)(_bool_), _val_)
 
-/////////////////////////////////
-// Exception functions.        //
-/////////////////////////////////
+/*-------------------------------------------------------------
+    Exception routines.
+-------------------------------------------------------------*/
 
 LONG AsMessageException(
     _In_ PEXCEPTION_POINTERS ExceptionPointer,

@@ -28,7 +28,7 @@ Module Name:
 
 Abstract:
 
-    Rule function definitions.
+    Rule routine definitions.
 
 Environment:
 
@@ -38,7 +38,6 @@ Environment:
 
 #include "FileGuardCore.h"
 #include "Rule.h"
-
 
 RTL_GENERIC_COMPARE_RESULTS
 NTAPI
@@ -55,7 +54,6 @@ FgRuleEntryCompareRoutine(
     return GenericEqual;
 }
 
-
 PVOID
 NTAPI
 FgRuleEntryAllocateRoutine(
@@ -69,7 +67,6 @@ FgRuleEntryAllocateRoutine(
     return NULL;
 }
 
-
 VOID
 NTAPI
 FgRuleEntryFreeRoutine(
@@ -80,7 +77,6 @@ FgRuleEntryFreeRoutine(
     UNREFERENCED_PARAMETER(Table);
     UNREFERENCED_PARAMETER(Entry);
 }
-
 
 _Check_return_
 NTSTATUS

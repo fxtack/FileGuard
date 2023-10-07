@@ -1,6 +1,47 @@
+/*++
+
+    The MIT License (MIT)
+
+    Copyright (c) 2023 Fxtack
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy
+    of this software and associated documentation files (the "Software"), to deal
+    in the Software without restriction, including without limitation the rights
+    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is
+    furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+    SOFTWARE.
+
+Module Name:
+
+    FileGuardCore.c
+
+Abstract:
+
+    Context registrations and definitions of context routines.
+
+Environment:
+
+    Kernel mode.
+
+--*/
+
 #include "FileGuardCore.h"
 #include "Context.h"
 
+//
+// Context registrations.
+//
 const FLT_CONTEXT_REGISTRATION FgCoreContextRegistration[] = {
 
     { FLT_INSTANCE_CONTEXT,
@@ -18,6 +59,10 @@ const FLT_CONTEXT_REGISTRATION FgCoreContextRegistration[] = {
     { FLT_CONTEXT_END }
 };
 
+/*-------------------------------------------------------------
+    Instance context structure and routines
+-------------------------------------------------------------*/
+
 _Check_return_
 NTSTATUS
 FgCreateInstanceContext(
@@ -26,6 +71,28 @@ FgCreateInstanceContext(
     _In_     PFLT_INSTANCE Instance,
     _Outptr_ PFG_INSTANCE_CONTEXT* InstanceContext
     ) 
+/*++
+
+Routine Description:
+
+    This routine creates a new instance context.
+
+Arguments:
+
+    Filter          - Pointer to the filter structure.
+
+    Volume          - Pointer to the FLT_VOLUME.
+
+    Instance        - Opaque instance pointer for the caller.
+                      This parameter is required and cannot be NULL.
+
+    InstanceContext - The output instance context.
+
+Return Value:
+
+    Status
+
+--*/
 {
     NTSTATUS status = STATUS_SUCCESS;
     PFG_INSTANCE_CONTEXT instanceContext = NULL;
@@ -108,12 +175,34 @@ FgSetInstanceContext(
     return status;
 }
 
-
 VOID
 FgCleanupInstanceContext(
     _In_ PFLT_CONTEXT Context,
     _In_ FLT_CONTEXT_TYPE ContextType
     ) 
+/*++
+
+Routine Description:
+
+    This routine is called by the filter manager before freeing any of the minifilter
+    driver's contexts of that type.
+
+    In this routine, the driver has to perform any needed cleanup, such as freeing
+    additional memory that the minifilter driver allocated inside the context structure.
+
+    We delete the cache table if the file system supports one.
+
+Arguments:
+
+    Context     - Pointer to the minifilter driver's portion of the context.
+
+    ContextType - Supposed to be FLT_INSTANCE_CONTEXT (win8 or later).
+
+Return Value:
+
+    None
+
+--*/
 {
     PFG_INSTANCE_CONTEXT instanceContext = (PFG_INSTANCE_CONTEXT)Context;
 
@@ -142,6 +231,9 @@ FgCleanupInstanceContext(
     FgFreeResource(instanceContext->RulesTableResource);
 }
 
+/*-------------------------------------------------------------
+    Stream context structure and routines.
+-------------------------------------------------------------*/
 
 _Check_return_
 NTSTATUS
@@ -152,15 +244,15 @@ FgCreateStreamContext(
 
 Routine Description:
 
-    This routine creates a new stream context
+    This routine creates a new stream context.
 
 Arguments:
 
-    StreamContext         - Returns the stream context
+    StreamContext - Returns the stream context.
 
 Return Value:
 
-    Status
+    The return value is the status of the operation.
 
 --*/
 {
@@ -168,7 +260,6 @@ Return Value:
 
     return STATUS_NOT_SUPPORTED;
 }
-
 
 _Check_return_
 NTSTATUS
@@ -188,15 +279,18 @@ Routine Description:
 
 Arguments:
 
-    Data                  - Supplies a pointer to the callbackData which
-                            declares the requested operation.
-    CreateIfNotFound      - Supplies if the stream must be created if missing
-    StreamContext         - Returns the stream context
-    ContextCreated        - Returns if a new context was created
+    Data             - Supplies a pointer to the callbackData which
+                       declares the requested operation.
+
+    CreateIfNotFound - Supplies if the stream must be created if missing
+
+    StreamContext    - Returns the stream context
+
+    ContextCreated   - Returns if a new context was created
 
 Return Value:
 
-    Status
+    The return value is the status of the operation.
 
 --*/
 {
@@ -254,7 +348,6 @@ Return Value:
     return status;
 }
 
-
 VOID
 FgCleanupStreamContext(
     _In_ PFLT_CONTEXT StreamContext,
@@ -262,9 +355,9 @@ FgCleanupStreamContext(
     )
 /*++
 
-Summary:
+Routine Description:
 
-    This function is called by the FilterManager when the context
+    This routine is called by the FilterManager when the context
     reference counter reaches zero and the context should be freed.
 
 Arguments:
