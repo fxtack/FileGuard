@@ -41,6 +41,20 @@ Environment:
 #ifndef __MONITOR_H__
 #define __MONITOR_H__
 
+typedef struct _FG_MONITOR_RECORD_ENTRY {
+
+    //
+    // This field is used to link to list.
+    //
+    LIST_ENTRY List;
+    
+    //
+    // The monitor record.
+    //
+    FG_MONITOR_RECORD Record;
+
+} FG_MONITOR_RECORD_ENTRY, *PFG_MONITOR_RECORD_ENTRY;
+
 #define FG_MONITOR_SEND_RECORD_BUFFER_SIZE (32 * 1024)
 
 typedef struct _FG_MONITOR_CONTEXT {
@@ -55,7 +69,7 @@ typedef struct _FG_MONITOR_CONTEXT {
     PLIST_ENTRY RecordsQueue;
 
     // Monitor reocrd queue lock.
-    PFAST_MUTEX RecordsQueueLock;
+    PFAST_MUTEX RecordsQueueMutex;
 
     // The event to notify monitor daemon to send records.
     KEVENT EventWakeMonitor;
@@ -64,9 +78,6 @@ typedef struct _FG_MONITOR_CONTEXT {
     // monitor port. When the monitor user port closed, the event 
     // will be clear.
     KEVENT EventPortConnected;
-
-    // This event will be set when monitor thread terminate.
-    KEVENT EventMonitorTerminate;
 
     // Monitor records message body.
     PFG_RECORDS_MESSAGE_BODY MessageBody;
@@ -78,12 +89,14 @@ typedef struct _FG_MONITOR_CONTEXT {
 
 _Check_return_
 NTSTATUS
-FgAllocateMonitorStartContext(
+FgCreateMonitorStartContext(
+    _In_ PFLT_FILTER Filter,
+    _In_ PLIST_ENTRY RecordsQueue,
+    _In_ PFAST_MUTEX QueueMutex,
     _In_ PFG_MONITOR_CONTEXT* Context
 );
 
-_Check_return_
-NTSTATUS
+VOID
 FgFreeMonitorStartContext(
     _In_ PFG_MONITOR_CONTEXT Context
 );
@@ -92,6 +105,16 @@ _IRQL_requires_max_(APC_LEVEL)
 VOID
 FgMonitorStartRoutine(
     _In_ PVOID MonitorContext
+);
+
+_Check_return_
+NTSTATUS
+FgGetRecords(
+    _In_ PLIST_ENTRY List,
+    _In_ PFAST_MUTEX ListMutex,
+    _Out_writes_bytes_to_(OutputBufferSize, *ReturnOutputBufferSize) PUCHAR OutputBuffer,
+    _In_ ULONG OutputBufferSize,
+    _Out_ PULONG ReturnOutputBufferSize
 );
 
 #endif

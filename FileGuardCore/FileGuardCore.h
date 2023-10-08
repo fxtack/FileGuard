@@ -61,7 +61,7 @@ Environment:
 //
 #define FG_CORE_VERSION_MAJOR 0
 #define FG_CORE_VERSION_MINOR 1
-#define FG_CORE_VERSION_PATCH 8
+#define FG_CORE_VERSION_PATCH 0
 
 //
 // Memory pool tags.

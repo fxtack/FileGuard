@@ -52,13 +52,9 @@ Environment:
 #define LOG_LEVEL_INFO    ((ULONG)0x02)
 #define LOG_LEVEL_WARNING ((ULONG)0x04)
 #define LOG_LEVEL_ERROR   ((ULONG)0x08)
-
-//
-// Default log level.
-//
 #define LOG_LEVEL_DEFAULT (LOG_LEVEL_WARNING | LOG_LEVEL_ERROR)
 
-#define LOG(_type_, _format_, ...) DbgPrint("[" _type_ "] FileGuard!%s@%d: " _format_ ".\n", \
+#define LOG(_type_, _format_, ...) DbgPrint("[" _type_ "] FileGuardCore!%s@%d: " _format_ ".\n", \
                                        __FUNCTION__, __LINE__, __VA_ARGS__)
 
 #define LOG_TRACE(_format_, ...)   if (FlagOn(Globals.LogLevel, LOG_LEVEL_TRACE)) \

@@ -142,7 +142,7 @@ Return Value:
 {
     PAGED_CODE();
 
-    if (NULL != Buffer) return STATUS_INVALID_PARAMETER_1;
+    if (NULL == Buffer) return STATUS_INVALID_PARAMETER_1;
     if (0    == Size)   return STATUS_INVALID_PARAMETER_2;
 
     *Buffer = ExAllocatePool2(PoolFlags, Size, FG_BUFFER_PAGED_MEM_TAG);

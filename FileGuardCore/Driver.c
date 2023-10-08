@@ -138,6 +138,7 @@ extern const FLT_CONTEXT_REGISTRATION FgCoreContextRegistration[];
 //
 
 CONST FLT_REGISTRATION FilterRegistration = {
+
     sizeof(FLT_REGISTRATION),       //  Size
     FLT_REGISTRATION_VERSION,       //  Version
     0,                              //  Flags
@@ -157,7 +158,6 @@ CONST FLT_REGISTRATION FilterRegistration = {
     NULL                            //  NormalizeNameComponent
 };
 
-
 NTSTATUS
 DriverEntry(
     _In_ PDRIVER_OBJECT DriverObject,
@@ -173,6 +173,16 @@ DriverEntry(
     
     PAGED_CODE();
 
+    // Setup default log level.
+#ifdef DBG
+    Globals.LogLevel = LOG_LEVEL_INFO | LOG_LEVEL_WARNING | LOG_LEVEL_ERROR;
+#else
+    GLobals.LogLevel = LOG_LEVEL_DEFAULT;
+#endif
+
+    LOG_INFO("Start to load FileGuardCore driver, version: v%d.%d.%d",
+        FG_CORE_VERSION_MAJOR, FG_CORE_VERSION_MINOR, FG_CORE_VERSION_PATCH);
+
     // Register with FltMgr to tell it our callback routines
     try {
         
@@ -180,7 +190,11 @@ DriverEntry(
         // Setup driver configuration from registry.
         //
         status = FgSetConfiguration(RegistryPath);
-        if (!NT_SUCCESS(status)) leave;
+        if (!NT_SUCCESS(status)) {
+
+            DBG_ERROR("NTSTATUS: '0x%08x', set configuration failed", status);
+            leave;
+        }
 
         //
         // Intialize instance context list and lock.
@@ -189,22 +203,30 @@ DriverEntry(
 
         ExInitializeFastMutex(&Globals.InstanceContextListMutex);
 
-
+        //
         // Register filter driver.
+        //
         status = FltRegisterFilter(DriverObject,
                                    &FilterRegistration,
                                    &Globals.Filter);
-        if (!NT_SUCCESS(status)) leave;
+        if (!NT_SUCCESS(status)) { 
+
+            DBG_ERROR("NTSTATUS: '0x%08x', register filter failed", status);
+            leave;
+        };
 
 
         status = FltBuildDefaultSecurityDescriptor(&securityDescriptor,
                                                    FLT_PORT_ALL_ACCESS);
-        if (!NT_SUCCESS(status)) leave;
+        if (!NT_SUCCESS(status)) {
+
+            DBG_ERROR("NTSTATUS: '0x%08x', build security descriptor failed", status);
+            leave;
+        }
 
         //
         // Create core control port.
         //
-
         RtlInitUnicodeString(&portName, FG_CORE_CONTROL_PORT_NAME);
         InitializeObjectAttributes(&attributes,
                                    &portName,
@@ -220,12 +242,15 @@ DriverEntry(
                                             FgCoreControlPortDisconnectCallback,
                                             FgCoreControlMessageNotifyCallback,
                                             1);
-        if (!NT_SUCCESS(status)) leave;
+        if (!NT_SUCCESS(status)) { 
+
+            DBG_ERROR("NTSTATUS: '0x%08x', create core control communication port failed", status);
+            leave;
+        }
 
         //
         // Create monitor port.
         //
-
         RtlInitUnicodeString(&portName, FG_MONITOR_PORT_NAME);
         InitializeObjectAttributes(&attributes,
                                    &portName,
@@ -241,31 +266,25 @@ DriverEntry(
                                             FgMonitorPortDisconnectCallback,
                                             NULL,
                                             1);
-        if (!NT_SUCCESS(status)) leave;
+        if (!NT_SUCCESS(status)) { 
+
+            DBG_ERROR("NTSTATUS: '0x%08x', create monitor communication port failed", status);
+            leave;
+        }
         
         //
         // Create a kernel thread as monitor.
         //
 
-        // Allocate and setup monitor context.
-        status = FgAllocateMonitorStartContext(&monitorContext);
-        if (!NT_SUCCESS(status) || NULL == monitorContext) leave;
+        status = FgCreateMonitorStartContext(Globals.Filter,
+                                             &Globals.MonitorRecordsQueue, 
+                                             &Globals.MonitorRecordsQueueLock,
+                                             &monitorContext);
+        if (!NT_SUCCESS(status) || NULL == monitorContext) {
 
-        monitorContext->Filter           = Globals.Filter;
-        monitorContext->ClientPort       = NULL;
-        monitorContext->RecordsQueue     = &Globals.MonitorRecordsQueue;
-        monitorContext->RecordsQueueLock = &Globals.MonitorRecordsQueueLock;
-
-        // Initialize monitor thread control event.
-        KeInitializeEvent(&monitorContext->EventWakeMonitor, NotificationEvent, FALSE);
-        KeInitializeEvent(&monitorContext->EventPortConnected, NotificationEvent, FALSE);
-        KeInitializeEvent(&monitorContext->EventMonitorTerminate, NotificationEvent, FALSE);
-
-        // Allocate monitor records buffer as message body.
-        FgAllocateBuffer(&monitorContext->MessageBody, POOL_FLAG_PAGED, sizeof(FG_RECORDS_MESSAGE_BODY));
-        
-        // Initialize daemon flag.
-        InterlockedExchangeBoolean(&monitorContext->EndDaemonFlag, FALSE);
+            DBG_ERROR("NTSTATUS: '0x%08x', create monitor start context failed", status);
+            leave;
+        }
 
         Globals.MonitorContext = monitorContext;
 
@@ -277,7 +296,11 @@ DriverEntry(
                                       NULL,
                                       FgMonitorStartRoutine,
                                       monitorContext);
-        if (!NT_SUCCESS(status)) leave;
+        if (!NT_SUCCESS(status)) {
+
+            DBG_ERROR("NTSTATUS: '0x%08x', create monitor thread failed", status);
+            leave;
+        }
 
         // Reference monitor handle object.
         ObReferenceObjectByHandle(monitorHandle, 
@@ -295,7 +318,7 @@ DriverEntry(
 
     } finally {
 
-        if (securityDescriptor != NULL)
+        if (NULL != securityDescriptor)
             FltFreeSecurityDescriptor(securityDescriptor);
 
         if (!NT_SUCCESS(status)) {
@@ -322,21 +345,19 @@ DriverEntry(
                 ObReferenceObject(Globals.MonitorThreadObject);
         } else {
 
-            LOG_INFO("Driver loaded successfully, version: v%d.%d.%d", 
-                FG_CORE_VERSION_MAJOR, FG_CORE_VERSION_MINOR, FG_CORE_VERSION_PATCH);
+            LOG_INFO("Driver loaded successfully");
         }
     }
 
     return status;
 }
 
-
 NTSTATUS
 FgCoreUnload(
     _In_ FLT_FILTER_UNLOAD_FLAGS Flags
 ) {
     NTSTATUS status = STATUS_SUCCESS;
-    LARGE_INTEGER monitorTerminateTimeout = { .QuadPart = -1000000 };
+    LARGE_INTEGER monitorTerminateTimeout = { 0 };
 
     PAGED_CODE();
 
@@ -357,12 +378,15 @@ FgCoreUnload(
     if (NULL != Globals.MonitorClientPort) {
         FltCloseClientPort(Globals.Filter, &Globals.MonitorClientPort);
         Globals.MonitorClientPort = NULL;
-        Globals.MonitorContext->ClientPort = NULL;
     }
+
+    DBG_TRACE("Driver port closed");
 
     if (NULL != Globals.Filter) {
         FltUnregisterFilter(Globals.Filter);
     }
+
+    DBG_TRACE("Unregister filter successfully");
 
     //
     // Stop the monitor thread.
@@ -370,12 +394,16 @@ FgCoreUnload(
 
     FLT_ASSERT(NULL != Globals.MonitorContext);
 
-    InterlockedExchangeBoolean(&Globals.MonitorContext->EndDaemonFlag, FALSE);
+    InterlockedExchangeBoolean(&Globals.MonitorContext->EndDaemonFlag, TRUE);
     KeSetEvent(&Globals.MonitorContext->EventPortConnected, 0, FALSE);
     KeSetEvent(&Globals.MonitorContext->EventWakeMonitor, 0, FALSE);
 
+    DBG_TRACE("S");
+
     if (NULL != Globals.MonitorThreadObject) {
         
+        monitorTerminateTimeout.QuadPart = -1000000;
+
         status = KeWaitForSingleObject(Globals.MonitorThreadObject,
                                        Executive, 
                                        KernelMode, 
@@ -390,13 +418,14 @@ FgCoreUnload(
         Globals.MonitorThreadObject = NULL;
     }
 
+    DBG_TRACE("Monitor thread exited");
+
     FgFreeMonitorStartContext(Globals.MonitorContext);
 
     LOG_INFO("Unload driver finish");
     
     return status;
 }
-
 
 NTSTATUS
 FgCoreInstanceSetup(
@@ -487,7 +516,6 @@ Cleanup:
     return status;
 }
 
-
 NTSTATUS
 FgCoreInstanceQueryTeardown(
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
@@ -503,7 +531,6 @@ FgCoreInstanceQueryTeardown(
     return STATUS_SUCCESS;
 }
 
-
 VOID
 FgCoreInstanceTeardownStart(
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
@@ -517,7 +544,6 @@ FgCoreInstanceTeardownStart(
     LOG_INFO("Instance teardown start");
 }
 
-
 VOID
 FgCoreInstanceTeardownComplete(
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
@@ -530,7 +556,6 @@ FgCoreInstanceTeardownComplete(
 
     LOG_INFO("Instance teardown completed");
 }
-
 
 _Check_return_
 NTSTATUS
@@ -563,9 +588,6 @@ Return Value:
     ULONG resultLength = 0L;
 
     PAGED_CODE();
-
-    // Setup default log level.
-    Globals.LogLevel = LOG_LEVEL_DEFAULT;
     
     InitializeObjectAttributes(&attributes, 
                                RegistryPath, 
@@ -590,6 +612,7 @@ Return Value:
                              valueLength,
                              &resultLength);
     if (NT_SUCCESS(status)) {
+
         Globals.LogLevel = *(PULONG)value->Data;
     } else {
         
