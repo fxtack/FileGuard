@@ -380,8 +380,6 @@ FgCoreUnload(
         Globals.MonitorClientPort = NULL;
     }
 
-    DBG_TRACE("Driver port closed");
-
     if (NULL != Globals.Filter) {
         FltUnregisterFilter(Globals.Filter);
     }
@@ -397,8 +395,6 @@ FgCoreUnload(
     InterlockedExchangeBoolean(&Globals.MonitorContext->EndDaemonFlag, TRUE);
     KeSetEvent(&Globals.MonitorContext->EventPortConnected, 0, FALSE);
     KeSetEvent(&Globals.MonitorContext->EventWakeMonitor, 0, FALSE);
-
-    DBG_TRACE("S");
 
     if (NULL != Globals.MonitorThreadObject) {
         
@@ -417,8 +413,6 @@ FgCoreUnload(
         ObDereferenceObject(Globals.MonitorThreadObject);
         Globals.MonitorThreadObject = NULL;
     }
-
-    DBG_TRACE("Monitor thread exited");
 
     FgFreeMonitorStartContext(Globals.MonitorContext);
 
