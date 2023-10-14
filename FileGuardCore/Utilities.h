@@ -54,8 +54,10 @@ Environment:
 #define LOG_LEVEL_ERROR   ((ULONG)0x08)
 #define LOG_LEVEL_DEFAULT (LOG_LEVEL_WARNING | LOG_LEVEL_ERROR)
 
-#define LOG(_type_, _format_, ...) DbgPrint("[" _type_ "] FileGuardCore!%s@%d: " _format_ ".\n", \
-                                       __FUNCTION__, __LINE__, __VA_ARGS__)
+#define __FILENAME__ (strchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__)
+
+#define LOG(_type_, _format_, ...) DbgPrint("[" _type_ "] FileGuardCore!%s::%s@%d: " _format_ ".\n", \
+                                       __FILENAME__, __FUNCTION__, __LINE__, __VA_ARGS__)
 
 #define LOG_TRACE(_format_, ...)   if (FlagOn(Globals.LogLevel, LOG_LEVEL_TRACE)) \
                                        LOG("TRACE", _format_, __VA_ARGS__)
