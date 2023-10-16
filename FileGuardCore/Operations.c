@@ -85,41 +85,13 @@ Return Value:
     if (FlagOn(Data->Iopb->OperationFlags, SL_OPEN_PAGING_FILE) ||
         FlagOn(Data->Iopb->TargetFileObject->Flags, FO_VOLUME_OPEN) ||
         FlagOn(Data->Iopb->Parameters.Create.Options, FILE_OPEN_BY_FILE_ID)) {
+
         goto Cleanup;
     }
 
-    //  Get the name information.
-    if (FlagOn(Data->Iopb->OperationFlags, SL_OPEN_TARGET_DIRECTORY)) {
-
-        // The SL_OPEN_TARGET_DIRECTORY flag indicates the caller is attempting
-        // to open the target of a rename or hard link creation operation. We
-        // must clear this flag when asking fltmgr for the name or the result
-        // will not include the final component. We need the full path in order
-        // to compare the name to our mapping.
-        ClearFlag(Data->Iopb->OperationFlags, SL_OPEN_TARGET_DIRECTORY);
-
-        // Get the filename as it appears below this filter. Note that we use
-        // FLT_FILE_NAME_QUERY_FILESYSTEM_ONLY when querying the filename
-        // so that the filename as it appears below this filter does not end up
-        // in filter manager's name cache.
-        status = FltGetFileNameInformation(Data,
-            FLT_FILE_NAME_OPENED | FLT_FILE_NAME_QUERY_FILESYSTEM_ONLY,
-            &nameInfo);
-
-        // Restore the SL_OPEN_TARGET_DIRECTORY flag so the create will proceed
-        // for the target. The file systems depend on this flag being set in
-        // the target create in order for the subsequent SET_INFORMATION
-        // operation to proceed correctly.
-        SetFlag(Data->Iopb->OperationFlags, SL_OPEN_TARGET_DIRECTORY);
-
-
-    } else {
-
-        status = FltGetFileNameInformation(Data,
-                                           FLT_FILE_NAME_OPENED | FLT_FILE_NAME_QUERY_DEFAULT,
-                                           &nameInfo);
-    }
-
+    status = FltGetFileNameInformation(Data,
+                                       FLT_FILE_NAME_OPENED | FLT_FILE_NAME_QUERY_DEFAULT,
+                                       &nameInfo);
     if (!NT_SUCCESS(status)) {
         goto Cleanup;
     }
@@ -138,7 +110,9 @@ Cleanup:
 
     if (!NT_SUCCESS(status)) {
 
+        //
         // An error occurred, fail the open.
+        //
         Data->IoStatus.Status = status;
         Data->IoStatus.Information = 0;
         callbackStatus = FLT_PREOP_COMPLETE;
@@ -261,10 +235,28 @@ Return Value:
 
 --*/
 {
+    NTSTATUS status = STATUS_SUCCESS;
+
     UNREFERENCED_PARAMETER(Data);
     UNREFERENCED_PARAMETER(FltObjects);
     UNREFERENCED_PARAMETER(CompletionContext);
     UNREFERENCED_PARAMETER(Flags);
+
+    if (FlagOn(Flags, FLTFL_POST_OPERATION_DRAINING)) {
+
+        status = STATUS_DEVICE_REMOVED;
+        goto Cleanup;
+    }
+
+Cleanup:
+
+    if (!NT_SUCCESS(status)) {
+
+        FltCancelFileOpen(Data->Iopb->TargetInstance, Data->Iopb->TargetFileObject);
+        Data->IoStatus.Information = 0;
+        Data->IoStatus.Status = status;
+        FltSetCallbackDataDirty(Data);
+    }
 
     return FLT_POSTOP_FINISHED_PROCESSING;
 }
