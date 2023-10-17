@@ -238,6 +238,8 @@ Return Value:
 _Check_return_
 NTSTATUS
 FgCreateStreamContext(
+    _In_ PFLT_CALLBACK_DATA Data,
+    _In_ PFLT_INSTANCE Instance,
     _Outptr_ PFG_STREAM_CONTEXT* StreamContext
     )
 /*++
@@ -256,15 +258,85 @@ Return Value:
 
 --*/
 {
-    UNREFERENCED_PARAMETER(StreamContext);
+    NTSTATUS status = STATUS_SUCCESS;
+    PFG_STREAM_CONTEXT streamContext = NULL;
+    PFG_INSTANCE_CONTEXT instanceContext = NULL;
+    PFLT_FILE_NAME_INFORMATION nameInfo = NULL;
 
-    return STATUS_NOT_SUPPORTED;
+    if (NULL == StreamContext) {
+        return STATUS_INVALID_PARAMETER_1;
+    }
+
+    //
+    // Allocate stream context.
+    //
+    status = FltAllocateContext(Globals.Filter, 
+                                FLT_STREAM_CONTEXT, 
+                                sizeof(PFG_STREAM_CONTEXT),
+                                PagedPool, 
+                                &streamContext);
+    if (!NT_SUCCESS(status)) {
+
+        DBG_ERROR("NTSTATUS: '0x%08x', allocate stream context failed", status);
+        goto Cleanup;
+    }
+
+    //
+    // Get file name information.
+    //
+    status = FltGetFileNameInformation(Data,
+                                       FLT_FILE_NAME_OPENED | FLT_FILE_NAME_QUERY_DEFAULT,
+                                       &nameInfo);
+    if (!NT_SUCCESS(status)) {
+
+        DBG_ERROR("NTSTATUS: '0x%08x', get file name information failed", status);
+        goto Cleanup;
+    } else {
+
+        streamContext->NameInfo = nameInfo;
+    }
+
+    //
+    // Get instance context.
+    //
+    status = FltGetInstanceContext(Instance, &instanceContext);
+    if (!NT_SUCCESS(status)) {
+
+        DBG_ERROR("NTSTATUS: '0x%08x', get instance context failed", status);
+        goto Cleanup;
+    } else {
+
+        FltReferenceContext(instanceContext);
+        streamContext->InstanceContext = instanceContext;
+    }
+
+    *StreamContext = streamContext;
+
+Cleanup:
+    
+    if (!NT_SUCCESS(status)) {
+
+        if (NULL != nameInfo) {
+            FltReleaseFileNameInformation(nameInfo);
+        }
+
+        if (NULL != streamContext) {
+            FltReleaseContext(streamContext);
+        }
+    }
+
+    if (NULL != instanceContext) {
+        FltReleaseContext(instanceContext);
+    }
+
+    return status;
 }
 
 _Check_return_
 NTSTATUS
 FgFindOrCreateStreamContext(
     _In_ PFLT_CALLBACK_DATA Data,
+    _In_ PFLT_INSTANCE Instance,
     _In_ BOOLEAN CreateIfNotFound,
     _Outptr_ PFG_STREAM_CONTEXT* StreamContext,
     _Out_opt_ PBOOLEAN ContextCreated
@@ -314,7 +386,7 @@ Return Value:
         //
         // Allocate and initialize a new stream context.
         //
-        status = FgCreateStreamContext(&streamContext);
+        status = FgCreateStreamContext(Data, Instance, &streamContext);
         if (!NT_SUCCESS(status)) {
 
             return status;
@@ -350,7 +422,7 @@ Return Value:
 
 VOID
 FgCleanupStreamContext(
-    _In_ PFLT_CONTEXT StreamContext,
+    _In_ PFLT_CONTEXT Context,
     _In_ FLT_CONTEXT_TYPE ContextType
     )
 /*++
@@ -372,6 +444,17 @@ Return value:
 
 --*/
 {
-    UNREFERENCED_PARAMETER(StreamContext);
-    UNREFERENCED_PARAMETER(ContextType);
+    PFG_STREAM_CONTEXT streamContext = (PFG_STREAM_CONTEXT)Context;
+
+    FLT_ASSERT(FLT_STREAM_CONTEXT == ContextType);
+
+    if (NULL != streamContext->NameInfo) {
+        FltReleaseContext(streamContext->NameInfo);
+        streamContext->NameInfo = NULL;
+    }
+
+    if (NULL != streamContext->InstanceContext) {
+        FltReleaseContext(streamContext->InstanceContext);
+        streamContext->InstanceContext = NULL;
+    }
 }
