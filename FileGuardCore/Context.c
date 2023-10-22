@@ -125,7 +125,7 @@ Return Value:
                               FgRuleEntryFreeRoutine, 
                               NULL);
 
-    status = FgAllocateResource(&instanceContext->RulesTableResource);
+    status = FgAllocatePushLock(&instanceContext->RulesTableLock);
     if (!NT_SUCCESS(status)) {
         DBG_ERROR("NTSTATUS: '0x%08x', allocate resource failed", status);
         goto Cleanup;
@@ -223,12 +223,12 @@ Return Value:
     //
     // Cleanup all rules in instance context.
     //
-    FgCleanupRules(&instanceContext->RulesTable, instanceContext->RulesTableResource);
+    FgCleanupRules(&instanceContext->RulesTable, instanceContext->RulesTableLock);
 
     //
     // Delete and free resource.
     //
-    FgFreeResource(instanceContext->RulesTableResource);
+    FgFreePushLock(instanceContext->RulesTableLock);
 }
 
 /*-------------------------------------------------------------

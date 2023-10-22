@@ -124,63 +124,19 @@ FgFreeBuffer(
 );
 
 /*-------------------------------------------------------------
-    Resource routines.
+    Push lock routines.
 -------------------------------------------------------------*/
 
 _Check_return_
 NTSTATUS
-FgAllocateResource(
-    _Inout_ PERESOURCE *Resource
+FgAllocatePushLock(
+    _Inout_ PEX_PUSH_LOCK *PushLock
 );
 
 VOID
-FgFreeResource(
-    _Inout_ PERESOURCE Resource
+FgFreePushLock(
+    _Inout_ PEX_PUSH_LOCK PushLock
 );
-
-FORCEINLINE
-VOID
-_Acquires_lock_(_Global_critical_region_)
-FgAcquireResourceExclusive(
-    _Inout_ _Acquires_exclusive_lock_(*Resource) PERESOURCE Resource
-    ) 
-{
-    FLT_ASSERT(KeGetCurrentIrql() <= APC_LEVEL);
-    FLT_ASSERT(ExIsResourceAcquiredExclusiveLite(Resource) ||
-        !ExIsResourceAcquiredSharedLite(Resource));
-
-    KeEnterCriticalRegion();
-    (VOID)ExAcquireResourceExclusiveLite(Resource, TRUE);
-}
-
-FORCEINLINE
-VOID
-_Acquires_lock_(_Global_critical_region_)
-FgAcquireResourceShared(
-    _Inout_ _Acquires_shared_lock_(*Resource) PERESOURCE Resource
-    )
-{
-    FLT_ASSERT(KeGetCurrentIrql() <= APC_LEVEL);
-
-    KeEnterCriticalRegion();
-    (VOID)ExAcquireResourceSharedLite(Resource, TRUE);
-}
-
-FORCEINLINE
-VOID
-_Releases_lock_(_Global_critical_region_)
-_Requires_lock_held_(_Global_critical_region_)
-FgReleaseResource(
-    _Inout_ _Requires_lock_held_(*Resource) _Releases_lock_(*Resource) PERESOURCE Resource
-    ) 
-{
-    FLT_ASSERT(KeGetCurrentIrql() <= APC_LEVEL);
-    FLT_ASSERT(ExIsResourceAcquiredExclusiveLite(Resource) ||
-        ExIsResourceAcquiredSharedLite(Resource));
-
-    ExReleaseResourceLite(Resource);
-    KeLeaveCriticalRegion();
-}
 
 /*-------------------------------------------------------------
     Other tool routines.

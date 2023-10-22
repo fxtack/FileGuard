@@ -71,7 +71,7 @@ Environment:
 #define FG_UNICODE_STRING_PAGED_MEM_TAG   'FGus'
 #define FG_BUFFER_PAGED_MEM_TAG           'FGbf'
 #define FG_MONITOR_CONTEXT_PAGED_MEM_TAG  'FGmc'
-#define FG_ERESOURCE_NON_PAGED_MEM_TAG    'FGNr'
+#define FG_PUSHLOCK_NON_PAGED_MEM_TAG    'FGNr'
 
 //
 // Global variables.

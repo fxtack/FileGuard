@@ -70,7 +70,7 @@ typedef struct _FG_INSTANCE_CONTEXT {
     //
     // The rules table lock.
     //
-    PERESOURCE RulesTableResource;
+    PEX_PUSH_LOCK RulesTableLock;
 
 } FG_INSTANCE_CONTEXT, *PFG_INSTANCE_CONTEXT;
 

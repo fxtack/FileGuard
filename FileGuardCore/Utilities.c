@@ -179,8 +179,8 @@ Return Value:
 
 _Check_return_
 NTSTATUS
-FgAllocateResource(
-    _Inout_ PERESOURCE* Resource
+FgAllocatePushLock(
+    _Inout_ PEX_PUSH_LOCK* PushLock
     )
 /*++
 
@@ -199,53 +199,34 @@ Return value:
 --*/
 {
     NTSTATUS status = STATUS_SUCCESS;
-    PERESOURCE resource = NULL;
-    BOOLEAN isInitSuccess = TRUE;
+    PEX_PUSH_LOCK pushLock = NULL;
 
     PAGED_CODE();
 
-    if (NULL == Resource) {
-        return STATUS_INVALID_PARAMETER;
-    }
+    if (NULL == PushLock) return STATUS_INVALID_PARAMETER_1;
 
     //
     // Allocate resource by non-paged memory.
     //
-    resource = (PERESOURCE)ExAllocatePool2(POOL_FLAG_NON_PAGED,
-                                           sizeof(ERESOURCE),
-                                           FG_ERESOURCE_NON_PAGED_MEM_TAG);
-    if (NULL == resource)
+    pushLock = (PEX_PUSH_LOCK)ExAllocatePool2(POOL_FLAG_NON_PAGED,
+                                              sizeof(ERESOURCE),
+                                              FG_PUSHLOCK_NON_PAGED_MEM_TAG);
+    if (NULL == pushLock)
         return STATUS_INSUFFICIENT_RESOURCES;
 
     //
     // Initialize resource.
     //
-    status = ExInitializeResourceLite(resource);
-    if (!NT_SUCCESS(status)) {
-        goto Cleanup;
-    }
+    FltInitializePushLock(pushLock);
 
-    *Resource = resource;
-
-Cleanup:
-
-    if (!NT_SUCCESS(status)) {
-
-        if (!isInitSuccess)
-            ExDeleteResourceLite(resource);
-
-        if (NULL != resource)
-            FgFreeResource(resource);
-
-        *Resource = NULL;
-    }
+    *PushLock = pushLock;
 
     return status;
 }
 
 VOID
-FgFreeResource(
-    _Inout_ PERESOURCE Resource
+FgFreePushLock(
+    _Inout_ PEX_PUSH_LOCK PushLock
     )
 /*++
 
@@ -266,11 +247,11 @@ Return value:
 { 
     PAGED_CODE();
 
-    FLT_ASSERT(NULL != Resource);
+    FLT_ASSERT(NULL != PushLock);
 
-    ExDeleteResourceLite(Resource);
+    FltDeletePushLock(PushLock);
 
-    ExFreePoolWithTag((PVOID)Resource, FG_ERESOURCE_NON_PAGED_MEM_TAG);
+    ExFreePoolWithTag((PVOID)PushLock, FG_PUSHLOCK_NON_PAGED_MEM_TAG);
 }
 
 LONG AsMessageException(

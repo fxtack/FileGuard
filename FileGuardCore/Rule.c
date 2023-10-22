@@ -82,7 +82,7 @@ _Check_return_
 NTSTATUS
 FgCleanupRules(
     _In_ PRTL_GENERIC_TABLE Table,
-    _In_ PERESOURCE Resource
+    _In_ PEX_PUSH_LOCK Lock
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -90,14 +90,14 @@ FgCleanupRules(
 
     PAGED_CODE();
 
-    FgAcquireResourceExclusive(Resource);
+    FltAcquirePushLockExclusive(Lock);
 
     while (!RtlIsGenericTableEmpty(Table)) {
         entry = RtlGetElementGenericTable(Table, 0);
         RtlDeleteElementGenericTable(Table, entry);
     }
 
-    FgReleaseResource(Resource);
+    FltReleasePushLock(Lock);
 
     return status;
 }
