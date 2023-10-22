@@ -119,28 +119,32 @@ typedef struct _FG_RULE {
     FG_FILE_ID_DESCRIPTOR FileIdDescriptor;
 
     //
+    // Bytes size of field `FilePathName`.
+    //
+    ULONG FilePathNameSize;
+
+    //
     // File path name.
     //
-    WCHAR FilePathName[FG_MAX_PATH_LENGTH];
+    WCHAR FilePathName[1];
 
 } FG_RULE, *PFG_RULE;
+
+/*-------------------------------------------------------------
+    Monitor structures
+-------------------------------------------------------------*/
 
 typedef struct _FG_MONITOR_RECORD {
 
     //
-    // Class of triggering rule.
+    // The time when the rules were successfully matched.
     //
-    FG_RULE_CLASS Class;
+    LARGE_INTEGER Time;
 
     //
-    // File ID descriptor.
+    // The rule successfully matched.
     //
-    FG_FILE_ID_DESCRIPTOR FileIdDescriptor;
-
-    //
-    // File device path name.
-    //
-    WCHAR FilePathName[FG_MAX_PATH_LENGTH];
+    FG_RULE Rule;
 
 } FG_MONITOR_RECORD, *PFG_MONITOR_RECORD;
 
@@ -165,7 +169,7 @@ typedef struct _FG_MONITOR_RECORDS_MESSAGE {
     //
     // Message header.
     //
-    FILTER_MESSAGE_HEADER	MessageHeader;
+    FILTER_MESSAGE_HEADER MessageHeader;
 
     //
     // Message body.
