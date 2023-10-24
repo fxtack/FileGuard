@@ -364,70 +364,52 @@ Return Value:
 
 --*/
 {
-    UNREFERENCED_PARAMETER(Data);
-    UNREFERENCED_PARAMETER(FltObjects);
-    UNREFERENCED_PARAMETER(CompletionContext);
-
-    return FLT_PREOP_SUCCESS_WITH_CALLBACK;
-}
-
-FLT_POSTOP_CALLBACK_STATUS
-FgPostWriteOperationCallback(
-    _Inout_ PFLT_CALLBACK_DATA Data,
-    _In_ PCFLT_RELATED_OBJECTS FltObjects,
-    _In_opt_ PVOID CompletionContext,
-    _In_ FLT_POST_OPERATION_FLAGS Flags
-    )
-/*++
-
-Routine Description:
-
-    This routine is the post-operation completion routine for 'IRP_MJ_WRITE'.
-
-    This is non-pageable because it may be called at DPC level.
-
-Arguments:
-
-    Data              - Pointer to the filter callbackData that is passed to us.
-
-    FltObjects        - Pointer to the FLT_RELATED_OBJECTS data structure containing
-                        opaque handles to this filter, instance, its associated volume and
-                        file object.
-
-    CompletionContext - The completion context set in the pre-operation routine.
-
-    Flags             - Denotes whether the completion is successful or is being drained.
-
-Return Value:
-
-    The return value is the status of the operation.
-
---*/
-{
     NTSTATUS status = STATUS_SUCCESS;
+    FLT_PREOP_CALLBACK_STATUS callbackStatus = FLT_PREOP_SUCCESS_NO_CALLBACK;
+    PFG_STREAM_CONTEXT streamContext = NULL;
 
-    UNREFERENCED_PARAMETER(Data);
-    UNREFERENCED_PARAMETER(FltObjects);
     UNREFERENCED_PARAMETER(CompletionContext);
-    UNREFERENCED_PARAMETER(Flags);
 
-    if (FlagOn(Flags, FLTFL_POST_OPERATION_DRAINING)) {
+    //
+    // Get stream context.
+    //
+    status = FltGetStreamContext(FltObjects->Instance, 
+                                 FltObjects->FileObject, 
+                                 &streamContext);
+    if (!NT_SUCCESS(status)) {
+        DBG_ERROR("Error(0x%08x), get stream context", status);
+        goto Cleanup;
+    }
 
-        status = STATUS_DEVICE_REMOVED;
+    //
+    // The file is read-only.
+    //
+    if (RULE_READONLY == streamContext->RuleClass) {
+
+        //
+        // TODO rule match, add a monitor record.
+        //
+
+        status = STATUS_ACCESS_DENIED;
         goto Cleanup;
     }
 
 Cleanup:
 
     if (!NT_SUCCESS(status)) {
-
-        FltCancelFileOpen(Data->Iopb->TargetInstance, Data->Iopb->TargetFileObject);
-        Data->IoStatus.Information = 0;
         Data->IoStatus.Status = status;
+        Data->IoStatus.Information = 0;
+
         FltSetCallbackDataDirty(Data);
+
+        callbackStatus = FLT_PREOP_COMPLETE;
     }
 
-    return FLT_POSTOP_FINISHED_PROCESSING;
+    if (NULL != streamContext) {
+        FltReleaseContext(streamContext);
+    }
+
+    return callbackStatus;
 }
 
 FLT_PREOP_CALLBACK_STATUS
@@ -461,52 +443,46 @@ Return Value:
 
 --*/
 {
+    NTSTATUS status = STATUS_SUCCESS;
+    FLT_PREOP_CALLBACK_STATUS callbackStatus = FLT_PREOP_SUCCESS_WITH_CALLBACK;
+
     UNREFERENCED_PARAMETER(Data);
     UNREFERENCED_PARAMETER(FltObjects);
     UNREFERENCED_PARAMETER(CompletionContext);
 
-    return FLT_PREOP_SUCCESS_WITH_CALLBACK;
-}
+    switch (Data->Iopb->Parameters.SetFileInformation.FileInformationClass) {
+    case FileDispositionInformation:
+    case FileDispositionInformationEx:
 
-FLT_POSTOP_CALLBACK_STATUS
-FgPostSetInformationOperationCallback(
-    _Inout_ PFLT_CALLBACK_DATA Data,
-    _In_ PCFLT_RELATED_OBJECTS FltObjects,
-    _In_opt_ PVOID CompletionContext,
-    _In_ FLT_POST_OPERATION_FLAGS Flags
-    )
-/*++
+        //
+        // Delete file or directory.
+        //
+        break;
 
-Routine Description:
+    case FileRenameInformation:
+    case FileRenameInformationEx:
 
-    This routine is the post-operation completion routine for 'IRP_MJ_SET_INFORMATION'.
+        //
+        // Rename file or directory.
+        //
+        break;
 
-    This is non-pageable because it may be called at DPC level.
+    default:
+        break;
+    }
 
-Arguments:
+Cleanup:
 
-    Data              - Pointer to the filter callbackData that is passed to us.
+    if (!NT_SUCCESS(status)) {
+        Data->IoStatus.Status = status;
+        Data->IoStatus.Information = 0;
 
-    FltObjects        - Pointer to the FLT_RELATED_OBJECTS data structure containing
-                        opaque handles to this filter, instance, its associated volume and
-                        file object.
+        FltSetCallbackDataDirty(Data);
 
-    CompletionContext - The completion context set in the pre-operation routine.
+        callbackStatus = FLT_PREOP_COMPLETE;
+    }
 
-    Flags             - Denotes whether the completion is successful or is being drained.
-
-Return Value:
-
-    The return value is the status of the operation.
-
---*/
-{
-    UNREFERENCED_PARAMETER(Data);
-    UNREFERENCED_PARAMETER(FltObjects);
-    UNREFERENCED_PARAMETER(CompletionContext);
-    UNREFERENCED_PARAMETER(Flags);
-
-    return FLT_POSTOP_FINISHED_PROCESSING;
+    return callbackStatus;
 }
 
 FLT_PREOP_CALLBACK_STATUS
