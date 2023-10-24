@@ -48,9 +48,9 @@ Environment:
 #include <ntddk.h>
 #include <dontuse.h>
 
+#include "FileGuard.h"
 #include "Utilities.h"
 #include "Rule.h"
-#include "FileGuard.h"
 #include "Operations.h"
 #include "Context.h"
 #include "Communication.h"
@@ -71,7 +71,8 @@ Environment:
 #define FG_UNICODE_STRING_PAGED_MEM_TAG   'FGus'
 #define FG_BUFFER_PAGED_MEM_TAG           'FGbf'
 #define FG_MONITOR_CONTEXT_PAGED_MEM_TAG  'FGmc'
-#define FG_PUSHLOCK_NON_PAGED_MEM_TAG    'FGNr'
+#define FG_PUSHLOCK_NON_PAGED_MEM_TAG     'FGNr'
+#define FG_RULE_ENTRY_NPAGED_MEM_TAG      'FGre'
 
 //
 // Global variables.
@@ -79,6 +80,7 @@ Environment:
 typedef struct _FG_CORE_GLOBALS {
 
     PFLT_FILTER Filter;            // Filter instances.
+
     PFLT_PORT   ControlCorePort;   // Communication port exported for CannotAdmin.
     PFLT_PORT   ControlClientPort; // Communication port that CannotAdmin connecting to.
 

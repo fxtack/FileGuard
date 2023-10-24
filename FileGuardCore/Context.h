@@ -145,4 +145,26 @@ FgCleanupStreamContext(
     _In_ FLT_CONTEXT_TYPE ContextType
 );
 
+/*-------------------------------------------------------------
+    Callback context structure and routines
+-------------------------------------------------------------*/
+
+typedef struct _FG_COMPLETION_CONTEXT {
+
+    UCHAR MajorFunction;
+
+    union _COMPLETION_CONTEXT_DATA {
+
+        struct {
+
+            FG_RULE_CLASS RuleClass;
+
+            PFG_INSTANCE_CONTEXT InstanceContext;
+
+        } Create;
+
+    } DUMMYUNIONNAME;
+
+} FG_COMPLETION_CONTEXT, *PFG_COMPLETION_CONTEXT;
+
 #endif

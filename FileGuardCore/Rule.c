@@ -47,12 +47,25 @@ FgRuleEntryCompareRoutine(
     _In_ PVOID REntry
     )
 {
-    UNREFERENCED_PARAMETER(Table);
-    UNREFERENCED_PARAMETER(LEntry);
-    UNREFERENCED_PARAMETER(REntry);
+    LONG compareResult = 0;
+    PFG_RULE_ENTRY lRuleEntry = LEntry;
+    PFG_RULE_ENTRY rRuleEntry = REntry;
 
-    return GenericEqual;
+    UNREFERENCED_PARAMETER(Table);
+
+    FLT_ASSERT(NULL != lRuleEntry);
+    FLT_ASSERT(NULL != rRuleEntry);
+
+    compareResult = RtlCompareUnicodeString(&lRuleEntry->FilePathIndex,
+                                            &rRuleEntry->FilePathIndex, 
+                                            TRUE);
+    if      (compareResult < 0)  return GenericLessThan;
+    else if (compareResult == 0) return GenericEqual;
+    else if (compareResult > 0)  return GenericGreaterThan;
 }
+
+#pragma warning(push)
+#pragma warning(disable: 6386)
 
 PVOID
 NTAPI
@@ -61,11 +74,21 @@ FgRuleEntryAllocateRoutine(
     _In_ CLONG Size
     )
 {
-    UNREFERENCED_PARAMETER(Table);
-    UNREFERENCED_PARAMETER(Size);
+    PVOID entry = NULL;
 
-    return NULL;
+    UNREFERENCED_PARAMETER(Table);
+    
+    FLT_ASSERT((sizeof(FG_RULE_ENTRY) + sizeof(RTL_BALANCED_LINKS)) == Size);
+
+    entry = ExAllocateFromNPagedLookasideList(&Globals.RuleEntryMemoryPool);
+    if (NULL != entry) {
+        RtlZeroMemory(entry, Size);
+    }
+
+    return entry;
 }
+
+#pragma warning(pop)
 
 VOID
 NTAPI
@@ -75,7 +98,8 @@ FgRuleEntryFreeRoutine(
     )
 {
     UNREFERENCED_PARAMETER(Table);
-    UNREFERENCED_PARAMETER(Entry);
+
+    ExFreeToNPagedLookasideList(&Globals.RuleEntryMemoryPool, Entry);
 }
 
 _Check_return_
@@ -95,6 +119,40 @@ FgCleanupRules(
     while (!RtlIsGenericTableEmpty(Table)) {
         entry = RtlGetElementGenericTable(Table, 0);
         RtlDeleteElementGenericTable(Table, entry);
+    }
+
+    FltReleasePushLock(Lock);
+
+    return status;
+}
+
+_Check_return_
+NTSTATUS
+FgMatchRule(
+    _In_ PRTL_GENERIC_TABLE Table,
+    _In_ PEX_PUSH_LOCK Lock,
+    _In_ PUNICODE_STRING FilePathIndex,
+    _Outptr_ PFG_RULE_CLASS *MatchedRuleClass
+) {
+    NTSTATUS status = STATUS_SUCCESS;
+    FG_RULE_ENTRY queryEntry = { 0 };
+    PFG_RULE_ENTRY resultEntry = NULL;
+
+    if (NULL == Table) return STATUS_INVALID_PARAMETER_1;
+    if (NULL == Lock) return STATUS_INVALID_PARAMETER_2;
+    if (NULL == MatchedRuleClass) return  STATUS_INVALID_PARAMETER_3;
+
+    queryEntry.FilePathIndex.Length = FilePathIndex->Length;
+    queryEntry.FilePathIndex.MaximumLength = FilePathIndex->MaximumLength;
+    queryEntry.FilePathIndex.Buffer = FilePathIndex->Buffer;
+
+    FltAcquirePushLockShared(Lock);
+
+    resultEntry = RtlLookupElementGenericTable(Table, &queryEntry);
+    if (NULL != resultEntry) {
+        *MatchedRuleClass = resultEntry->Rule->Class;
+    } else {
+        status = STATUS_NOT_FOUND;
     }
 
     FltReleasePushLock(Lock);

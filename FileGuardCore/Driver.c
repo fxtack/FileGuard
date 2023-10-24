@@ -200,8 +200,15 @@ DriverEntry(
         // Intialize instance context list and lock.
         //
         InitializeListHead(&Globals.InstanceContextList);
-
         ExInitializeFastMutex(&Globals.InstanceContextListMutex);
+
+        ExInitializeNPagedLookasideList(&Globals.RuleEntryMemoryPool,
+                                        NULL,
+                                        NULL,
+                                        POOL_NX_ALLOCATION,
+                                        sizeof(FG_RULE_ENTRY) + sizeof(RTL_BALANCED_LINKS),
+                                        FG_RULE_ENTRY_NPAGED_MEM_TAG,
+                                        0);
 
         //
         // Register filter driver.
@@ -343,6 +350,9 @@ DriverEntry(
 
             if (NULL != Globals.MonitorThreadObject)
                 ObReferenceObject(Globals.MonitorThreadObject);
+
+            ExDeleteNPagedLookasideList(&Globals.RuleEntryMemoryPool);
+
         } else {
 
             LOG_INFO("Driver loaded successfully");
@@ -415,6 +425,8 @@ FgCoreUnload(
     }
 
     FgFreeMonitorStartContext(Globals.MonitorContext);
+
+    ExDeleteNPagedLookasideList(&Globals.RuleEntryMemoryPool);
 
     LOG_INFO("Unload driver finish");
     

@@ -41,6 +41,17 @@ Environment:
 #ifndef __RULE_H__
 #define __RULE_H__
 
+typedef struct _FG_RULE_ENTRY {
+    
+    //
+    // File path
+    //
+    UNICODE_STRING FilePathIndex;
+
+    PFG_RULE Rule;
+
+} FG_RULE_ENTRY, *PFG_RULE_ENTRY;
+
 RTL_GENERIC_COMPARE_RESULTS
 NTAPI
 FgRuleEntryCompareRoutine(
@@ -67,7 +78,16 @@ _Check_return_
 NTSTATUS 
 FgCleanupRules(
     _In_ PRTL_GENERIC_TABLE Table,
-    _In_ PERESOURCE Resource
+    _In_ PEX_PUSH_LOCK Lock
+);
+
+_Check_return_
+NTSTATUS
+FgMatchRule(
+    _In_ PRTL_GENERIC_TABLE Table,
+    _In_ PEX_PUSH_LOCK Lock,
+    _In_ PUNICODE_STRING FilePathIndex,
+    _Outptr_ PFG_RULE_CLASS* MatchedRuleClass
 );
 
 #endif
