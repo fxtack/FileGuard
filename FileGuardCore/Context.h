@@ -149,6 +149,9 @@ FgCleanupStreamContext(
     Callback context structure and routines
 -------------------------------------------------------------*/
 
+#pragma warning(push)
+#pragma warning(disable: 4201)
+
 typedef struct _FG_COMPLETION_CONTEXT {
 
     UCHAR MajorFunction;
@@ -166,5 +169,7 @@ typedef struct _FG_COMPLETION_CONTEXT {
     } DUMMYUNIONNAME;
 
 } FG_COMPLETION_CONTEXT, *PFG_COMPLETION_CONTEXT;
+
+#pragma warning(pop)
 
 #endif

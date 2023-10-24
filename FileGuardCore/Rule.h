@@ -87,7 +87,7 @@ FgMatchRule(
     _In_ PRTL_GENERIC_TABLE Table,
     _In_ PEX_PUSH_LOCK Lock,
     _In_ PUNICODE_STRING FilePathIndex,
-    _Outptr_ PFG_RULE_CLASS* MatchedRuleClass
+    _Outptr_ FG_RULE_CLASS* MatchedRuleClass
 );
 
 #endif

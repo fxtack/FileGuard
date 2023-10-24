@@ -265,7 +265,7 @@ Return Value:
     // rule class.
     //
     status = FgFindOrCreateStreamContext(Data, 
-                                         instanceContext, 
+                                         FltObjects->Instance, 
                                          TRUE, 
                                          &streamContext, 
                                          &streamContextCreated);
