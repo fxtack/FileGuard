@@ -39,6 +39,10 @@ Environment:
 #include "FileGuardCore.h"
 #include "Rule.h"
 
+/*-------------------------------------------------------------
+    Rule entry generic table routines
+-------------------------------------------------------------*/
+
 RTL_GENERIC_COMPARE_RESULTS
 NTAPI
 FgRuleEntryCompareRoutine(
@@ -100,6 +104,62 @@ FgRuleEntryFreeRoutine(
     UNREFERENCED_PARAMETER(Table);
 
     ExFreeToNPagedLookasideList(&Globals.RuleEntryMemoryPool, Entry);
+}
+
+/*-------------------------------------------------------------
+    Rule entry generic table operation routines
+-------------------------------------------------------------*/
+
+VOID
+FgAddRule(
+    _In_ PFG_RULE Rule,
+    _Out_ PBOOLEAN Added
+    )
+{
+    PLIST_ENTRY entry = NULL, next = NULL;
+    PFG_INSTANCE_CONTEXT instanceContext = NULL;
+    UNICODE_STRING ruleFilePath = { 0 };
+    PFG_RULE_ENTRY ruleEntry = NULL;
+    BOOLEAN added = FALSE;
+
+    ruleFilePath.MaximumLength = (USHORT)Rule->FilePathNameSize;
+    ruleFilePath.Length = (USHORT)Rule->FilePathNameSize;
+    ruleFilePath.Buffer = Rule->FilePathName;
+
+    ExAcquireFastMutex(&Globals.InstanceContextListMutex);
+
+    LIST_FOR_EACH_SAFE(entry, next, &Globals.InstanceContextList) {
+
+        instanceContext = CONTAINING_RECORD(entry, FG_INSTANCE_CONTEXT, List);
+
+        if (RtlPrefixUnicodeString(&instanceContext->VolumeName, &ruleFilePath, TRUE)) {
+
+            ExReleaseFastMutex(&Globals.InstanceContextListMutex);
+
+            //
+            // Add rule to table that maintain in instance context.
+            //
+            FltAcquirePushLockExclusive(instanceContext->RulesTableLock);
+
+            ruleEntry = RtlInsertElementGenericTable(&instanceContext->RulesTable, 
+                                                     Rule, 
+                                                     sizeof(FG_RULE_ENTRY), 
+                                                     &added);
+            if (added) {
+                *Added = TRUE;
+            }
+
+            FltReleasePushLock(instanceContext->RulesTableLock);
+
+            goto Cleanup;
+        }
+    }
+
+    ExReleaseFastMutex(&Globals.InstanceContextListMutex);
+
+Cleanup:
+
+    *Added = added;
 }
 
 _Check_return_

@@ -48,9 +48,26 @@ typedef struct _FG_RULE_ENTRY {
     //
     UNICODE_STRING FilePathIndex;
 
+    //
+    // Rule.
+    //
     PFG_RULE Rule;
 
+    //
+    // Lock of stream contexts list.
+    //
+    PFAST_MUTEX StreamContextsListLock;
+
+    //
+    // The list of stream contexts that matched with rule.
+    //
+    LIST_ENTRY StreamContextsList;
+
 } FG_RULE_ENTRY, *PFG_RULE_ENTRY;
+
+/*-------------------------------------------------------------
+    Rule entry generic table routines
+-------------------------------------------------------------*/
 
 RTL_GENERIC_COMPARE_RESULTS
 NTAPI
@@ -72,6 +89,16 @@ NTAPI
 FgRuleEntryFreeRoutine(
     _In_ PRTL_GENERIC_TABLE Table,
     _In_ __drv_freesMem(Mem) _Post_invalid_ PVOID Entry
+);
+
+/*-------------------------------------------------------------
+    Rule entry generic table operation routines
+-------------------------------------------------------------*/
+
+VOID
+FgAddRule(
+    _In_ PFG_RULE Rule,
+    _Out_ PBOOLEAN Added
 );
 
 _Check_return_
