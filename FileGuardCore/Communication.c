@@ -60,7 +60,7 @@ Routine Description
 Arguments
 
     ClientPort        - This is the client connection port that will be used to send messages from the filter
-                      
+
     ServerPortCookie  - Unused
 
     ConnectionContext - The connection context passed from the user. This is to recognize which type
@@ -97,7 +97,7 @@ Return Value
 
 VOID FgCoreControlPortDisconnectCallback(
     _In_opt_ PVOID ConnectionCookie
-    ) 
+)
 /*++
 
 Routine Description
@@ -129,21 +129,58 @@ Return Value
 NTSTATUS
 FgCoreControlMessageNotifyCallback(
     _In_opt_ PVOID ConnectionCookie,
-    _In_reads_bytes_opt_(InputBytes) PVOID Input,
-    _In_ ULONG InputBytes,
-    _Out_writes_bytes_to_opt_(OutputBytes, *ReturnSize) PVOID Output,
-    _In_ ULONG OutputBytes,
+    _In_reads_bytes_opt_(InputSize) PVOID Input,
+    _In_ ULONG InputSize,
+    _Out_writes_bytes_to_opt_(OutputSize, *ReturnSize) PVOID Output,
+    _In_ ULONG OutputSize,
     _Out_ PULONG ReturnSize
-    ) 
-{
-    UNREFERENCED_PARAMETER(ConnectionCookie);
-    UNREFERENCED_PARAMETER(Input);
-    UNREFERENCED_PARAMETER(InputBytes);
-    UNREFERENCED_PARAMETER(Output);
-    UNREFERENCED_PARAMETER(OutputBytes);
-    UNREFERENCED_PARAMETER(ReturnSize);
+) {
+    NTSTATUS status = STATUS_SUCCESS;
+    FG_COMMAND_TYPE commandType = 0;
+    BOOLEAN ruleAdded = FALSE;
 
-    return STATUS_NOT_IMPLEMENTED;
+    UNREFERENCED_PARAMETER(ConnectionCookie);
+
+    if (NULL == ReturnSize) return STATUS_INVALID_PARAMETER_6;
+
+    *ReturnSize = 0;
+
+    switch (commandType) {
+    case GetVersion:
+
+        if (NULL == Output) return STATUS_INVALID_PARAMETER_4;
+        if (OutputSize < sizeof(PFG_CORE_VERSION)) return STATUS_INVALID_PARAMETER_5;
+
+        ((PFG_CORE_VERSION)Output)->Major = FG_CORE_VERSION_MAJOR;
+        ((PFG_CORE_VERSION)Output)->Minor = FG_CORE_VERSION_MINOR;
+        ((PFG_CORE_VERSION)Output)->Patch = FG_CORE_VERSION_PATCH;
+        *ReturnSize = sizeof(PFG_CORE_VERSION);
+        status = STATUS_SUCCESS;
+        break;
+
+    case AddRule:
+
+        if (NULL == Input) return STATUS_INVALID_PARAMETER_2;
+        if (InputSize <= 0) return STATUS_INVALID_PARAMETER_3;
+
+        FgAddRule((PFG_RULE)Input, &ruleAdded);
+        if (ruleAdded) status = STATUS_SUCCESS;
+        else status = STATUS_UNSUCCESSFUL;
+        break;
+
+    case RemoveRule:
+        break;
+
+    case CleanupRule:
+        break;
+
+    default:
+
+        DBG_WARNING("Unknown command type: '%d'", commandType);
+        status = STATUS_NOT_SUPPORTED;
+    }
+
+    return status;
 }
 
 /*-------------------------------------------------------------
