@@ -202,6 +202,9 @@ DriverEntry(
         InitializeListHead(&Globals.InstanceContextList);
         ExInitializeFastMutex(&Globals.InstanceContextListMutex);
 
+        InitializeListHead(&Globals.MonitorRecordsQueue);
+        KeInitializeSpinLock(&Globals.MonitorRecordsQueueLock);
+
         ExInitializeNPagedLookasideList(&Globals.RuleEntryMemoryPool,
                                         NULL,
                                         NULL,
@@ -284,8 +287,7 @@ DriverEntry(
         //
 
         status = FgCreateMonitorStartContext(Globals.Filter,
-                                             &Globals.MonitorRecordsQueue, 
-                                             &Globals.MonitorRecordsQueueLock,
+                                             &Globals.MonitorRecordsQueue,
                                              &monitorContext);
         if (!NT_SUCCESS(status) || NULL == monitorContext) {
 
@@ -510,7 +512,7 @@ Return Value:
         goto Cleanup;
     }
 
-    LOG_INFO("Instance setup finish");
+    LOG_INFO("Instance setup for volume '%wZ' finish", &instanceContext->VolumeName);
 
 Cleanup:
 
