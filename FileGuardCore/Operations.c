@@ -68,20 +68,17 @@ Return Value:
 
 --*/
 {
-    NTSTATUS                   status = STATUS_SUCCESS;
-    FLT_PREOP_CALLBACK_STATUS  callbackStatus = FLT_PREOP_SUCCESS_NO_CALLBACK;
+    NTSTATUS status = STATUS_SUCCESS;
+    FLT_PREOP_CALLBACK_STATUS callbackStatus = FLT_PREOP_SUCCESS_WITH_CALLBACK;
     PFLT_FILE_NAME_INFORMATION nameInfo = NULL;
-    PFG_INSTANCE_CONTEXT       instanceContext = NULL;
-    UNICODE_STRING             newFileName = { 0 };
-    PFG_COMPLETION_CONTEXT     completionContext = NULL;
-    FG_RULE_CLASS              matchedRuleClass = 0;
+    PFG_INSTANCE_CONTEXT instanceContext = NULL;
+    PFG_COMPLETION_CONTEXT completionContext = NULL;
+    FG_RULE_CLASS matchedRuleClass = 0;
 
     UNREFERENCED_PARAMETER(FltObjects);
     UNREFERENCED_PARAMETER(CompletionContext);
 
     PAGED_CODE();
-
-    RtlInitUnicodeString(&newFileName, NULL);
 
     // Check if this is a paging file as we don't want to redirect
     // the location of the paging file.
@@ -89,81 +86,56 @@ Return Value:
         FlagOn(Data->Iopb->TargetFileObject->Flags, FO_VOLUME_OPEN) ||
         FlagOn(Data->Iopb->Parameters.Create.Options, FILE_OPEN_BY_FILE_ID)) {
 
+        callbackStatus = FLT_PREOP_SUCCESS_NO_CALLBACK;
         goto Cleanup;
     }
 
-    status = FltGetFileNameInformation(Data,
-                                       FLT_FILE_NAME_OPENED | FLT_FILE_NAME_QUERY_DEFAULT,
-                                       &nameInfo);
+    status = FltGetFileNameInformation(Data, FLT_FILE_NAME_OPENED | FLT_FILE_NAME_QUERY_DEFAULT, &nameInfo);
     if (!NT_SUCCESS(status)) {
         DBG_ERROR("NTSTATUS: '0x%08x', get file name information failed", status);
         goto Cleanup;
     }
 
-    // Parse the filename information
     status = FltParseFileNameInformation(nameInfo);
     if (!NT_SUCCESS(status)) {
         DBG_ERROR("NTSTATUS: '0x%08x', parse file name information failed", status);
         goto Cleanup;
     }
 
-    //
-    // Get instance context.
-    //
     status = FltGetInstanceContext(FltObjects->Instance, &instanceContext);
     if (!NT_SUCCESS(status)) {
         DBG_ERROR("NTSTATUS: '0x%08x', get instance context failed", status);
         goto Cleanup;
     }
+    
+    //status = FgMatchRule(&instanceContext->RulesTable, 
+    //                     instanceContext->RulesTableLock,
+    //                     &nameInfo->Name, 
+    //                     &matchedRuleClass);
+    //if (!NT_SUCCESS(status) && STATUS_NOT_FOUND == status) {
 
-    //
-    // Allocate completion context.
-    //
+    //    DBG_ERROR("Error(0x%08x), match rule error by file path index: '%wZ'", status, &nameInfo->Name);
+    //    goto Cleanup;
+
+    //} else if (NT_SUCCESS(status)) {
+
+    //    switch (matchedRuleClass) {
+    //    case RULE_ACCESS_DENIED:
+    //        status = STATUS_ACCESS_DENIED;
+    //        goto Cleanup;
+
+    //    case RULE_READONLY:
+    //        break;
+
+    //    default:
+    //        status = STATUS_UNSUCCESSFUL;
+    //        goto Cleanup;
+    //    }
+    //}
+    
     status = FgAllocateBuffer(&completionContext, POOL_FLAG_PAGED, sizeof(FG_COMPLETION_CONTEXT));
     if (!NT_SUCCESS(status)) {
         DBG_ERROR("Error(0x%08x), allocate create callback context failed", status);
-        goto Cleanup;
-    }
-
-    //
-    // Match rule from rules table.
-    //
-    status = FgMatchRule(&instanceContext->RulesTable, 
-                         instanceContext->RulesTableLock,
-                         &nameInfo->Name, 
-                         &matchedRuleClass);
-    if (STATUS_NOT_FOUND == status) {
-
-        //
-        // No rule matched.
-        //
-        status = STATUS_SUCCESS;
-
-    } else if (!NT_SUCCESS(status)) {
-
-        DBG_ERROR("Error(0x%08x), match rule error by file path index: '%wZ'", status, &nameInfo->Name);
-        goto Cleanup;
-    }
-
-    switch (matchedRuleClass) {
-    case RULE_ACCESS_DENIED:
-
-        status = STATUS_ACCESS_DENIED;
-        goto Cleanup;
-
-    case RULE_READONLY:
-       
-        //
-        // Continue post callback handle.
-        //
-        break;
-
-    default:
-
-        //
-        // Rule class unknown.
-        //
-        status = STATUS_UNSUCCESSFUL;
         goto Cleanup;
     }
 
@@ -172,6 +144,9 @@ Return Value:
 
     FltReferenceContext(instanceContext);
     completionContext->Create.InstanceContext = instanceContext;
+
+    FltReferenceFileNameInformation(nameInfo);
+    completionContext->Create.FileNameInfo = nameInfo;
 
     *CompletionContext = completionContext;
 
@@ -241,23 +216,25 @@ Return Value:
     FLT_POSTOP_CALLBACK_STATUS callbackStatus = FLT_POSTOP_FINISHED_PROCESSING;
     PFG_COMPLETION_CONTEXT completionContext = NULL;
     PFG_INSTANCE_CONTEXT instanceContext = NULL;
+    PFLT_FILE_NAME_INFORMATION fileNameInfo = NULL;
     PFG_STREAM_CONTEXT streamContext = NULL;
     FG_RULE_CLASS ruleClass = 0;
     BOOLEAN streamContextCreated = FALSE;
 
     UNREFERENCED_PARAMETER(FltObjects);
 
+    PAGED_CODE();
+
     if (FlagOn(Flags, FLTFL_POST_OPERATION_DRAINING)) {
         status = STATUS_DEVICE_REMOVED;
         goto Cleanup;
     }
 
-    PAGED_CODE();
-
     FLT_ASSERT(NULL != CompletionContext);
 
     completionContext = CompletionContext;
     instanceContext = completionContext->Create.InstanceContext;
+    fileNameInfo = completionContext->Create.FileNameInfo;
     ruleClass = completionContext->Create.RuleClass;
 
     //
@@ -271,18 +248,10 @@ Return Value:
                                          &streamContextCreated);
     if (!NT_SUCCESS(status)) {
         
-        DBG_ERROR("Error(0x%08x), find or create stream context failed", status);
+        DBG_ERROR("Error(0x%08x), find or create stream context for '%wZ' failed", status, &completionContext->Create.FileNameInfo->Name);
         goto Cleanup;
 
     } else if (streamContextCreated && NULL != streamContext) {
-
-        //
-        // Create a new stream context for file object.
-        //
-
-        FltReferenceContext(instanceContext);
-        streamContext->InstanceContext = instanceContext;
-        streamContext->RuleClass = ruleClass;
 
         status = FltSetStreamContext(Data->Iopb->TargetInstance,
                                      Data->Iopb->TargetFileObject,
@@ -290,18 +259,15 @@ Return Value:
                                      streamContext,
                                      NULL);
         if (!NT_SUCCESS(status)) {
-
-            FltReleaseContext(instanceContext);
-
-            DBG_ERROR("Error(0x%08x), set stream context failed", status);
+            DBG_ERROR("Error(0x%08x), set stream context for '%wZ' failed", status, &completionContext->Create.FileNameInfo->Name);
             goto Cleanup;
         }
 
-    } else if (!streamContextCreated && NULL != streamContext) {
+        FltReferenceContext(instanceContext);
+        streamContext->InstanceContext = instanceContext;
+        streamContext->RuleClass = ruleClass;
 
-        //
-        // A stream context already setup, update rule class.
-        //
+    } else if (!streamContextCreated && NULL != streamContext) {
 
         streamContext->RuleClass = ruleClass;
     }
@@ -324,6 +290,10 @@ Cleanup:
 
     if (NULL != instanceContext) {
         FltReleaseContext(instanceContext);
+    }
+
+    if (NULL != fileNameInfo) {
+        FltReleaseFileNameInformation(fileNameInfo);
     }
 
     if (NULL != CompletionContext) {
@@ -445,18 +415,43 @@ Return Value:
 {
     NTSTATUS status = STATUS_SUCCESS;
     FLT_PREOP_CALLBACK_STATUS callbackStatus = FLT_PREOP_SUCCESS_WITH_CALLBACK;
+    FILE_INFORMATION_CLASS informationClass;
+    PFLT_FILE_NAME_INFORMATION renameNameInfo = NULL, nameInfo = NULL;
+    PFG_STREAM_CONTEXT streamContext = NULL;
+    PFILE_RENAME_INFORMATION renameInfo = Data->Iopb->Parameters.SetFileInformation.InfoBuffer;
 
     UNREFERENCED_PARAMETER(Data);
     UNREFERENCED_PARAMETER(FltObjects);
     UNREFERENCED_PARAMETER(CompletionContext);
 
-    switch (Data->Iopb->Parameters.SetFileInformation.FileInformationClass) {
+    //
+    // Get stream context.
+    //
+    status = FltGetStreamContext(FltObjects->Instance, 
+                                 FltObjects->FileObject, 
+                                 &streamContext);
+    if (!NT_SUCCESS(status)) {
+        DBG_ERROR("NTSTATUS: '0x%08x', get stream context failed", status);
+        status = STATUS_UNSUCCESSFUL;
+    } else {
+        nameInfo = streamContext->NameInfo;
+    }
+
+    informationClass = Data->Iopb->Parameters.SetFileInformation.FileInformationClass;
+
+    switch (informationClass) {
     case FileDispositionInformation:
     case FileDispositionInformationEx:
-
+        
         //
         // Delete file or directory.
         //
+
+        if (RULE_READONLY == streamContext->RuleClass) {
+            status = STATUS_ACCESS_DENIED;
+            goto Cleanup;
+        }
+
         break;
 
     case FileRenameInformation:
@@ -465,6 +460,21 @@ Return Value:
         //
         // Rename file or directory.
         //
+        
+        status = FltGetDestinationFileNameInformation(Data->Iopb->TargetInstance, 
+                                                      Data->Iopb->TargetFileObject, 
+                                                      renameInfo->RootDirectory,
+                                                      renameInfo->FileName,
+                                                      renameInfo->FileNameLength,
+                                                      FLT_FILE_NAME_NORMALIZED | FLT_FILE_NAME_QUERY_DEFAULT,
+                                                      &renameNameInfo);
+        if (!NT_SUCCESS(status)) {
+            DBG_ERROR("NTSTATUS: '0x%08x', get destination file name information failed", status);
+            goto Cleanup;
+        }
+
+        DBG_TRACE("Rename source: '%wZ' target: '%wZ'", &nameInfo->Name, &renameNameInfo->Name);
+
         break;
 
     default:
@@ -474,9 +484,9 @@ Return Value:
 Cleanup:
 
     if (!NT_SUCCESS(status)) {
+
         Data->IoStatus.Status = status;
         Data->IoStatus.Information = 0;
-
         FltSetCallbackDataDirty(Data);
 
         callbackStatus = FLT_PREOP_COMPLETE;
