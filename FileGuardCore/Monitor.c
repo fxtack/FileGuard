@@ -39,12 +39,76 @@ Environment:
 #include "FileGuardCore.h"
 #include "Monitor.h"
 
+#pragma warning(push)
+#pragma warning(disable: 6001)
+
+_Check_return_
+NTSTATUS
+FgAllocateMonitorRecordEntry(
+    _In_ PFG_RULE Rule,
+    _Outptr_ PFG_MONITOR_RECORD_ENTRY* MonitorRecordEntry
+    )
+/*++
+
+Routine Description:
+
+    This routine allocates a monitor record entry.
+
+Arguments:
+
+    Rule               - The rule wrapped in record entry.
+
+    MonitorRecordEntry - A pointer to a variable that receives the monitor record entry.
+
+Return Value:
+
+    STATUS_SUCCESS                - Success.
+    STATUS_INSUFFICIENT_RESOURCES - Failure. Unable to allocate memory.
+    STATUS_INVALID_PARAMETER_1    - Failure. The 'Rule' parameter is NULL.
+    STATUS_INVALID_PARAMETER_2    - Failure. The 'MonitorRecordEntry' is NULL.
+
+--*/
+{
+    if (NULL == Rule) return STATUS_INVALID_PARAMETER_1;
+    if (NULL == MonitorRecordEntry) return STATUS_INVALID_PARAMETER_2;
+
+    return FgAllocateBuffer(MonitorRecordEntry, 
+                            POOL_FLAG_PAGED, 
+                            sizeof(PFG_MONITOR_RECORD_ENTRY) + Rule->FilePathNameSize);
+}
+
+#pragma warning(pop)
+
+VOID
+FgFreeMonitorRecordEntry(
+    _Inout_ PFG_MONITOR_RECORD_ENTRY MonitorRecordEntry
+    )
+/*++
+
+Routine Description:
+
+    This routine frees a monitor record entry.
+
+Arguments:
+
+    MonitorRecordEntry - Supplies the monitor record entry to be freed.
+
+Return Value:
+
+    None
+
+--*/
+{
+    FLT_ASSERT(NULL != MonitorRecordEntry);
+
+    FgFreeBuffer(MonitorRecordEntry);
+}
+
 _Check_return_
 NTSTATUS
 FgCreateMonitorStartContext(
     _In_ PFLT_FILTER Filter,
     _In_ PLIST_ENTRY RecordsQueue,
-    _In_ PFAST_MUTEX QueueMutex,
     _In_ PFG_MONITOR_CONTEXT* Context
     )
 /*++
@@ -82,8 +146,7 @@ Return Value:
 
     if (NULL == Filter)       return STATUS_INVALID_PARAMETER_1;
     if (NULL == RecordsQueue) return STATUS_INVALID_PARAMETER_2;
-    if (NULL == QueueMutex)   return STATUS_INVALID_PARAMETER_3;
-    if (NULL == Context)      return STATUS_INVALID_PARAMETER_4;
+    if (NULL == Context)      return STATUS_INVALID_PARAMETER_3;
 
     //
     // Allocate monitor context from paged pool.
@@ -91,20 +154,7 @@ Return Value:
     context = (PFG_MONITOR_CONTEXT)ExAllocatePool2(POOL_FLAG_NON_PAGED,
                                                    sizeof(FG_MONITOR_CONTEXT),
                                                    FG_MONITOR_CONTEXT_PAGED_MEM_TAG);
-    if (NULL == context) 
-        return STATUS_INSUFFICIENT_RESOURCES;
-
-    context->Filter            = Filter;
-    context->ClientPort        = NULL;
-    context->RecordsQueue      = RecordsQueue;
-    context->RecordsQueueMutex = QueueMutex;
-    context->MessageBody       = NULL;
-
-    //
-    // Initialize monitor thread control event.
-    //
-    KeInitializeEvent(&context->EventWakeMonitor, NotificationEvent, FALSE);
-    KeInitializeEvent(&context->EventPortConnected, NotificationEvent, FALSE);
+    if (NULL == context) return STATUS_INSUFFICIENT_RESOURCES;
 
     //
     // Allocate monitor records buffer as message body.
@@ -115,6 +165,18 @@ Return Value:
     if (!NT_SUCCESS(status)) {
         goto Cleanup;
     }
+
+    context->Filter            = Filter;
+    context->ClientPort        = NULL;
+    context->RecordsQueue      = RecordsQueue;
+    context->MessageBody       = NULL;
+
+    //
+    // Initialize monitor thread control event.
+    //
+    KeInitializeSpinLock(&context->RecordsQueueLock);
+    KeInitializeEvent(&context->EventWakeMonitor, NotificationEvent, FALSE);
+    KeInitializeEvent(&context->EventPortConnected, NotificationEvent, FALSE);
 
     //
     // Initialize daemon flag.
@@ -217,7 +279,7 @@ Return Value:
         // Get monitor record from record queue.
         //
         status = FgGetRecords(context->RecordsQueue, 
-                              context->RecordsQueueMutex, 
+                              context->RecordsQueueLock, 
                               messageBody->DataBuffer, 
                               FG_MONITOR_SEND_RECORD_BUFFER_SIZE, 
                               &messageBody->DataSize);
@@ -258,7 +320,7 @@ _Check_return_
 NTSTATUS
 FgGetRecords(
     _In_ PLIST_ENTRY List,
-    _In_ PFAST_MUTEX ListMutex,
+    _In_ PKSPIN_LOCK Lock,
     _Out_writes_bytes_to_(OutputBufferSize, *ReturnOutputBufferSize) PUCHAR OutputBuffer,
     _In_ ULONG OutputBufferSize,
     _Out_ PULONG ReturnOutputBufferSize
@@ -266,52 +328,59 @@ FgGetRecords(
 {
     NTSTATUS status = STATUS_SUCCESS;
     BOOLEAN recordsAvailable = FALSE;
-    PLIST_ENTRY entry = NULL;
-    PFG_MONITOR_RECORD_ENTRY record = NULL;
+    PLIST_ENTRY listEntry = NULL;
+    PFG_MONITOR_RECORD_ENTRY recordEntry = NULL;
     ULONG bytesWritten = 0UL;
+    KIRQL oldIrql;
+    ULONG writeSize = 0UL;
 
-    ExAcquireFastMutex(ListMutex);
+    KeAcquireSpinLock(Lock, &oldIrql);
 
     while (!IsListEmpty(List) && (OutputBufferSize > 0)) {
 
         recordsAvailable = TRUE;
 
-        entry = RemoveHeadList(List);
+        listEntry = RemoveHeadList(List);
+        recordEntry = CONTAINING_RECORD(listEntry, FG_MONITOR_RECORD_ENTRY, List);
+        writeSize = sizeof(FG_MONITOR_RECORD) + recordEntry->Record.Rule.FilePathNameSize;
 
-        record = CONTAINING_RECORD(entry, FG_MONITOR_RECORD_ENTRY, List);
+        if (OutputBufferSize < writeSize) {
+            InsertHeadList(List, listEntry);
+            break;
+        }
+
+        KeReleaseSpinLock(Lock, oldIrql);
 
         try {
 
-            RtlCopyMemory(OutputBuffer, record, sizeof(FG_MONITOR_RECORD));
+            RtlCopyMemory(OutputBuffer, &recordEntry->Record, writeSize);
 
         } except (AsMessageException(GetExceptionInformation(), TRUE)) {
 
-            //
-            // Get a copy exception, put entry back to list.
-            //
-            InsertHeadList(List, entry);
-
-            ExReleaseFastMutex(ListMutex);
+            KeAcquireSpinLock(Lock, &oldIrql);
+            InsertHeadList(List, listEntry);
+            KeReleaseSpinLock(Lock, oldIrql);
 
             return GetExceptionCode();
         }
 
-        bytesWritten += sizeof(FG_MONITOR_RECORD);
+        bytesWritten += writeSize;
 
-        OutputBufferSize -= sizeof(FG_MONITOR_RECORD);
+        OutputBufferSize -= writeSize;
 
-        //
-        // Move pointer to copy next record.
-        //
-        OutputBuffer += sizeof(FG_MONITOR_RECORD);
+        OutputBuffer += writeSize;
+
+        FgFreeMonitorRecordEntry(recordEntry);
         
+        KeAcquireSpinLock(Lock, &oldIrql);
     }
 
-    ExReleaseFastMutex(ListMutex);
+    KeReleaseSpinLock(Lock, oldIrql);
 
     if ((0 == bytesWritten) && recordsAvailable) {
 
         status = STATUS_BUFFER_TOO_SMALL;
+
     } else if (bytesWritten > 0) {
 
         status = STATUS_SUCCESS;

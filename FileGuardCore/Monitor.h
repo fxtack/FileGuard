@@ -55,6 +55,18 @@ typedef struct _FG_MONITOR_RECORD_ENTRY {
 
 } FG_MONITOR_RECORD_ENTRY, *PFG_MONITOR_RECORD_ENTRY;
 
+_Check_return_
+NTSTATUS
+FgAllocateMonitorRecordEntry(
+    _In_ PFG_RULE Rule,
+    _Outptr_ PFG_MONITOR_RECORD_ENTRY *MonitorRecordEntry
+);
+
+VOID
+FgFreeMonitorRecordEntry(
+    _Inout_ PFG_MONITOR_RECORD_ENTRY MonitorRecordEntry
+);
+
 #define FG_MONITOR_SEND_RECORD_BUFFER_SIZE (32 * 1024)
 
 typedef struct _FG_MONITOR_CONTEXT {
@@ -69,7 +81,7 @@ typedef struct _FG_MONITOR_CONTEXT {
     PLIST_ENTRY RecordsQueue;
 
     // Monitor reocrd queue lock.
-    PFAST_MUTEX RecordsQueueMutex;
+    KSPIN_LOCK RecordsQueueLock;
 
     // The event to notify monitor daemon to send records.
     KEVENT EventWakeMonitor;
@@ -92,7 +104,6 @@ NTSTATUS
 FgCreateMonitorStartContext(
     _In_ PFLT_FILTER Filter,
     _In_ PLIST_ENTRY RecordsQueue,
-    _In_ PFAST_MUTEX QueueMutex,
     _In_ PFG_MONITOR_CONTEXT* Context
 );
 
@@ -111,7 +122,7 @@ _Check_return_
 NTSTATUS
 FgGetRecords(
     _In_ PLIST_ENTRY List,
-    _In_ PFAST_MUTEX ListMutex,
+    _In_ PKSPIN_LOCK ListMutex,
     _Out_writes_bytes_to_(OutputBufferSize, *ReturnOutputBufferSize) PUCHAR OutputBuffer,
     _In_ ULONG OutputBufferSize,
     _Out_ PULONG ReturnOutputBufferSize
