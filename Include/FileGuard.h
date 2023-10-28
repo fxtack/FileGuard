@@ -9,55 +9,24 @@
 #ifndef __FILE_GUARD_H__
 #define __FILE_GUARD_H__
 
-#define MAX_PATH 260
-
-#define FG_MAX_PATH_LENGTH 261
+#pragma warning(push)
+#pragma warning(disable:4200)
 
 #define FG_CORE_CONTROL_PORT_NAME L"\\FileGuardControlPort"
 #define FG_MONITOR_PORT_NAME      L"\\FileGuardMonitorPort"
 
-// The type of message that sending from admin to core.
-typedef enum _CANNOT_COMMAND_TYPE {
+typedef enum _FG_COMMAND_TYPE {
 
-    // Get core version.
-    GetCoreVersion,
+    GetVersion,
 
-    // Query a configuration.
-    QueryConfig,
+    AddRule,
 
-    // Add a configuration.
-    AddConfig,
-    
-    // Find and remove a configuration.
-    RemoveConfig,
+    RemoveRule,
 
-    // Cleanup all configurations.
-    CleanupConfig
+    CleanupRule
 
-} CANNOT_COMMAND_TYPE;
+} FG_COMMAND_TYPE;
 
-
-// The message sending from admin to core.
-typedef struct _CANNOT_COMMAND {
-
-    // Message type.
-    CANNOT_COMMAND_TYPE MsgType;
-
-    // Message metadata.
-    _Field_size_opt_(MetadataBytes)
-    PVOID Metadata;
-    ULONG MetadataBytes;
-
-    // Message data is a pointer to a request structure instance typically.
-    _Field_size_opt_(DataBytes)
-    PVOID Data;
-    ULONG DataBytes;
-
-} CANNOT_COMMAND, *PCANNOT_COMMAND;
-
-//
-// FileGuard core version.
-//
 typedef struct _FG_CORE_VERSION {
     ULONG Major;
     ULONG Minor;
@@ -90,21 +59,17 @@ typedef struct _FG_FILE_ID_DESCRIPTOR {
 
 } FG_FILE_ID_DESCRIPTOR, *PFG_FILE_ID_DESCRIPTOR;
 
-typedef ULONG FG_RULE_CLASS ;
+typedef ULONG FG_RULE_CLASS;
 typedef ULONG* PFG_RULE_CLASS;
 
-#define RULE_CONSTRAINT_MASK ((ULONG)0x00ff)
-#define RULE_UNKNOWN         ((ULONG)0x0001)
-#define RULE_ACCESS_DENIED   ((ULONG)0x0002)
-#define RULE_READONLY        ((ULONG)0x0003)
+#define RULE_UNKNOWN       ((ULONG)0x00000000)
+#define RULE_ACCESS_DENIED ((ULONG)0x00000001)
+#define RULE_READONLY      ((ULONG)0x00000002)
+#define RULE_HIDE          ((ULONG)0x00000003)
 
-#define RULE_CONSTRAINT(_rule_, _constraint_) ((_rule_) & RULE_CONSTRAINT_MASK)
-
-#define RULE_MATCH_MASK               ((ULONG)0xff00)
-#define RULE_MATCH_FILE_ID_DESCRIPTOR ((ULONG)0x0100)
-#define RULE_MATCH_FILE_NAME          ((ULONG)0x0200)
-
-#define RULE_MATCH(_rule_, _match_) ((_rule_) & RULE_MATCH_MASK)
+#define RULE_MATCH_PATH ((ULONG)0x00000001)
+#define RULE_MATCH_NAME ((ULONG)0x00000002)
+#define RULE_MATCH_USER ((ULONG)0x00000003)
 
 typedef struct _FG_RULE {
 
@@ -114,11 +79,6 @@ typedef struct _FG_RULE {
     FG_RULE_CLASS Class;
 
     //
-    // File ID descriptor.
-    //
-    FG_FILE_ID_DESCRIPTOR FileIdDescriptor;
-
-    //
     // Bytes size of field `FilePathName`.
     //
     ULONG FilePathNameSize;
@@ -126,9 +86,11 @@ typedef struct _FG_RULE {
     //
     // File path name.
     //
-    WCHAR FilePathName[1];
+    WCHAR FilePathName[];
 
 } FG_RULE, *PFG_RULE;
+
+#pragma warning(pop)
 
 /*-------------------------------------------------------------
     Monitor structures
