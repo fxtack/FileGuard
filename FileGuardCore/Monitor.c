@@ -166,10 +166,9 @@ Return Value:
         goto Cleanup;
     }
 
-    context->Filter            = Filter;
-    context->ClientPort        = NULL;
-    context->RecordsQueue      = RecordsQueue;
-    context->MessageBody       = NULL;
+    context->Filter       = Filter;
+    context->ClientPort   = NULL;
+    context->RecordsQueue = RecordsQueue;
 
     //
     // Initialize monitor thread control event.
@@ -249,8 +248,8 @@ Return Value:
 
 --*/
 {
-    NTSTATUS                 status = STATUS_SUCCESS;
-    PFG_MONITOR_CONTEXT      context = NULL;
+    NTSTATUS status = STATUS_SUCCESS;
+    PFG_MONITOR_CONTEXT context = NULL;
     PFG_RECORDS_MESSAGE_BODY messageBody = NULL;
 
     PAGED_CODE();
@@ -279,7 +278,7 @@ Return Value:
         // Get monitor record from record queue.
         //
         status = FgGetRecords(context->RecordsQueue, 
-                              context->RecordsQueueLock, 
+                              &context->RecordsQueueLock, 
                               messageBody->DataBuffer, 
                               FG_MONITOR_SEND_RECORD_BUFFER_SIZE, 
                               &messageBody->DataSize);
