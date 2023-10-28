@@ -63,6 +63,16 @@ typedef struct _FG_INSTANCE_CONTEXT {
     PFLT_INSTANCE Instance;
 
     //
+    // Name of instance volume.
+    //
+    UNICODE_STRING VolumeName;
+
+    //
+    // Rule match mode.
+    //
+    ULONG RuleMatchMode;
+
+    //
     // The generic table save rules that apply in instance.
     //
     RTL_GENERIC_TABLE RulesTable;
@@ -123,14 +133,6 @@ typedef struct _FG_STREAM_CONTEXT {
 
 _Check_return_
 NTSTATUS
-FgCreateStreamContext(
-    _In_ PFLT_CALLBACK_DATA Data,
-    _In_ PFLT_INSTANCE Instance,
-    _Outptr_ PFG_STREAM_CONTEXT* StreamContext
-);
-
-_Check_return_
-NTSTATUS
 FgFindOrCreateStreamContext(
     _In_ PFLT_CALLBACK_DATA Data,
     _In_ PFLT_INSTANCE Instance,
@@ -163,6 +165,8 @@ typedef struct _FG_COMPLETION_CONTEXT {
             FG_RULE_CLASS RuleClass;
 
             PFG_INSTANCE_CONTEXT InstanceContext;
+
+            PFLT_FILE_NAME_INFORMATION FileNameInfo;
 
         } Create;
 
