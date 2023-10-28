@@ -70,10 +70,8 @@ Return Value:
 
     PAGED_CODE();
 
-    if (NULL != String)            return STATUS_INVALID_PARAMETER_1;
-    if (NULL != String->Buffer)    return STATUS_INVALID_PARAMETER_1;
-    if (0 != Size)                 return STATUS_INVALID_PARAMETER_2;
-    if (0 != Size % sizeof(WCHAR)) return STATUS_INVALID_PARAMETER_2;
+    if (Size <= 0) return STATUS_INVALID_PARAMETER_1;
+    if (NULL == String) return STATUS_INVALID_PARAMETER_2;
 
     String->Buffer = ExAllocatePool2(POOL_FLAG_PAGED, Size, FG_UNICODE_STRING_PAGED_MEM_TAG);
     String->Length = 0;
@@ -107,7 +105,9 @@ Return Value:
     FLT_ASSERT(NULL != String);
     FLT_ASSERT(NULL != String->Buffer);
 
-    ExFreePoolWithTag(String, FG_UNICODE_STRING_PAGED_MEM_TAG);
+    String->Length = 0;
+    String->MaximumLength = 0;
+    ExFreePoolWithTag(String->Buffer, FG_UNICODE_STRING_PAGED_MEM_TAG);
 }
 
 _Check_return_
