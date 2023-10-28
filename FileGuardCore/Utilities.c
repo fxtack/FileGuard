@@ -42,8 +42,8 @@ Environment:
 _Check_return_
 NTSTATUS
 FgAllocateUnicodeString(
-    _Inout_ PUNICODE_STRING String,
-    _In_ USHORT Size
+    _In_ USHORT Size,
+    _Out_ PUNICODE_STRING String
     )
 /*++
 
