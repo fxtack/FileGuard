@@ -139,23 +139,23 @@ extern const FLT_CONTEXT_REGISTRATION FgCoreContextRegistration[];
 
 CONST FLT_REGISTRATION FilterRegistration = {
 
-    sizeof(FLT_REGISTRATION),       //  Size
-    FLT_REGISTRATION_VERSION,       //  Version
-    0,                              //  Flags
+    sizeof(FLT_REGISTRATION),       // Size
+    FLT_REGISTRATION_VERSION,       // Version
+    0,                              // Flags
 
-    FgCoreContextRegistration,      //  Context
-    Callbacks,                      //  Operation callbacks
+    FgCoreContextRegistration,      // Context
+    Callbacks,                      // Operation callbacks
 
-    FgCoreUnload,                   //  MiniFilterUnload
+    FgCoreUnload,                   // MiniFilterUnload
 
-    FgCoreInstanceSetup,            //  InstanceSetup
-    FgCoreInstanceQueryTeardown,    //  InstanceQueryTeardown
-    FgCoreInstanceTeardownStart,    //  InstanceTeardownStart
-    FgCoreInstanceTeardownComplete, //  InstanceTeardownComplete
+    FgCoreInstanceSetup,            // InstanceSetup
+    FgCoreInstanceQueryTeardown,    // InstanceQueryTeardown
+    FgCoreInstanceTeardownStart,    // InstanceTeardownStart
+    FgCoreInstanceTeardownComplete, // InstanceTeardownComplete
 
-    NULL,                           //  GenerateFileName
-    NULL,                           //  GenerateDestinationFileName
-    NULL                            //  NormalizeNameComponent
+    NULL,                           // GenerateFileName
+    NULL,                           // GenerateDestinationFileName
+    NULL                            // NormalizeNameComponent
 };
 
 NTSTATUS
@@ -469,7 +469,6 @@ Return Value:
 
     PAGED_CODE();
 
-    UNREFERENCED_PARAMETER(FltObjects);
     UNREFERENCED_PARAMETER(Flags);
     UNREFERENCED_PARAMETER(VolumeDeviceType);
 
