@@ -96,6 +96,7 @@ Return Value:
 {
     NTSTATUS status = STATUS_SUCCESS;
     PFG_INSTANCE_CONTEXT instanceContext = NULL;
+    ULONG volumeNameSize = 0UL;
 
     PAGED_CODE();
 
@@ -112,18 +113,7 @@ Return Value:
         goto Cleanup;
     }
 
-    //
-    // Initialize instance context attributes.
-    //
-
-    instanceContext->Instance = Instance;
-    instanceContext->Volume = Volume;
-
-    RtlInitializeGenericTable(&instanceContext->RulesTable, 
-                              FgRuleEntryCompareRoutine, 
-                              FgRuleEntryAllocateRoutine, 
-                              FgRuleEntryFreeRoutine, 
-                              NULL);
+    instanceContext->VolumeName.Buffer = NULL;
 
     status = FgAllocatePushLock(&instanceContext->RulesTableLock);
     if (!NT_SUCCESS(status)) {
@@ -131,10 +121,59 @@ Return Value:
         goto Cleanup;
     }
 
+    status = FltGetVolumeName(Volume, NULL, &volumeNameSize);
+    if (!NT_SUCCESS(status) && STATUS_BUFFER_TOO_SMALL != status) {
+
+        DBG_ERROR("Error(0x%08x), get volume name failed", status);
+        goto Cleanup;
+
+    } else {
+
+        status = FgAllocateUnicodeString((USHORT)volumeNameSize, &instanceContext->VolumeName);
+        if (!NT_SUCCESS(status)) {
+            DBG_ERROR("Error(0x%08x), allocate unicode string for get volume name failed", status);
+            goto Cleanup;
+        }
+
+        status = FltGetVolumeName(Volume, &instanceContext->VolumeName, &volumeNameSize);
+        if (!NT_SUCCESS(status)) {
+            DBG_ERROR("Error(0x%08x), get volume name failed", status);
+            goto Cleanup;
+        }
+    }
+    
+    RtlInitializeGenericTable(&instanceContext->RulesTable, 
+                              FgRuleEntryCompareRoutine, 
+                              FgRuleEntryAllocateRoutine, 
+                              FgRuleEntryFreeRoutine, 
+                              NULL);
+
+    instanceContext->Volume = Volume;
+    instanceContext->Instance = Instance;
+
+    FltReferenceContext(instanceContext);
     *InstanceContext = instanceContext;
 
 Cleanup:
+
+    if (!NT_SUCCESS(status)) {
+
+        if (NULL != instanceContext) {
+
+            if (NULL != instanceContext->RulesTableLock) {
+                FgFreePushLock(instanceContext->RulesTableLock);
+            }
+
+            if (NULL != instanceContext->VolumeName.Buffer) {
+                FgFreeUnicodeString(&instanceContext->VolumeName);
+            }
+        }
+    }
     
+    if (NULL != instanceContext) {
+        FltReleaseContext(instanceContext);
+    }
+
     return status;
 }
 
@@ -167,9 +206,7 @@ FgSetInstanceContext(
     // Add instance context to global list.
     //
     ExAcquireFastMutex(&Globals.InstanceContextListMutex);
-
     InsertHeadList(&Globals.InstanceContextList, &((PFG_INSTANCE_CONTEXT)NewContext)->List);
-
     ExReleaseFastMutex(&Globals.InstanceContextListMutex);
 
     return status;
@@ -215,9 +252,7 @@ Return Value:
     // Remove instance context from global list.
     //
     ExAcquireFastMutex(&Globals.InstanceContextListMutex);
-
     RemoveEntryList(&instanceContext->List);
-
     ExReleaseFastMutex(&Globals.InstanceContextListMutex);
 
     //
@@ -225,112 +260,21 @@ Return Value:
     //
     FgCleanupRules(&instanceContext->RulesTable, instanceContext->RulesTableLock);
 
+    if (NULL != instanceContext->VolumeName.Buffer) {
+        FgFreeUnicodeString(&instanceContext->VolumeName);
+    }
+
     //
     // Delete and free resource.
     //
-    FgFreePushLock(instanceContext->RulesTableLock);
+    if (NULL != instanceContext->RulesTableLock) {
+        FgFreePushLock(instanceContext->RulesTableLock);
+    }
 }
 
 /*-------------------------------------------------------------
     Stream context structure and routines.
 -------------------------------------------------------------*/
-
-_Check_return_
-NTSTATUS
-FgCreateStreamContext(
-    _In_ PFLT_CALLBACK_DATA Data,
-    _In_ PFLT_INSTANCE Instance,
-    _Outptr_ PFG_STREAM_CONTEXT* StreamContext
-    )
-/*++
-
-Routine Description:
-
-    This routine creates a new stream context.
-
-Arguments:
-
-    StreamContext - Returns the stream context.
-
-Return Value:
-
-    The return value is the status of the operation.
-
---*/
-{
-    NTSTATUS status = STATUS_SUCCESS;
-    PFG_STREAM_CONTEXT streamContext = NULL;
-    PFG_INSTANCE_CONTEXT instanceContext = NULL;
-    PFLT_FILE_NAME_INFORMATION nameInfo = NULL;
-
-    if (NULL == StreamContext) {
-        return STATUS_INVALID_PARAMETER_1;
-    }
-
-    //
-    // Allocate stream context.
-    //
-    status = FltAllocateContext(Globals.Filter, 
-                                FLT_STREAM_CONTEXT, 
-                                sizeof(PFG_STREAM_CONTEXT),
-                                PagedPool, 
-                                &streamContext);
-    if (!NT_SUCCESS(status)) {
-
-        DBG_ERROR("NTSTATUS: '0x%08x', allocate stream context failed", status);
-        goto Cleanup;
-    }
-
-    //
-    // Get file name information.
-    //
-    status = FltGetFileNameInformation(Data,
-                                       FLT_FILE_NAME_OPENED | FLT_FILE_NAME_QUERY_DEFAULT,
-                                       &nameInfo);
-    if (!NT_SUCCESS(status)) {
-
-        DBG_ERROR("NTSTATUS: '0x%08x', get file name information failed", status);
-        goto Cleanup;
-    } else {
-
-        streamContext->NameInfo = nameInfo;
-    }
-
-    //
-    // Get instance context.
-    //
-    status = FltGetInstanceContext(Instance, &instanceContext);
-    if (!NT_SUCCESS(status)) {
-
-        DBG_ERROR("NTSTATUS: '0x%08x', get instance context failed", status);
-        goto Cleanup;
-    } else {
-
-        FltReferenceContext(instanceContext);
-        streamContext->InstanceContext = instanceContext;
-    }
-
-    *StreamContext = streamContext;
-
-Cleanup:
-    
-    if (!NT_SUCCESS(status)) {
-
-        if (NULL != nameInfo) {
-            FltReleaseFileNameInformation(nameInfo);
-        }
-
-        if (NULL != streamContext) {
-            FltReleaseContext(streamContext);
-        }
-    }
-
-    if (NULL != instanceContext) {
-        FltReleaseContext(instanceContext);
-    }
-
-    return status;
-}
 
 _Check_return_
 NTSTATUS
@@ -381,16 +325,23 @@ Return Value:
     status = FltGetStreamContext(Data->Iopb->TargetInstance, 
                                  Data->Iopb->TargetFileObject, 
                                  &streamContext);
-    if (!NT_SUCCESS(status) && (status == STATUS_NOT_FOUND) && CreateIfNotFound) {
+    if (NT_SUCCESS(status)) {
+        *StreamContext = streamContext;
+    }
 
-        //
-        // Allocate and initialize a new stream context.
-        //
-        status = FgCreateStreamContext(Data, Instance, &streamContext);
+
+    if (status == STATUS_NOT_FOUND && CreateIfNotFound) {
+
+        status = FltAllocateContext(Globals.Filter,
+                                    FLT_STREAM_CONTEXT,
+                                    sizeof(FG_STREAM_CONTEXT),
+                                    PagedPool,
+                                    &streamContext);
         if (!NT_SUCCESS(status)) {
-
+            DBG_ERROR("NTSTATUS: '0x%08x', allocate stream context failed", status);
             return status;
         }
+
 
         //
         // Set the stream context to file.
@@ -449,7 +400,7 @@ Return value:
     FLT_ASSERT(FLT_STREAM_CONTEXT == ContextType);
 
     if (NULL != streamContext->NameInfo) {
-        FltReleaseContext(streamContext->NameInfo);
+        FltReleaseFileNameInformation(streamContext->NameInfo);
         streamContext->NameInfo = NULL;
     }
 
@@ -457,4 +408,6 @@ Return value:
         FltReleaseContext(streamContext->InstanceContext);
         streamContext->InstanceContext = NULL;
     }
+
+    DBG_TRACE("Cleanup stream context, address: '%p'", Context);
 }
