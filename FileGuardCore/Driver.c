@@ -392,6 +392,8 @@ FgCoreUnload(
         Globals.MonitorClientPort = NULL;
     }
 
+    DBG_TRACE("Communication port closed");
+
     if (NULL != Globals.Filter) {
         FltUnregisterFilter(Globals.Filter);
     }
@@ -480,7 +482,7 @@ Return Value:
 
         LOG_WARNING("Attempt to attach to a non NTFS file system");
 
-        status = STATUS_VOLUME_NOT_SUPPORTED;
+        status = STATUS_FLT_DO_NOT_ATTACH;
         goto Cleanup;
     }
 

@@ -135,7 +135,6 @@ _Check_return_
 NTSTATUS
 FgFindOrCreateStreamContext(
     _In_ PFLT_CALLBACK_DATA Data,
-    _In_ PFLT_INSTANCE Instance,
     _In_ BOOLEAN CreateIfNotFound,
     _Outptr_ PFG_STREAM_CONTEXT *StreamContext,
     _Out_opt_ PBOOLEAN ContextCreated

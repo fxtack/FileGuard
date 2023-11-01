@@ -102,6 +102,16 @@ Return Value:
         goto Cleanup;
     }
 
+    //
+    // Ignore volume root directory  operations.
+    //
+    if (0 == nameInfo->FinalComponent.Length) {
+        callbackStatus = FLT_PREOP_SUCCESS_NO_CALLBACK;
+        goto Cleanup;
+    }
+
+    DBG_TRACE("Name info: '%wZ', '%wZ', '%wZ'", &nameInfo->Name, &nameInfo->Volume, &nameInfo->FinalComponent);
+
     status = FltGetInstanceContext(FltObjects->Instance, &instanceContext);
     if (!NT_SUCCESS(status)) {
         DBG_ERROR("NTSTATUS: '0x%08x', get instance context failed", status);
@@ -241,36 +251,24 @@ Return Value:
     // Find or create a stream context from file object to update or save 
     // rule class.
     //
-    status = FgFindOrCreateStreamContext(Data, 
-                                         FltObjects->Instance, 
-                                         TRUE, 
-                                         &streamContext, 
-                                         &streamContextCreated);
+    status = FgFindOrCreateStreamContext(Data, TRUE, &streamContext, &streamContextCreated);
     if (!NT_SUCCESS(status)) {
-        
-        DBG_ERROR("Error(0x%08x), find or create stream context for '%wZ' failed", status, &completionContext->Create.FileNameInfo->Name);
+        DBG_ERROR("NTSTATUS: '0x%08x', find or create stream context for '%wZ' failed", 
+            status, &completionContext->Create.FileNameInfo->Name);
         goto Cleanup;
+    } 
+    
+    FLT_ASSERT(NULL != streamContext);
 
-    } else if (streamContextCreated && NULL != streamContext) {
-
-        status = FltSetStreamContext(Data->Iopb->TargetInstance,
-                                     Data->Iopb->TargetFileObject,
-                                     FLT_SET_CONTEXT_KEEP_IF_EXISTS,
-                                     streamContext,
-                                     NULL);
-        if (!NT_SUCCESS(status)) {
-            DBG_ERROR("Error(0x%08x), set stream context for '%wZ' failed", status, &completionContext->Create.FileNameInfo->Name);
-            goto Cleanup;
-        }
-
+    //
+    // Relate instance context to stream context.
+    //
+    if (streamContextCreated || NULL == streamContext->InstanceContext) {
         FltReferenceContext(instanceContext);
         streamContext->InstanceContext = instanceContext;
-        streamContext->RuleClass = ruleClass;
-
-    } else if (!streamContextCreated && NULL != streamContext) {
-
-        streamContext->RuleClass = ruleClass;
     }
+
+    streamContext->RuleClass = ruleClass;
 
 Cleanup:
 

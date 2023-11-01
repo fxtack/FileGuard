@@ -248,6 +248,8 @@ Return Value:
     FLT_ASSERT(NULL != Context);
     FLT_ASSERT(FLT_INSTANCE_CONTEXT == ContextType);
 
+    DBG_TRACE("Volume '%wZ' instance cleanup", &instanceContext->VolumeName);
+
     //
     // Remove instance context from global list.
     //
@@ -270,6 +272,8 @@ Return Value:
     if (NULL != instanceContext->RulesTableLock) {
         FgFreePushLock(instanceContext->RulesTableLock);
     }
+
+    DBG_TRACE("Instance context cleanup finished");
 }
 
 /*-------------------------------------------------------------
@@ -280,7 +284,6 @@ _Check_return_
 NTSTATUS
 FgFindOrCreateStreamContext(
     _In_ PFLT_CALLBACK_DATA Data,
-    _In_ PFLT_INSTANCE Instance,
     _In_ BOOLEAN CreateIfNotFound,
     _Outptr_ PFG_STREAM_CONTEXT* StreamContext,
     _Out_opt_ PBOOLEAN ContextCreated
@@ -316,6 +319,9 @@ Return Value:
 
     PAGED_CODE();
 
+    if (NULL == Data) return STATUS_INVALID_PARAMETER_1;
+    if (NULL == StreamContext) return STATUS_INVALID_PARAMETER_3;
+
     *StreamContext = NULL;
     if (NULL != ContextCreated) *ContextCreated = FALSE;
 
@@ -325,11 +331,6 @@ Return Value:
     status = FltGetStreamContext(Data->Iopb->TargetInstance, 
                                  Data->Iopb->TargetFileObject, 
                                  &streamContext);
-    if (NT_SUCCESS(status)) {
-        *StreamContext = streamContext;
-    }
-
-
     if (status == STATUS_NOT_FOUND && CreateIfNotFound) {
 
         status = FltAllocateContext(Globals.Filter,
@@ -339,34 +340,47 @@ Return Value:
                                     &streamContext);
         if (!NT_SUCCESS(status)) {
             DBG_ERROR("NTSTATUS: '0x%08x', allocate stream context failed", status);
-            return status;
+            goto Cleanup;
         }
-
-
-        //
-        // Set the stream context to file.
-        //
+        
         status = FltSetStreamContext(Data->Iopb->TargetInstance, 
                                      Data->Iopb->TargetFileObject, 
                                      FLT_SET_CONTEXT_KEEP_IF_EXISTS, 
                                      streamContext, 
                                      &oldStreamContext);
-        if (!NT_SUCCESS(status)) {
-
-            FltReleaseContext(streamContext);
-            if (STATUS_FLT_CONTEXT_ALREADY_DEFINED != status) {
-                return status;
-            }
-
-            streamContext = oldStreamContext;
-            status = STATUS_SUCCESS;
-        } else {
-
-            if (NULL != ContextCreated) *ContextCreated = TRUE;
+        if (!NT_SUCCESS(status) && STATUS_FLT_CONTEXT_ALREADY_DEFINED != status) {
+            DBG_ERROR("NTSTATUS: '0x%08x', set stream context failed", status);
+            goto Cleanup;
         }
+
+    } else if (!NT_SUCCESS(status)) {
+
+        DBG_ERROR("NTSTATUS: '0x%08x', get stream context failed", status);
+        goto Cleanup;
     }
 
-    *StreamContext = streamContext;
+    if (NULL != oldStreamContext) {
+
+        FltReferenceContext(oldStreamContext);
+        *StreamContext = oldStreamContext;
+
+    } else if (NULL != streamContext) {
+
+        FltReferenceContext(streamContext);
+        *StreamContext = streamContext;
+
+        if (NULL != ContextCreated) *ContextCreated = TRUE;
+    }
+
+Cleanup:
+
+    if (NULL != streamContext) {
+        FltReleaseContext(StreamContext);
+    }
+
+    if (NULL != oldStreamContext) {
+        FltReleaseContext(oldStreamContext);
+    }
 
     return status;
 }
@@ -398,6 +412,8 @@ Return value:
     PFG_STREAM_CONTEXT streamContext = (PFG_STREAM_CONTEXT)Context;
 
     FLT_ASSERT(FLT_STREAM_CONTEXT == ContextType);
+
+    DBG_TRACE("Stream context cleanup for '%wZ'", &streamContext->NameInfo->Name);
 
     if (NULL != streamContext->NameInfo) {
         FltReleaseFileNameInformation(streamContext->NameInfo);
