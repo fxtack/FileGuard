@@ -148,6 +148,10 @@ FgFreePushLock(
 
 #define InterlockedExchangeBoolean(_bool_, _val_) InterlockedExchange8((__volatile char*)(_bool_), _val_)
 
+#define SET_CALLBACK_DATA_STATUS(_cbd_, _status_) (_cbd_)->IoStatus.Status = _status_;\
+                                        (_cbd_)->IoStatus.Information = 0; \
+                                        FltSetCallbackDataDirty(Data);
+
 /*-------------------------------------------------------------
     Exception routines.
 -------------------------------------------------------------*/

@@ -118,10 +118,10 @@ CONST FLT_OPERATION_REGISTRATION Callbacks[] = {
       FgPreWriteOperationCallback,
       NULL },
 
-    { IRP_MJ_SET_INFORMATION,
-      FLTFL_OPERATION_REGISTRATION_SKIP_PAGING_IO ,
-      FgPreSetInformationOperationCallback,
-      NULL },
+    //{ IRP_MJ_SET_INFORMATION,
+    //  FLTFL_OPERATION_REGISTRATION_SKIP_PAGING_IO ,
+    //  FgPreSetInformationOperationCallback,
+    //  NULL },
 
     { IRP_MJ_CLEANUP,
       FLTFL_OPERATION_REGISTRATION_SKIP_PAGING_IO ,
@@ -180,8 +180,8 @@ DriverEntry(
     GLobals.LogLevel = LOG_LEVEL_DEFAULT;
 #endif
 
-    LOG_INFO("Start to load FileGuardCore driver, version: v%d.%d.%d",
-        FG_CORE_VERSION_MAJOR, FG_CORE_VERSION_MINOR, FG_CORE_VERSION_PATCH);
+    LOG_INFO("Start to load FileGuardCore driver, version: v%d.%d.%d.%d ",
+        FG_CORE_VERSION_MAJOR, FG_CORE_VERSION_MINOR, FG_CORE_VERSION_PATCH, FG_CORE_VERSION_BUILD);
 
     // Register with FltMgr to tell it our callback routines
     try {

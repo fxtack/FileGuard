@@ -80,6 +80,10 @@ Return Value:
 
     PAGED_CODE();
 
+    FLT_ASSERT(NULL != Data);
+    FLT_ASSERT(NULL != Data->Iopb);
+    FLT_ASSERT(IRP_MJ_CREATE == Data->Iopb->MajorFunction);
+
     // Check if this is a paging file as we don't want to redirect
     // the location of the paging file.
     if (FlagOn(Data->Iopb->OperationFlags, SL_OPEN_PAGING_FILE) ||
@@ -163,19 +167,7 @@ Return Value:
 Cleanup:
 
     if (!NT_SUCCESS(status)) {
-
-        if (NULL != completionContext) {
-            FgFreeBuffer(completionContext);
-        }
-
-        //
-        // An error occurred, fail the open.
-        //
-        Data->IoStatus.Status = status;
-        Data->IoStatus.Information = 0;
-        callbackStatus = FLT_PREOP_COMPLETE;
-
-        FltSetCallbackDataDirty(Data);
+        SET_CALLBACK_DATA_STATUS(Data, status);
     }
 
     if (NULL != nameInfo) {
@@ -235,20 +227,31 @@ Return Value:
 
     PAGED_CODE();
 
+    FLT_ASSERT(NULL != Data);
+    FLT_ASSERT(NULL != Data->Iopb);
+    FLT_ASSERT(IRP_MJ_CREATE == Data->Iopb->MajorFunction);
+
     if (FlagOn(Flags, FLTFL_POST_OPERATION_DRAINING)) {
         status = STATUS_DEVICE_REMOVED;
         goto Cleanup;
     }
 
     FLT_ASSERT(NULL != CompletionContext);
-
     completionContext = CompletionContext;
     instanceContext = completionContext->Create.InstanceContext;
     fileNameInfo = completionContext->Create.FileNameInfo;
     ruleClass = completionContext->Create.RuleClass;
 
     //
-    // Find or create a stream context from file object to update or save 
+    // We are only interested in successfully opened files.
+    // Only after the file is successfully opened can the stream context be set.
+    //
+    if (!NT_SUCCESS(Data->IoStatus.Status)) {
+        goto Cleanup;
+    }
+
+    //
+    // Find or set a stream context from file object to update or save 
     // rule class.
     //
     status = FgFindOrCreateStreamContext(Data, TRUE, &streamContext, &streamContextCreated);
@@ -263,7 +266,7 @@ Return Value:
     //
     // Relate instance context to stream context.
     //
-    if (streamContextCreated || NULL == streamContext->InstanceContext) {
+    if (NULL == streamContext->InstanceContext) {
         FltReferenceContext(instanceContext);
         streamContext->InstanceContext = instanceContext;
     }
@@ -273,13 +276,8 @@ Return Value:
 Cleanup:
 
     if (!NT_SUCCESS(status)) {
-
         FltCancelFileOpen(Data->Iopb->TargetInstance, Data->Iopb->TargetFileObject);
-
-        Data->IoStatus.Status = status;
-        Data->IoStatus.Information = 0;
-
-        FltSetCallbackDataDirty(Data);
+        SET_CALLBACK_DATA_STATUS(Data, status);
     }
 
     if (NULL != streamContext) {
@@ -337,12 +335,17 @@ Return Value:
     PFG_STREAM_CONTEXT streamContext = NULL;
 
     UNREFERENCED_PARAMETER(CompletionContext);
+    UNREFERENCED_PARAMETER(FltObjects);
+
+    FLT_ASSERT(NULL != Data);
+    FLT_ASSERT(NULL != Data->Iopb);
+    FLT_ASSERT(IRP_MJ_WRITE == Data->Iopb->MajorFunction);
 
     //
     // Get stream context.
     //
-    status = FltGetStreamContext(FltObjects->Instance, 
-                                 FltObjects->FileObject, 
+    status = FltGetStreamContext(Data->Iopb->TargetInstance, 
+                                 Data->Iopb->TargetFileObject, 
                                  &streamContext);
     if (!NT_SUCCESS(status)) {
         DBG_ERROR("Error(0x%08x), get stream context", status);
@@ -365,11 +368,7 @@ Return Value:
 Cleanup:
 
     if (!NT_SUCCESS(status)) {
-        Data->IoStatus.Status = status;
-        Data->IoStatus.Information = 0;
-
-        FltSetCallbackDataDirty(Data);
-
+        SET_CALLBACK_DATA_STATUS(Data, status);
         callbackStatus = FLT_PREOP_COMPLETE;
     }
 
@@ -418,8 +417,6 @@ Return Value:
     PFG_STREAM_CONTEXT streamContext = NULL;
     PFILE_RENAME_INFORMATION renameInfo = Data->Iopb->Parameters.SetFileInformation.InfoBuffer;
 
-    UNREFERENCED_PARAMETER(Data);
-    UNREFERENCED_PARAMETER(FltObjects);
     UNREFERENCED_PARAMETER(CompletionContext);
 
     //
@@ -482,11 +479,7 @@ Return Value:
 Cleanup:
 
     if (!NT_SUCCESS(status)) {
-
-        Data->IoStatus.Status = status;
-        Data->IoStatus.Information = 0;
-        FltSetCallbackDataDirty(Data);
-
+        SET_CALLBACK_DATA_STATUS(Data, status);
         callbackStatus = FLT_PREOP_COMPLETE;
     }
 
@@ -528,6 +521,10 @@ Return Value:
     UNREFERENCED_PARAMETER(FltObjects);
     UNREFERENCED_PARAMETER(CompletionContext);
 
+    FLT_ASSERT(NULL != Data);
+    FLT_ASSERT(NULL != Data->Iopb);
+    FLT_ASSERT(IRP_MJ_CLEANUP == Data->Iopb->MajorFunction);
+
     return FLT_PREOP_SUCCESS_WITH_CALLBACK;
 }
 
@@ -568,6 +565,10 @@ Return Value:
     UNREFERENCED_PARAMETER(FltObjects);
     UNREFERENCED_PARAMETER(CompletionContext);
     UNREFERENCED_PARAMETER(Flags);
+
+    FLT_ASSERT(NULL != Data);
+    FLT_ASSERT(NULL != Data->Iopb);
+    FLT_ASSERT(IRP_MJ_CLEANUP == Data->Iopb->MajorFunction);
 
     return FLT_POSTOP_FINISHED_PROCESSING;
 }
