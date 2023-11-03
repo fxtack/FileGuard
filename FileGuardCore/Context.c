@@ -280,111 +280,6 @@ Return Value:
     Stream context structure and routines.
 -------------------------------------------------------------*/
 
-_Check_return_
-NTSTATUS
-FgFindOrCreateStreamContext(
-    _In_ PFLT_CALLBACK_DATA Data,
-    _In_ BOOLEAN CreateIfNotFound,
-    _Outptr_ PFG_STREAM_CONTEXT* StreamContext,
-    _Out_opt_ PBOOLEAN ContextCreated
-    )
-/*++
-
-Routine Description:
-
-    This routine finds the stream context for the target stream.
-    Optionally, if the context does not exist this routing creates
-    a new one and attaches the context to the stream.
-
-Arguments:
-
-    Data             - Supplies a pointer to the callbackData which
-                       declares the requested operation.
-
-    CreateIfNotFound - Supplies if the stream must be created if missing
-
-    StreamContext    - Returns the stream context
-
-    ContextCreated   - Returns if a new context was created
-
-Return Value:
-
-    The return value is the status of the operation.
-
---*/
-{
-    NTSTATUS status = STATUS_SUCCESS;
-    PFG_STREAM_CONTEXT streamContext = NULL;
-    PFG_STREAM_CONTEXT oldStreamContext = NULL;
-
-    PAGED_CODE();
-
-    if (NULL == Data) return STATUS_INVALID_PARAMETER_1;
-    if (NULL == StreamContext) return STATUS_INVALID_PARAMETER_3;
-
-    *StreamContext = NULL;
-    if (NULL != ContextCreated) *ContextCreated = FALSE;
-
-    //
-    // Get stream context from file object.
-    //
-    status = FltGetStreamContext(Data->Iopb->TargetInstance, 
-                                 Data->Iopb->TargetFileObject, 
-                                 &streamContext);
-    if (status == STATUS_NOT_FOUND && CreateIfNotFound) {
-
-        status = FltAllocateContext(Globals.Filter,
-                                    FLT_STREAM_CONTEXT,
-                                    sizeof(FG_STREAM_CONTEXT),
-                                    PagedPool,
-                                    &streamContext);
-        if (!NT_SUCCESS(status)) {
-            DBG_ERROR("NTSTATUS: '0x%08x', allocate stream context failed", status);
-            goto Cleanup;
-        }
-        
-        status = FltSetStreamContext(Data->Iopb->TargetInstance, 
-                                     Data->Iopb->TargetFileObject, 
-                                     FLT_SET_CONTEXT_KEEP_IF_EXISTS, 
-                                     streamContext, 
-                                     &oldStreamContext);
-        if (!NT_SUCCESS(status) && STATUS_FLT_CONTEXT_ALREADY_DEFINED != status) {
-            DBG_ERROR("NTSTATUS: '0x%08x', set stream context failed", status);
-            goto Cleanup;
-        }
-
-    } else if (!NT_SUCCESS(status)) {
-
-        DBG_ERROR("NTSTATUS: '0x%08x', get stream context failed", status);
-        goto Cleanup;
-    }
-
-    if (NULL != oldStreamContext) {
-
-        FltReferenceContext(oldStreamContext);
-        *StreamContext = oldStreamContext;
-
-    } else if (NULL != streamContext) {
-
-        FltReferenceContext(streamContext);
-        *StreamContext = streamContext;
-
-        if (NULL != ContextCreated) *ContextCreated = TRUE;
-    }
-
-Cleanup:
-
-    if (NULL != streamContext) {
-        FltReleaseContext(StreamContext);
-    }
-
-    if (NULL != oldStreamContext) {
-        FltReleaseContext(oldStreamContext);
-    }
-
-    return status;
-}
-
 VOID
 FgCleanupStreamContext(
     _In_ PFLT_CONTEXT Context,
@@ -413,17 +308,10 @@ Return value:
 
     FLT_ASSERT(FLT_STREAM_CONTEXT == ContextType);
 
-    DBG_TRACE("Stream context cleanup for '%wZ'", &streamContext->NameInfo->Name);
+    DBG_TRACE("Cleanup stream context, address: '%p'", Context);
 
     if (NULL != streamContext->NameInfo) {
         FltReleaseFileNameInformation(streamContext->NameInfo);
         streamContext->NameInfo = NULL;
     }
-
-    if (NULL != streamContext->InstanceContext) {
-        FltReleaseContext(streamContext->InstanceContext);
-        streamContext->InstanceContext = NULL;
-    }
-
-    DBG_TRACE("Cleanup stream context, address: '%p'", Context);
 }

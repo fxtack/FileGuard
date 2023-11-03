@@ -113,11 +113,6 @@ FgCleanupInstanceContext(
 -------------------------------------------------------------*/
 
 typedef struct _FG_STREAM_CONTEXT {
-
-    //
-    // Filter instance object.
-    //
-    PFG_INSTANCE_CONTEXT InstanceContext;
     
     //
     // File name inforamtion.
@@ -130,15 +125,6 @@ typedef struct _FG_STREAM_CONTEXT {
     FG_RULE_CLASS RuleClass;
 
 } FG_STREAM_CONTEXT, *PFG_STREAM_CONTEXT;
-
-_Check_return_
-NTSTATUS
-FgFindOrCreateStreamContext(
-    _In_ PFLT_CALLBACK_DATA Data,
-    _In_ BOOLEAN CreateIfNotFound,
-    _Outptr_ PFG_STREAM_CONTEXT *StreamContext,
-    _Out_opt_ PBOOLEAN ContextCreated
-);
 
 VOID
 FgCleanupStreamContext(
@@ -162,8 +148,6 @@ typedef struct _FG_COMPLETION_CONTEXT {
         struct {
 
             FG_RULE_CLASS RuleClass;
-
-            PFG_INSTANCE_CONTEXT InstanceContext;
 
             PFLT_FILE_NAME_INFORMATION FileNameInfo;
 

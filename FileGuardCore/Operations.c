@@ -114,8 +114,6 @@ Return Value:
         goto Cleanup;
     }
 
-    DBG_TRACE("Name info: '%wZ', '%wZ', '%wZ'", &nameInfo->Name, &nameInfo->Volume, &nameInfo->FinalComponent);
-
     status = FltGetInstanceContext(FltObjects->Instance, &instanceContext);
     if (!NT_SUCCESS(status)) {
         DBG_ERROR("NTSTATUS: '0x%08x', get instance context failed", status);
@@ -155,9 +153,6 @@ Return Value:
 
     completionContext->MajorFunction = Data->Iopb->MajorFunction;
     completionContext->Create.RuleClass = matchedRuleClass;
-
-    FltReferenceContext(instanceContext);
-    completionContext->Create.InstanceContext = instanceContext;
 
     FltReferenceFileNameInformation(nameInfo);
     completionContext->Create.FileNameInfo = nameInfo;
@@ -217,11 +212,9 @@ Return Value:
     NTSTATUS status = STATUS_SUCCESS;
     FLT_POSTOP_CALLBACK_STATUS callbackStatus = FLT_POSTOP_FINISHED_PROCESSING;
     PFG_COMPLETION_CONTEXT completionContext = NULL;
-    PFG_INSTANCE_CONTEXT instanceContext = NULL;
     PFLT_FILE_NAME_INFORMATION fileNameInfo = NULL;
-    PFG_STREAM_CONTEXT streamContext = NULL;
+    PFG_STREAM_CONTEXT streamContext = NULL, oldStreamContext = NULL;
     FG_RULE_CLASS ruleClass = 0;
-    BOOLEAN streamContextCreated = FALSE;
 
     UNREFERENCED_PARAMETER(FltObjects);
 
@@ -238,7 +231,6 @@ Return Value:
 
     FLT_ASSERT(NULL != CompletionContext);
     completionContext = CompletionContext;
-    instanceContext = completionContext->Create.InstanceContext;
     fileNameInfo = completionContext->Create.FileNameInfo;
     ruleClass = completionContext->Create.RuleClass;
 
@@ -250,28 +242,49 @@ Return Value:
         goto Cleanup;
     }
 
-    //
-    // Find or set a stream context from file object to update or save 
-    // rule class.
-    //
-    status = FgFindOrCreateStreamContext(Data, TRUE, &streamContext, &streamContextCreated);
-    if (!NT_SUCCESS(status)) {
-        DBG_ERROR("NTSTATUS: '0x%08x', find or create stream context for '%wZ' failed", 
-            status, &completionContext->Create.FileNameInfo->Name);
+    status = FltGetStreamContext(Data->Iopb->TargetInstance,
+                                 Data->Iopb->TargetFileObject, 
+                                 &streamContext);
+    if (STATUS_NOT_FOUND == status) {
+
+        //
+        // Allocate and setup stream context.
+        //
+
+        status = FltAllocateContext(Globals.Filter, 
+                                    FLT_STREAM_CONTEXT, 
+                                    sizeof(FG_STREAM_CONTEXT), 
+                                    PagedPool, 
+                                    &streamContext);
+        if (!NT_SUCCESS(status)) {
+            DBG_ERROR("NTSTATUS: '0x%08x', allocate stream context failed", status);
+            goto Cleanup;
+        }
+
+        status = FltSetStreamContext(Data->Iopb->TargetInstance,
+                                     Data->Iopb->TargetFileObject,
+                                     FLT_SET_CONTEXT_KEEP_IF_EXISTS,
+                                     streamContext,
+                                     &oldStreamContext);
+        if (!NT_SUCCESS(status) && STATUS_FLT_CONTEXT_ALREADY_DEFINED != status) {
+            DBG_ERROR("NTSTATUS: '0x%08x', set stream context failed", status);
+            goto Cleanup;
+        }
+
+    } else if (!NT_SUCCESS(status)) {
+
+        DBG_ERROR("NTSTATUS: '0x%08x', get stream context failed", status);
         goto Cleanup;
-    } 
-    
-    FLT_ASSERT(NULL != streamContext);
-
-    //
-    // Relate instance context to stream context.
-    //
-    if (NULL == streamContext->InstanceContext) {
-        FltReferenceContext(instanceContext);
-        streamContext->InstanceContext = instanceContext;
     }
+    
+    if (STATUS_FLT_CONTEXT_ALREADY_DEFINED == status && NULL != oldStreamContext) {
 
-    streamContext->RuleClass = ruleClass;
+        oldStreamContext->RuleClass = ruleClass;
+
+    } else if (NULL != streamContext) {
+
+        streamContext->RuleClass = ruleClass;
+    }
 
 Cleanup:
 
@@ -284,8 +297,8 @@ Cleanup:
         FltReleaseContext(streamContext);
     }
 
-    if (NULL != instanceContext) {
-        FltReleaseContext(instanceContext);
+    if (NULL != oldStreamContext) {
+        FltReleaseContext(oldStreamContext);
     }
 
     if (NULL != fileNameInfo) {
