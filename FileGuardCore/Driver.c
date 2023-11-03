@@ -118,10 +118,10 @@ CONST FLT_OPERATION_REGISTRATION Callbacks[] = {
       FgPreWriteOperationCallback,
       NULL },
 
-    //{ IRP_MJ_SET_INFORMATION,
-    //  FLTFL_OPERATION_REGISTRATION_SKIP_PAGING_IO ,
-    //  FgPreSetInformationOperationCallback,
-    //  NULL },
+    { IRP_MJ_SET_INFORMATION,
+      FLTFL_OPERATION_REGISTRATION_SKIP_PAGING_IO ,
+      FgPreSetInformationOperationCallback,
+      NULL },
 
     { IRP_MJ_CLEANUP,
       FLTFL_OPERATION_REGISTRATION_SKIP_PAGING_IO ,

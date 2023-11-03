@@ -424,11 +424,11 @@ Return Value:
 --*/
 {
     NTSTATUS status = STATUS_SUCCESS;
-    FLT_PREOP_CALLBACK_STATUS callbackStatus = FLT_PREOP_SUCCESS_WITH_CALLBACK;
+    FLT_PREOP_CALLBACK_STATUS callbackStatus = FLT_PREOP_SUCCESS_NO_CALLBACK;
     FILE_INFORMATION_CLASS informationClass;
     PFLT_FILE_NAME_INFORMATION renameNameInfo = NULL, nameInfo = NULL;
     PFG_STREAM_CONTEXT streamContext = NULL;
-    PFILE_RENAME_INFORMATION renameInfo = Data->Iopb->Parameters.SetFileInformation.InfoBuffer;
+    PFILE_RENAME_INFORMATION renameInfo = NULL;
 
     UNREFERENCED_PARAMETER(CompletionContext);
 
@@ -439,14 +439,17 @@ Return Value:
                                  FltObjects->FileObject, 
                                  &streamContext);
     if (!NT_SUCCESS(status)) {
+
         DBG_ERROR("NTSTATUS: '0x%08x', get stream context failed", status);
         status = STATUS_UNSUCCESSFUL;
+        goto Cleanup;
+
     } else {
+
         nameInfo = streamContext->NameInfo;
     }
 
     informationClass = Data->Iopb->Parameters.SetFileInformation.FileInformationClass;
-
     switch (informationClass) {
     case FileDispositionInformation:
     case FileDispositionInformationEx:
@@ -468,7 +471,7 @@ Return Value:
         //
         // Rename file or directory.
         //
-        
+        renameInfo = Data->Iopb->Parameters.SetFileInformation.InfoBuffer;
         status = FltGetDestinationFileNameInformation(Data->Iopb->TargetInstance, 
                                                       Data->Iopb->TargetFileObject, 
                                                       renameInfo->RootDirectory,
@@ -482,7 +485,6 @@ Return Value:
         }
 
         DBG_TRACE("Rename source: '%wZ' target: '%wZ'", &nameInfo->Name, &renameNameInfo->Name);
-
         break;
 
     default:
@@ -494,6 +496,14 @@ Cleanup:
     if (!NT_SUCCESS(status)) {
         SET_CALLBACK_DATA_STATUS(Data, status);
         callbackStatus = FLT_PREOP_COMPLETE;
+    }
+
+    if (NULL != renameNameInfo) {
+        FltReleaseFileNameInformation(renameNameInfo);
+    }
+
+    if (NULL != streamContext) {
+        FltReleaseContext(streamContext);
     }
 
     return callbackStatus;
