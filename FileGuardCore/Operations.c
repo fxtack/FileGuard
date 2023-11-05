@@ -89,7 +89,6 @@ Return Value:
     if (FlagOn(Data->Iopb->OperationFlags, SL_OPEN_PAGING_FILE) ||
         FlagOn(Data->Iopb->TargetFileObject->Flags, FO_VOLUME_OPEN) ||
         FlagOn(Data->Iopb->Parameters.Create.Options, FILE_OPEN_BY_FILE_ID)) {
-
         callbackStatus = FLT_PREOP_SUCCESS_NO_CALLBACK;
         goto Cleanup;
     }
@@ -144,7 +143,7 @@ Return Value:
     //        goto Cleanup;
     //    }
     //}
-    
+
     status = FgAllocateBuffer(&completionContext, POOL_FLAG_PAGED, sizeof(FG_COMPLETION_CONTEXT));
     if (!NT_SUCCESS(status)) {
         DBG_ERROR("Error(0x%08x), allocate create callback context failed", status);
@@ -212,7 +211,7 @@ Return Value:
     NTSTATUS status = STATUS_SUCCESS;
     FLT_POSTOP_CALLBACK_STATUS callbackStatus = FLT_POSTOP_FINISHED_PROCESSING;
     PFG_COMPLETION_CONTEXT completionContext = NULL;
-    PFLT_FILE_NAME_INFORMATION fileNameInfo = NULL;
+    PFLT_FILE_NAME_INFORMATION nameInfo = NULL;
     PFG_STREAM_CONTEXT streamContext = NULL, oldStreamContext = NULL;
     FG_RULE_CLASS ruleClass = 0;
 
@@ -231,7 +230,7 @@ Return Value:
 
     FLT_ASSERT(NULL != CompletionContext);
     completionContext = CompletionContext;
-    fileNameInfo = completionContext->Create.FileNameInfo;
+    nameInfo = completionContext->Create.FileNameInfo;
     ruleClass = completionContext->Create.RuleClass;
 
     //
@@ -270,7 +269,17 @@ Return Value:
             DBG_ERROR("NTSTATUS: '0x%08x', set stream context failed", status);
             goto Cleanup;
         }
+        
+        FltReferenceFileNameInformation(nameInfo);
+        streamContext->NameInfo = nameInfo;
 
+        DBG_TRACE("Set up stream context for: '%wZ'", &nameInfo->Name);
+
+    } else if (STATUS_NOT_SUPPORTED == status) {
+
+        status = STATUS_SUCCESS;
+        goto Cleanup;
+    
     } else if (!NT_SUCCESS(status)) {
 
         DBG_ERROR("NTSTATUS: '0x%08x', get stream context failed", status);
@@ -301,8 +310,8 @@ Cleanup:
         FltReleaseContext(oldStreamContext);
     }
 
-    if (NULL != fileNameInfo) {
-        FltReleaseFileNameInformation(fileNameInfo);
+    if (NULL != nameInfo) {
+        FltReleaseFileNameInformation(nameInfo);
     }
 
     if (NULL != CompletionContext) {
@@ -360,7 +369,13 @@ Return Value:
     status = FltGetStreamContext(Data->Iopb->TargetInstance, 
                                  Data->Iopb->TargetFileObject, 
                                  &streamContext);
-    if (!NT_SUCCESS(status)) {
+    if (STATUS_NOT_SUPPORTED == status) {
+        
+        status = STATUS_SUCCESS;
+        goto Cleanup;
+
+    }  else if (!NT_SUCCESS(status)) {
+
         DBG_ERROR("Error(0x%08x), get stream context", status);
         goto Cleanup;
     }
@@ -432,23 +447,30 @@ Return Value:
 
     UNREFERENCED_PARAMETER(CompletionContext);
 
+    FLT_ASSERT(NULL != Data);
+    FLT_ASSERT(NULL != Data->Iopb);
+    FLT_ASSERT(IRP_MJ_SET_INFORMATION == Data->Iopb->MajorFunction);
+
     //
     // Get stream context.
     //
     status = FltGetStreamContext(FltObjects->Instance, 
                                  FltObjects->FileObject, 
                                  &streamContext);
-    if (!NT_SUCCESS(status)) {
+    if (STATUS_NOT_SUPPORTED == status) {
+        
+        status = STATUS_SUCCESS;
+        goto Cleanup;
+
+    } else if (!NT_SUCCESS(status)) {
 
         DBG_ERROR("NTSTATUS: '0x%08x', get stream context failed", status);
         status = STATUS_UNSUCCESSFUL;
         goto Cleanup;
 
-    } else {
+    } 
 
-        nameInfo = streamContext->NameInfo;
-    }
-
+    nameInfo = streamContext->NameInfo;
     informationClass = Data->Iopb->Parameters.SetFileInformation.FileInformationClass;
     switch (informationClass) {
     case FileDispositionInformation:
