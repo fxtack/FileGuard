@@ -50,11 +50,11 @@ const FLT_CONTEXT_REGISTRATION FgCoreContextRegistration[] = {
       sizeof(FG_INSTANCE_CONTEXT),
       FG_INSTANCE_CONTEXT_PAGED_MEM_TAG },
 
-    { FLT_STREAM_CONTEXT,
+    { FLT_FILE_CONTEXT,
       0,
-      FgCleanupStreamContext,
-      sizeof(FG_STREAM_CONTEXT),
-      FG_STREAM_CONTEXT_PAGED_MEM_TAG },
+      FgCleanupFileContext,
+      sizeof(FG_FILE_CONTEXT),
+      FG_FILE_CONTEXT_PAGED_MEM_TAG },
 
     { FLT_CONTEXT_END }
 };
@@ -277,41 +277,22 @@ Return Value:
 }
 
 /*-------------------------------------------------------------
-    Stream context structure and routines.
+    File context structure and routines.
 -------------------------------------------------------------*/
 
 VOID
-FgCleanupStreamContext(
+FgCleanupFileContext(
     _In_ PFLT_CONTEXT Context,
     _In_ FLT_CONTEXT_TYPE ContextType
     )
-/*++
-
-Routine Description:
-
-    This routine is called by the FilterManager when the context
-    reference counter reaches zero and the context should be freed.
-
-Arguments:
-
-    Context     - Context to cleanup.
-
-    ContextType - Type of the context to be cleaned up.
-
-Return value:
-
-    None.
-
---*/
 {
-    PFG_STREAM_CONTEXT streamContext = (PFG_STREAM_CONTEXT)Context;
+    PFG_FILE_CONTEXT fileContext = (PFG_FILE_CONTEXT)Context;
 
-    FLT_ASSERT(FLT_STREAM_CONTEXT == ContextType);
+    FLT_ASSERT(FLT_FILE_CONTEXT == ContextType);
 
-    DBG_TRACE("Cleanup stream context, address: '%p'", Context);
+    DBG_TRACE("Cleanup file context, address: '%p'", Context);
 
-    if (NULL != streamContext->NameInfo) {
-        FltReleaseFileNameInformation(streamContext->NameInfo);
-        streamContext->NameInfo = NULL;
+    if (NULL != fileContext->NameInfo) {
+        FltReleaseFileNameInformation(InterlockedExchangePointer(&fileContext->NameInfo, NULL));
     }
 }

@@ -68,7 +68,7 @@ Environment:
 // Memory pool tags.
 //
 #define FG_INSTANCE_CONTEXT_PAGED_MEM_TAG 'FGic'
-#define FG_STREAM_CONTEXT_PAGED_MEM_TAG   'FGsc'
+#define FG_FILE_CONTEXT_PAGED_MEM_TAG     'FGfc'
 #define FG_UNICODE_STRING_PAGED_MEM_TAG   'FGus'
 #define FG_BUFFER_PAGED_MEM_TAG           'FGbf'
 #define FG_MONITOR_CONTEXT_PAGED_MEM_TAG  'FGmc'

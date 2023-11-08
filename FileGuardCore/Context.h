@@ -104,16 +104,16 @@ FgSetInstanceContext(
 
 VOID
 FgCleanupInstanceContext(
-    _In_ PFLT_CONTEXT InstanceContext,
+    _In_ PFLT_CONTEXT Context,
     _In_ FLT_CONTEXT_TYPE ContextType
 );
 
 /*-------------------------------------------------------------
-    Stream context structure and routines.
+    File context structure and routines.
 -------------------------------------------------------------*/
 
-typedef struct _FG_STREAM_CONTEXT {
-    
+typedef struct _FG_FILE_CONTEXT {
+
     //
     // File name inforamtion.
     //
@@ -124,11 +124,11 @@ typedef struct _FG_STREAM_CONTEXT {
     //
     FG_RULE_CLASS RuleClass;
 
-} FG_STREAM_CONTEXT, *PFG_STREAM_CONTEXT;
+} FG_FILE_CONTEXT, *PFG_FILE_CONTEXT;
 
 VOID
-FgCleanupStreamContext(
-    _In_ PFLT_CONTEXT InstanceContext,
+FgCleanupFileContext(
+    _In_ PFLT_CONTEXT Context,
     _In_ FLT_CONTEXT_TYPE ContextType
 );
 
