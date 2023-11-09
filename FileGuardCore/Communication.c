@@ -136,7 +136,7 @@ FgCoreControlMessageNotifyCallback(
     _Out_ PULONG ReturnSize
 ) {
     NTSTATUS status = STATUS_SUCCESS;
-    FG_COMMAND_TYPE commandType = 0;
+    FG_MESSAGE_TYPE commandType = 0;
     BOOLEAN ruleAdded = FALSE;
 
     UNREFERENCED_PARAMETER(ConnectionCookie);
@@ -146,7 +146,7 @@ FgCoreControlMessageNotifyCallback(
     *ReturnSize = 0;
 
     switch (commandType) {
-    case GetVersion:
+    case GetCoreVersion:
 
         if (NULL == Output) return STATUS_INVALID_PARAMETER_4;
         if (OutputSize < sizeof(PFG_CORE_VERSION)) return STATUS_INVALID_PARAMETER_5;
@@ -154,6 +154,7 @@ FgCoreControlMessageNotifyCallback(
         ((PFG_CORE_VERSION)Output)->Major = FG_CORE_VERSION_MAJOR;
         ((PFG_CORE_VERSION)Output)->Minor = FG_CORE_VERSION_MINOR;
         ((PFG_CORE_VERSION)Output)->Patch = FG_CORE_VERSION_PATCH;
+        ((PFG_CORE_VERSION)Output)->Build = FG_CORE_VERSION_BUILD;
         *ReturnSize = sizeof(PFG_CORE_VERSION);
         status = STATUS_SUCCESS;
         break;

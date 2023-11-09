@@ -15,9 +15,13 @@
 #define FG_CORE_CONTROL_PORT_NAME L"\\FileGuardControlPort"
 #define FG_MONITOR_PORT_NAME      L"\\FileGuardMonitorPort"
 
-typedef enum _FG_COMMAND_TYPE {
+/*-------------------------------------------------------------
+    Core communication message
+-------------------------------------------------------------*/
 
-    GetVersion,
+typedef enum _FG_MESSAGE_TYPE {
+
+    GetCoreVersion,
 
     AddRule,
 
@@ -25,13 +29,42 @@ typedef enum _FG_COMMAND_TYPE {
 
     CleanupRule
 
-} FG_COMMAND_TYPE;
+} FG_MESSAGE_TYPE;
 
 typedef struct _FG_CORE_VERSION {
     ULONG Major;
     ULONG Minor;
     ULONG Patch;
+    ULONG Build;
 } FG_CORE_VERSION, * PFG_CORE_VERSION;
+
+//
+// Message of user application send to core.
+//
+typedef struct _FG_MESSAGE {
+
+    FG_MESSAGE_TYPE Type;
+
+    ULONG MessageSize;
+
+} FG_MESSAGE, *PFG_MESSAGE;
+
+//
+// Message result of core returned.
+//
+typedef struct _FG_MESSAGE_RESULT {
+
+    NTSTATUS Status;
+
+    ULONG ResultSize;
+
+    union {
+
+        FG_CORE_VERSION CoreVersion;
+
+    } DUMMYUNIONNAME;
+
+} FG_MESSAGE_RESULT, *PFG_MESSAGE_RESULT;
 
 typedef struct _FG_FILE_ID_DESCRIPTOR {
     
