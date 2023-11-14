@@ -136,12 +136,20 @@ FgCoreControlMessageNotifyCallback(
     _Out_ PULONG ReturnSize
 ) {
     NTSTATUS status = STATUS_SUCCESS;
+    ULONG variableSize = 0ul;
     FG_MESSAGE_TYPE commandType = 0;
+    PFG_MESSAGE message = NULL;
+    PFG_MESSAGE_RESULT result = NULL;
+    UNICODE_STRING volumeName = { 0 };
+    ULONG removedRules;
     BOOLEAN ruleAdded = FALSE;
 
     UNREFERENCED_PARAMETER(ConnectionCookie);
 
     if (NULL == ReturnSize) return STATUS_INVALID_PARAMETER_6;
+
+    message = (PFG_MESSAGE)Input;
+    result = (PFG_MESSAGE_RESULT)Output;
 
     *ReturnSize = 0;
 
@@ -149,14 +157,12 @@ FgCoreControlMessageNotifyCallback(
     case GetCoreVersion:
 
         if (NULL == Output) return STATUS_INVALID_PARAMETER_4;
-        if (OutputSize < sizeof(PFG_CORE_VERSION)) return STATUS_INVALID_PARAMETER_5;
+        if (OutputSize < sizeof(FG_MESSAGE_RESULT)) return STATUS_INVALID_PARAMETER_5;
 
-        ((PFG_CORE_VERSION)Output)->Major = FG_CORE_VERSION_MAJOR;
-        ((PFG_CORE_VERSION)Output)->Minor = FG_CORE_VERSION_MINOR;
-        ((PFG_CORE_VERSION)Output)->Patch = FG_CORE_VERSION_PATCH;
-        ((PFG_CORE_VERSION)Output)->Build = FG_CORE_VERSION_BUILD;
-        *ReturnSize = sizeof(PFG_CORE_VERSION);
-        status = STATUS_SUCCESS;
+        result->CoreVersion.Major = FG_CORE_VERSION_MAJOR;
+        result->CoreVersion.Minor = FG_CORE_VERSION_MINOR;
+        result->CoreVersion.Patch = FG_CORE_VERSION_PATCH;
+        result->CoreVersion.Build = FG_CORE_VERSION_BUILD;
         break;
 
     case AddRule:
@@ -173,12 +179,85 @@ FgCoreControlMessageNotifyCallback(
         break;
 
     case CleanupRule:
+
+        if (NULL == Input) return STATUS_INVALID_PARAMETER_2;
+        if (InputSize < sizeof(FG_MESSAGE)) return STATUS_INVALID_PARAMETER_3;
+        if (NULL == Output) return STATUS_INVALID_PARAMETER_4;
+        if (OutputSize < sizeof(FG_MESSAGE_RESULT)) return STATUS_INVALID_PARAMETER_5;
+        
+        message = (PFG_MESSAGE)Input;
+        if (0 == message->CleanupRules.VolumeNameSize || NULL == message->CleanupRules.VolumeName) {
+
+            //
+            // Cleanup all volumes instance rules.
+            //
+            status = FgMessageCleanupRules(NULL, &removedRules);
+            if (!NT_SUCCESS(status)) {
+                LOG_ERROR("NTSTATUS: '0x%08x', cleanup all rules failed", status);
+            }
+
+        } else {
+            //
+            // Remove all rules for the specified volume instance.
+            //
+            volumeName.Buffer = message->CleanupRules.VolumeName;
+            volumeName.MaximumLength = message->CleanupRules.VolumeNameSize;
+            volumeName.Length = message->CleanupRules.VolumeNameSize;
+
+            status = FgMessageCleanupRules(&volumeName, &removedRules);
+            if (!NT_SUCCESS(status)) {
+                LOG_ERROR("NTSTATUS: '0x%08x', cleanup rules for volume '%wZ' instance failed", status, &volumeName);
+            }
+        }
         break;
 
     default:
 
         DBG_WARNING("Unknown command type: '%d'", commandType);
         status = STATUS_NOT_SUPPORTED;
+    }
+
+    result->Status = status;
+    *ReturnSize = sizeof(FG_MESSAGE_RESULT) + variableSize;
+
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS
+FgMessageCleanupRules(
+    _In_opt_ PUNICODE_STRING VolumeName,
+    _Out_ ULONG *RulesRemoved
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PLIST_ENTRY entry = NULL, next = NULL;
+    PFG_INSTANCE_CONTEXT instanceContext = NULL;
+    ULONG rulesRemoved = 0ul;
+
+    if (NULL == RulesRemoved) return STATUS_INVALID_PARAMETER_2;
+
+    *RulesRemoved = 0ul;
+
+    LIST_FOR_EACH_SAFE(entry, next, &Globals.InstanceContextList) {
+
+        instanceContext = CONTAINING_RECORD(entry, FG_INSTANCE_CONTEXT, List);
+        
+        if (NULL != VolumeName) {
+            if (RtlEqualUnicodeString(VolumeName, &instanceContext->VolumeName, FALSE)) {
+
+                status = FgCleanupRules(&instanceContext->RulesTable, 
+                                        instanceContext->RulesTableLock, 
+                                        &rulesRemoved);
+                *RulesRemoved = rulesRemoved;
+                break;
+            }
+        } else {
+
+            status = FgCleanupRules(&instanceContext->RulesTable, 
+                                    instanceContext->RulesTableLock, 
+                                    &rulesRemoved);
+            *RulesRemoved += rulesRemoved;
+        }
     }
 
     return status;

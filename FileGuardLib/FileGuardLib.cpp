@@ -8,10 +8,10 @@ namespace fileguard {
 		auto hr = FilterConnectCommunicationPort(FG_CORE_CONTROL_PORT_NAME, 0, NULL, 0, NULL, &_port);
 		THROW_IF_ERROR(hr);
 
-		FG_MESSAGE msg = { FG_MESSAGE_TYPE::GetCoreVersion, sizeof(FG_MESSAGE) };
+		FG_MESSAGE msg = { FG_MESSAGE_TYPE::GetCoreVersion };
 		FG_MESSAGE_RESULT result = { 0, sizeof(FG_MESSAGE_RESULT)};
 		DWORD returnedSize = 0ul;
-		hr = FilterSendMessage(_port, &msg, msg.MessageSize, &result, result.ResultSize, &returnedSize);
+		hr = FilterSendMessage(_port, &msg, sizeof(FG_MESSAGE), &result, result.ResultSize, &returnedSize);
 		THROW_IF_ERROR(hr);
 
 		std::memcpy(&_core_version, &result.CoreVersion, sizeof(FG_CORE_VERSION));

@@ -102,10 +102,11 @@ FgAddRule(
 );
 
 _Check_return_
-NTSTATUS 
+NTSTATUS
 FgCleanupRules(
     _In_ PRTL_GENERIC_TABLE Table,
-    _In_ PEX_PUSH_LOCK Lock
+    _In_ PEX_PUSH_LOCK Lock,
+    _Out_opt_ ULONG* RulesRemoved
 );
 
 _Check_return_
@@ -114,7 +115,7 @@ FgMatchRule(
     _In_ PRTL_GENERIC_TABLE Table,
     _In_ PEX_PUSH_LOCK Lock,
     _In_ PUNICODE_STRING FilePathIndex,
-    _Outptr_ FG_RULE_CLASS* MatchedRuleClass
+    _Out_ FG_RULE_CLASS *MatchedRuleClass
 );
 
 #endif

@@ -69,6 +69,12 @@ FgCoreControlMessageNotifyCallback(
     _Out_ PULONG ReturnSize
 );
 
+NTSTATUS
+FgMessageCleanupRules(
+    _In_opt_ PUNICODE_STRING VolumeName,
+    _Out_ ULONG *RulesRemoved
+);
+
 /*-------------------------------------------------------------
     Monitor communication declarations.
 -------------------------------------------------------------*/

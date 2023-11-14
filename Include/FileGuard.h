@@ -10,7 +10,7 @@
 #define __FILE_GUARD_H__
 
 #pragma warning(push)
-#pragma warning(disable:4200)
+#pragma warning(disable:4200 4201)
 
 #define FG_CORE_CONTROL_PORT_NAME L"\\FileGuardControlPort"
 #define FG_MONITOR_PORT_NAME      L"\\FileGuardMonitorPort"
@@ -45,7 +45,23 @@ typedef struct _FG_MESSAGE {
 
     FG_MESSAGE_TYPE Type;
 
-    ULONG MessageSize;
+    union {
+
+        struct {
+
+            //
+            // Size of volume name.
+            //
+            USHORT VolumeNameSize;
+
+            //
+            // Volume name buffer.
+            //
+            WCHAR VolumeName[];
+
+        } CleanupRules;
+
+    } DUMMYUNIONNAME;
 
 } FG_MESSAGE, *PFG_MESSAGE;
 
@@ -56,11 +72,11 @@ typedef struct _FG_MESSAGE_RESULT {
 
     NTSTATUS Status;
 
-    ULONG ResultSize;
-
     union {
 
         FG_CORE_VERSION CoreVersion;
+
+        ULONG RemovedRules;
 
     } DUMMYUNIONNAME;
 

@@ -166,7 +166,8 @@ _Check_return_
 NTSTATUS
 FgCleanupRules(
     _In_ PRTL_GENERIC_TABLE Table,
-    _In_ PEX_PUSH_LOCK Lock
+    _In_ PEX_PUSH_LOCK Lock,
+    _Out_opt_ ULONG* RulesRemoved
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -174,12 +175,24 @@ FgCleanupRules(
 
     PAGED_CODE();
 
+    if (NULL == Table) return STATUS_INVALID_PARAMETER_1;
+    if (NULL == Lock) return STATUS_INVALID_PARAMETER_2;
+    if (NULL != RulesRemoved) *RulesRemoved = 0ul;
+
     FltAcquirePushLockExclusive(Lock);
 
     while (!RtlIsGenericTableEmpty(Table)) {
+
         entry = RtlGetElementGenericTable(Table, 0);
-        RtlDeleteElementGenericTable(Table, entry);
+        if (!RtlDeleteElementGenericTable(Table, entry)) {
+            status = STATUS_UNSUCCESSFUL;
+            goto Cleanup;
+        }
+
+        if (NULL != RulesRemoved) *RulesRemoved++;
     }
+
+Cleanup:
 
     FltReleasePushLock(Lock);
 
@@ -192,7 +205,7 @@ FgMatchRule(
     _In_ PRTL_GENERIC_TABLE Table,
     _In_ PEX_PUSH_LOCK Lock,
     _In_ PUNICODE_STRING FilePathIndex,
-    _Outptr_ FG_RULE_CLASS *MatchedRuleClass
+    _Out_ FG_RULE_CLASS *MatchedRuleClass
 ) {
     NTSTATUS status = STATUS_SUCCESS;
     FG_RULE_ENTRY queryEntry = { 0 };

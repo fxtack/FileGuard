@@ -260,7 +260,7 @@ Return Value:
     //
     // Cleanup all rules in instance context.
     //
-    FgCleanupRules(&instanceContext->RulesTable, instanceContext->RulesTableLock);
+    FgCleanupRules(&instanceContext->RulesTable, instanceContext->RulesTableLock, NULL);
 
     if (NULL != instanceContext->VolumeName.Buffer) {
         FgFreeUnicodeString(&instanceContext->VolumeName);
