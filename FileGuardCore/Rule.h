@@ -95,10 +95,16 @@ FgRuleEntryFreeRoutine(
     Rule entry generic table operation routines
 -------------------------------------------------------------*/
 
-VOID
+_Check_return_
+NTSTATUS
 FgAddRule(
-    _In_ PFG_RULE Rule,
-    _Out_ PBOOLEAN Added
+    _In_ PFG_RULE Rule
+);
+
+_Check_return_
+NTSTATUS
+FgRemoveRule(
+    _In_ PFG_RULE Rule
 );
 
 _Check_return_

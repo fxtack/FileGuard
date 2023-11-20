@@ -38,6 +38,38 @@ typedef struct _FG_CORE_VERSION {
     ULONG Build;
 } FG_CORE_VERSION, * PFG_CORE_VERSION;
 
+typedef ULONG FG_RULE_CLASS;
+typedef ULONG* PFG_RULE_CLASS;
+
+#define RULE_UNKNOWN       ((ULONG)0x00000000)
+#define RULE_ACCESS_DENIED ((ULONG)0x00000001)
+#define RULE_READONLY      ((ULONG)0x00000002)
+#define RULE_HIDE          ((ULONG)0x00000003)
+
+#define RULE_MATCH_PATH ((ULONG)0x00000001)
+#define RULE_MATCH_NAME ((ULONG)0x00000002)
+#define RULE_MATCH_USER ((ULONG)0x00000003)
+
+typedef struct _FG_RULE {
+
+    //
+    // FileGuard rule class.
+    //
+    FG_RULE_CLASS Class;
+
+    //
+    // Bytes size of field `FilePathName`.
+    //
+    ULONG FilePathNameSize;
+
+    //
+    // File path name.
+    //
+    WCHAR FilePathName[];
+
+} FG_RULE, * PFG_RULE;
+
+
 //
 // Message of user application send to core.
 //
@@ -46,6 +78,12 @@ typedef struct _FG_MESSAGE {
     FG_MESSAGE_TYPE Type;
 
     union {
+
+        struct {
+
+            FG_RULE Rule;
+
+        } AddRule, RemoveRule;
 
         struct {
 
@@ -107,37 +145,6 @@ typedef struct _FG_FILE_ID_DESCRIPTOR {
     } FileId;
 
 } FG_FILE_ID_DESCRIPTOR, *PFG_FILE_ID_DESCRIPTOR;
-
-typedef ULONG FG_RULE_CLASS;
-typedef ULONG* PFG_RULE_CLASS;
-
-#define RULE_UNKNOWN       ((ULONG)0x00000000)
-#define RULE_ACCESS_DENIED ((ULONG)0x00000001)
-#define RULE_READONLY      ((ULONG)0x00000002)
-#define RULE_HIDE          ((ULONG)0x00000003)
-
-#define RULE_MATCH_PATH ((ULONG)0x00000001)
-#define RULE_MATCH_NAME ((ULONG)0x00000002)
-#define RULE_MATCH_USER ((ULONG)0x00000003)
-
-typedef struct _FG_RULE {
-
-    //
-    // FileGuard rule class.
-    //
-    FG_RULE_CLASS Class;
-
-    //
-    // Bytes size of field `FilePathName`.
-    //
-    ULONG FilePathNameSize;
-
-    //
-    // File path name.
-    //
-    WCHAR FilePathName[];
-
-} FG_RULE, *PFG_RULE;
 
 #pragma warning(pop)
 

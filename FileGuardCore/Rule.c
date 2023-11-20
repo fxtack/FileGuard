@@ -110,12 +110,13 @@ FgRuleEntryFreeRoutine(
     Rule entry generic table operation routines
 -------------------------------------------------------------*/
 
-VOID
+_Check_return_
+NTSTATUS
 FgAddRule(
-    _In_ PFG_RULE Rule,
-    _Out_ PBOOLEAN Added
+    _In_ PFG_RULE Rule
     )
 {
+    NTSTATUS status = STATUS_NOT_FOUND;
     PLIST_ENTRY entry = NULL, next = NULL;
     PFG_INSTANCE_CONTEXT instanceContext = NULL;
     UNICODE_STRING ruleFilePath = { 0 };
@@ -145,21 +146,31 @@ FgAddRule(
                                                      Rule, 
                                                      sizeof(FG_RULE_ENTRY), 
                                                      &added);
-            if (added) {
-                *Added = TRUE;
-            }
+            if (NULL != ruleEntry && added) status = STATUS_SUCCESS;
+            else status = STATUS_UNSUCCESSFUL;
 
             FltReleasePushLock(instanceContext->RulesTableLock);
 
-            goto Cleanup;
+            break;
         }
     }
 
     ExReleaseFastMutex(&Globals.InstanceContextListMutex);
 
-Cleanup:
+    return status;
+}
 
-    *Added = added;
+_Check_return_
+NTSTATUS
+FgRemoveRule(
+    _In_ PFG_RULE Rule
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+
+    if (NULL == Rule) return STATUS_INVALID_PARAMETER_1;
+
+    return status;
 }
 
 _Check_return_
@@ -206,7 +217,8 @@ FgMatchRule(
     _In_ PEX_PUSH_LOCK Lock,
     _In_ PUNICODE_STRING FilePathIndex,
     _Out_ FG_RULE_CLASS *MatchedRuleClass
-) {
+    ) 
+{
     NTSTATUS status = STATUS_SUCCESS;
     FG_RULE_ENTRY queryEntry = { 0 };
     PFG_RULE_ENTRY resultEntry = NULL;

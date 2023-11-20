@@ -142,7 +142,6 @@ FgCoreControlMessageNotifyCallback(
     PFG_MESSAGE_RESULT result = NULL;
     UNICODE_STRING volumeName = { 0 };
     ULONG removedRules;
-    BOOLEAN ruleAdded = FALSE;
 
     UNREFERENCED_PARAMETER(ConnectionCookie);
 
@@ -168,14 +167,23 @@ FgCoreControlMessageNotifyCallback(
     case AddRule:
 
         if (NULL == Input) return STATUS_INVALID_PARAMETER_2;
-        if (InputSize <= 0) return STATUS_INVALID_PARAMETER_3;
+        if (InputSize <= sizeof(FG_MESSAGE)) return STATUS_INVALID_PARAMETER_3;
 
-        FgAddRule((PFG_RULE)Input, &ruleAdded);
-        if (ruleAdded) status = STATUS_SUCCESS;
-        else status = STATUS_UNSUCCESSFUL;
+        status = FgAddRule((PFG_RULE)Input);
+        if (!NT_SUCCESS(status)) {
+            LOG_ERROR("NTSTATUS: '0x%08x', add rule failed", status);
+        }
         break;
 
     case RemoveRule:
+
+        if (NULL == Input) return STATUS_INVALID_PARAMETER_2;
+        if (InputSize <= sizeof(FG_MESSAGE)) return STATUS_INVALID_PARAMETER_3;
+
+        status = FgRemoveRule((PFG_RULE)Input);
+        if (!NT_SUCCESS(status)) {
+            LOG_ERROR("NTSTATUS: '0x%08x', remove rule failed", status);
+        }
         break;
 
     case CleanupRule:
