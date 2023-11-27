@@ -139,6 +139,21 @@ FgFreePushLock(
 );
 
 /*-------------------------------------------------------------
+    Push lock routines.
+-------------------------------------------------------------*/
+
+_Check_return_
+NTSTATUS
+FgAllocateGuardMutext(
+    _Outptr_ PKGUARDED_MUTEX *GuardMutex
+);
+
+VOID
+FgFreeGuardMutext(
+    _Pre_notnull_ __drv_freesMem(Mem) PKGUARDED_MUTEX GuardMutex
+);
+
+/*-------------------------------------------------------------
     Other tool routines.
 -------------------------------------------------------------*/
 

@@ -39,6 +39,10 @@ Environment:
 #include "FileGuardCore.h"
 #include "Utilities.h"
 
+/*-------------------------------------------------------------
+    Unicode string allocation/freeing routines.
+-------------------------------------------------------------*/
+
 _Check_return_
 NTSTATUS
 FgAllocateUnicodeString(
@@ -110,6 +114,10 @@ Return Value:
     ExFreePoolWithTag(String->Buffer, FG_UNICODE_STRING_PAGED_MEM_TAG);
 }
 
+/*-------------------------------------------------------------
+    Buffer allocation/freeing routines.
+-------------------------------------------------------------*/
+
 _Check_return_
 NTSTATUS
 FgAllocateBuffer(
@@ -176,6 +184,10 @@ Return Value:
 
     ExFreePoolWithTag(Buffer, FG_BUFFER_PAGED_MEM_TAG);
 }
+
+/*-------------------------------------------------------------
+    Push lock routines.
+-------------------------------------------------------------*/
 
 _Check_return_
 NTSTATUS
@@ -253,6 +265,10 @@ Return value:
 
     ExFreePoolWithTag((PVOID)PushLock, FG_PUSHLOCK_NON_PAGED_MEM_TAG);
 }
+
+/*-------------------------------------------------------------
+    Exception routines.
+-------------------------------------------------------------*/
 
 LONG AsMessageException(
     _In_ PEXCEPTION_POINTERS ExceptionPointer,
