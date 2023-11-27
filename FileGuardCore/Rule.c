@@ -40,6 +40,69 @@ Environment:
 #include "Rule.h"
 
 /*-------------------------------------------------------------
+    Rule entry basic routines
+-------------------------------------------------------------*/
+
+_Check_return_
+NTSTATUS
+FgInitializeRuleEntry(
+    _In_ PFG_RULE Rule,
+    _Inout_ PFG_RULE_ENTRY RuleEntry
+    ) 
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PFG_RULE rule = NULL;
+    PKGUARDED_MUTEX mutex = NULL;
+    PLIST_ENTRY listEntry = NULL;
+
+    if (NULL == Rule) return STATUS_INVALID_PARAMETER_1;
+    if (NULL == RuleEntry) return STATUS_INVALID_PARAMETER_2;
+
+    status = FgAllocateBuffer(&rule, POOL_FLAG_PAGED, sizeof(FG_RULE));
+    if (!NT_SUCCESS(status)) {
+        goto Cleanup;
+    }
+
+    status = FgAllocateBuffer(&mutex, POOL_FLAG_PAGED, sizeof(KGUARDED_MUTEX));
+    if (!NT_SUCCESS(status)) {
+        goto Cleanup;
+    }
+
+    status = FgAllocateBuffer(&listEntry, POOL_FLAG_PAGED, sizeof(LIST_ENTRY));
+    if (!NT_SUCCESS(status)) {
+        goto Cleanup;
+    }
+
+    RtlCopyMemory(rule, Rule, sizeof(FG_RULE));
+
+    RuleEntry->FilePathIndex.Length = rule->FilePathNameSize;
+    RuleEntry->FilePathIndex.MaximumLength = rule->FilePathNameSize;
+    RuleEntry->FilePathIndex.Buffer = rule->FilePathName;
+    RuleEntry->Rule = rule;
+    RuleEntry->StreamContextsListMutex = mutex;
+    RuleEntry->StreamContextsList = listEntry;
+
+Cleanup:
+
+    if (!NT_SUCCESS(status)) {
+
+        if (NULL != rule) {
+            FgFreeBuffer(rule);
+        }
+
+        if (NULL != mutex) {
+            FgFreeBuffer(mutex);
+        }
+
+        if (NULL != listEntry) {
+            FgFreeBuffer(listEntry);
+        }
+    }
+
+    return status;
+}
+
+/*-------------------------------------------------------------
     Rule entry generic table routines
 -------------------------------------------------------------*/
 
@@ -116,46 +179,46 @@ FgAddRule(
     _In_ PFG_RULE Rule
     )
 {
-    NTSTATUS status = STATUS_NOT_FOUND;
-    PLIST_ENTRY entry = NULL, next = NULL;
+    NTSTATUS status = STATUS_SUCCESS;
     PFG_INSTANCE_CONTEXT instanceContext = NULL;
-    UNICODE_STRING ruleFilePath = { 0 };
+    FG_RULE_ENTRY ruleEntry = { 0 };
     PFG_RULE_ENTRY ruleEntry = NULL;
     BOOLEAN added = FALSE;
 
-    ruleFilePath.MaximumLength = (USHORT)Rule->FilePathNameSize;
-    ruleFilePath.Length = (USHORT)Rule->FilePathNameSize;
-    ruleFilePath.Buffer = Rule->FilePathName;
+    if (NULL == Rule) return STATUS_INVALID_PARAMETER_1;
 
-    ExAcquireFastMutex(&Globals.InstanceContextListMutex);
+    ruleEntry.FilePathIndex.MaximumLength = (USHORT)Rule->FilePathNameSize;
+    ruleEntry.FilePathIndex.Length = (USHORT)Rule->FilePathNameSize;
+    ruleEntry.FilePathIndex.Buffer = Rule->FilePathName;
 
-    LIST_FOR_EACH_SAFE(entry, next, &Globals.InstanceContextList) {
-
-        instanceContext = CONTAINING_RECORD(entry, FG_INSTANCE_CONTEXT, List);
-
-        if (RtlPrefixUnicodeString(&instanceContext->VolumeName, &ruleFilePath, TRUE)) {
-
-            ExReleaseFastMutex(&Globals.InstanceContextListMutex);
-
-            //
-            // Add rule to table that maintain in instance context.
-            //
-            FltAcquirePushLockExclusive(instanceContext->RulesTableLock);
-
-            ruleEntry = RtlInsertElementGenericTable(&instanceContext->RulesTable, 
-                                                     Rule, 
-                                                     sizeof(FG_RULE_ENTRY), 
-                                                     &added);
-            if (NULL != ruleEntry && added) status = STATUS_SUCCESS;
-            else status = STATUS_UNSUCCESSFUL;
-
-            FltReleasePushLock(instanceContext->RulesTableLock);
-
-            break;
-        }
+    status = FgGetInstanceContextByPath(&ruleEntry.FilePathIndex, &instanceContext);
+    if (!NT_SUCCESS(status)) {
+        goto Cleanup;
     }
 
-    ExReleaseFastMutex(&Globals.InstanceContextListMutex);
+    //
+    // Add rule to table that maintain in instance context.
+    //
+    FltAcquirePushLockExclusive(instanceContext->RulesTableLock);
+
+    ruleEntry = RtlInsertElementGenericTable(&instanceContext->RulesTable,
+                                             Rule,
+                                             sizeof(FG_RULE_ENTRY),
+                                             &added);
+    if (NULL != ruleEntry && added)
+        status = STATUS_SUCCESS;
+    else if (NULL != ruleEntry && !added)
+        status = STATUS_DUPLICATE_OBJECTID;
+    else
+        status = STATUS_UNSUCCESSFUL;
+
+    FltReleasePushLock(instanceContext->RulesTableLock);
+
+Cleanup:
+
+    if (NULL != instanceContext) {
+        FltReleaseContext(instanceContext);
+    }
 
     return status;
 }
@@ -167,8 +230,33 @@ FgRemoveRule(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
+    PFG_INSTANCE_CONTEXT instanceContext = NULL;
+    FG_RULE_ENTRY ruleEntry = { 0 };
+    BOOLEAN removed = FALSE;
 
     if (NULL == Rule) return STATUS_INVALID_PARAMETER_1;
+
+    ruleEntry.FilePathIndex.MaximumLength = (USHORT)Rule->FilePathNameSize;
+    ruleEntry.FilePathIndex.Length = (USHORT)Rule->FilePathNameSize;
+    ruleEntry.FilePathIndex.Buffer = Rule->FilePathName;
+
+    status = FgGetInstanceContextByPath(&ruleEntry.FilePathIndex, &instanceContext);
+    if (!NT_SUCCESS(status)) {
+        goto Cleanup;
+    }
+
+    FltAcquirePushLockExclusive(instanceContext->RulesTableLock);
+
+    removed = RtlDeleteElementGenericTable(&instanceContext->RulesTable, &ruleEntry);
+    if (!removed) status = STATUS_NOT_FOUND;
+
+    FltReleasePushLock(instanceContext->RulesTableLock);
+
+Cleanup:
+
+    if (NULL != instanceContext) {
+        FltReleaseContext(instanceContext);
+    }
 
     return status;
 }

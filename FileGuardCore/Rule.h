@@ -56,14 +56,46 @@ typedef struct _FG_RULE_ENTRY {
     //
     // Lock of stream contexts list.
     //
-    PFAST_MUTEX StreamContextsListLock;
+    PKGUARDED_MUTEX StreamContextsListMutex;
 
     //
     // The list of stream contexts that matched with rule.
     //
-    LIST_ENTRY StreamContextsList;
+    PLIST_ENTRY StreamContextsList;
 
 } FG_RULE_ENTRY, *PFG_RULE_ENTRY;
+
+/*-------------------------------------------------------------
+    Rule entry basic routines
+-------------------------------------------------------------*/
+
+_Check_return_
+NTSTATUS
+FgInitializeRuleEntry(
+    _In_ PFG_RULE Rule,
+    _Inout_ PFG_RULE_ENTRY RuleEntry
+);
+
+FORCEINLINE
+VOID
+FgDeleteRuleEntry(
+    _In_ PFG_RULE_ENTRY RuleEntry
+    )
+{
+    FLT_ASSERT(NULL != RuleEntry);
+
+    if (NULL != RuleEntry->Rule) {
+        FgFreeBuffer(RuleEntry->Rule);
+    }
+
+    if (NULL != RuleEntry->StreamContextsListMutex) {
+        FgFreeBuffer(RuleEntry->StreamContextsListMutex);
+    }
+
+    if (NULL != RuleEntry->StreamContextsList) {
+        FgFreeBuffer(RuleEntry->StreamContextsList);
+    }
+}
 
 /*-------------------------------------------------------------
     Rule entry generic table routines
