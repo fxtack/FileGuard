@@ -73,9 +73,6 @@ Environment:
 
 #ifdef DBG
 
-//
-// Debug log.
-//
 #define DBG_TRACE(_format_, ...)   LOG_TRACE(_format_, __VA_ARGS__)
 #define DBG_INFO(_format_, ...)    LOG_INFO(_format_, __VA_ARGS__)
 #define DBG_WARNING(_format_, ...) LOG_WARNING(_format_, __VA_ARGS__)                                   
