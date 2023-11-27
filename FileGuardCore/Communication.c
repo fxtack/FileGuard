@@ -155,6 +155,10 @@ FgCoreControlMessageNotifyCallback(
     switch (commandType) {
     case GetCoreVersion:
 
+        //
+        // Get core version information.
+        //
+
         if (NULL == Output) return STATUS_INVALID_PARAMETER_4;
         if (OutputSize < sizeof(FG_MESSAGE_RESULT)) return STATUS_INVALID_PARAMETER_5;
 
@@ -165,6 +169,10 @@ FgCoreControlMessageNotifyCallback(
         break;
 
     case AddRule:
+
+        //
+        // Add a rule to an instance rule table.
+        //
 
         if (NULL == Input) return STATUS_INVALID_PARAMETER_2;
         if (InputSize <= sizeof(FG_MESSAGE)) return STATUS_INVALID_PARAMETER_3;
@@ -177,6 +185,10 @@ FgCoreControlMessageNotifyCallback(
 
     case RemoveRule:
 
+        //
+        // Remove a rule from an instance rule table.
+        //
+
         if (NULL == Input) return STATUS_INVALID_PARAMETER_2;
         if (InputSize <= sizeof(FG_MESSAGE)) return STATUS_INVALID_PARAMETER_3;
 
@@ -188,6 +200,10 @@ FgCoreControlMessageNotifyCallback(
 
     case CleanupRule:
 
+        //
+        // Clear all rules in all instance rule tables or all rules in an instance rule table.
+        //
+
         if (NULL == Input) return STATUS_INVALID_PARAMETER_2;
         if (InputSize < sizeof(FG_MESSAGE)) return STATUS_INVALID_PARAMETER_3;
         if (NULL == Output) return STATUS_INVALID_PARAMETER_4;
@@ -197,7 +213,7 @@ FgCoreControlMessageNotifyCallback(
         if (0 == message->CleanupRules.VolumeNameSize || NULL == message->CleanupRules.VolumeName) {
 
             //
-            // Cleanup all volumes instance rules.
+            // Clear all instance rule tables.
             //
             status = FgMessageCleanupRules(NULL, &removedRules);
             if (!NT_SUCCESS(status)) {
@@ -205,8 +221,9 @@ FgCoreControlMessageNotifyCallback(
             }
 
         } else {
+
             //
-            // Remove all rules for the specified volume instance.
+            // Cleanr all rules in an isntance rule table.
             //
             volumeName.Buffer = message->CleanupRules.VolumeName;
             volumeName.MaximumLength = message->CleanupRules.VolumeNameSize;
