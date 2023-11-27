@@ -81,20 +81,20 @@ typedef struct _FG_MESSAGE {
 
         struct {
 
-            FG_RULE Rule;
+            FG_RULE_CLASS Class;
+
+            USHORT FilePathNameSize;
+
+            USHORT VolumeNameSize;
+
+            WCHAR FilePathName[];
 
         } AddRule, RemoveRule;
 
         struct {
 
-            //
-            // Size of volume name.
-            //
             USHORT VolumeNameSize;
 
-            //
-            // Volume name buffer.
-            //
             WCHAR VolumeName[];
 
         } CleanupRules;
