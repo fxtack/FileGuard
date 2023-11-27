@@ -212,6 +212,62 @@ FgSetInstanceContext(
     return status;
 }
 
+_IRQL_requires_max_(APC_LEVEL)
+_Check_return_
+NTSTATUS
+FgGetInstanceContextFromVolumeName(
+    _In_ PUNICODE_STRING VolumeName,
+    _Outptr_ PFG_INSTANCE_CONTEXT* InstanceContext
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PFLT_VOLUME volume = NULL;
+    PFLT_INSTANCE instance = NULL;
+    PFG_INSTANCE_CONTEXT instanceContext = NULL;
+
+    PAGED_CODE();
+
+    if (NULL == VolumeName) return STATUS_INVALID_PARAMETER_1;
+    if (NULL == InstanceContext) return STATUS_INVALID_PARAMETER_2;
+    
+    status = FltGetVolumeFromName(Globals.Filter, VolumeName, &volume);
+    if (!NT_SUCCESS(status)) {
+        LOG_ERROR("NTSTATUS: '0x%08x', get volume from name failed", status);
+        goto Cleanup;
+    }
+
+    status = FltGetVolumeInstanceFromName(Globals.Filter, volume, NULL, &instance);
+    if (!NT_SUCCESS(status)) {
+        LOG_ERROR("NTSTATUS: '0x%08x', get volume instance from name failed", status);
+        goto Cleanup;
+    }
+
+    status = FltGetInstanceContext(instance, &instanceContext);
+    if (!NT_SUCCESS(status)) {
+        LOG_ERROR("NTSTATUS: '0x%08x', get instance context failed", status);
+        goto Cleanup;
+    }
+
+    FltReferenceContext(instanceContext);
+    *InstanceContext = instanceContext;
+
+Cleanup:
+
+    if (NULL != volume) {
+        FltObjectDereference(volume);
+    }
+
+    if (NULL != instance) {
+        FltObjectDereference(instance);
+    }
+
+    if (NULL != instanceContext) {
+        FltReleaseContext(instanceContext);
+    }
+
+    return status;
+}
+
 VOID
 FgCleanupInstanceContext(
     _In_ PFLT_CONTEXT Context,

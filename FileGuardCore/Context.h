@@ -102,6 +102,14 @@ FgSetInstanceContext(
     _Outptr_opt_result_maybenull_ PFLT_CONTEXT *OldContext
 );
 
+_IRQL_requires_max_(APC_LEVEL)
+_Check_return_
+NTSTATUS
+FgGetInstanceContextFromVolumeName(
+    _In_ PUNICODE_STRING VolumeName,
+    _Outptr_ PFG_INSTANCE_CONTEXT* InstanceContext
+);
+
 VOID
 FgCleanupInstanceContext(
     _In_ PFLT_CONTEXT Context,
