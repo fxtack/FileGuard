@@ -52,22 +52,15 @@ typedef ULONG* PFG_RULE_CLASS;
 
 typedef struct _FG_RULE {
 
-    //
-    // FileGuard rule class.
-    //
     FG_RULE_CLASS Class;
 
-    //
-    // Bytes size of field `FilePathName`.
-    //
-    ULONG FilePathNameSize;
+    USHORT FilePathNameSize;
 
-    //
-    // File path name.
-    //
+    USHORT VolumeNameSize;
+
     WCHAR FilePathName[];
 
-} FG_RULE, * PFG_RULE;
+} FG_RULE, *PFG_RULE;
 
 
 //
@@ -81,13 +74,7 @@ typedef struct _FG_MESSAGE {
 
         struct {
 
-            FG_RULE_CLASS Class;
-
-            USHORT FilePathNameSize;
-
-            USHORT VolumeNameSize;
-
-            WCHAR FilePathName[];
+            FG_RULE;
 
         } AddRule, RemoveRule;
 

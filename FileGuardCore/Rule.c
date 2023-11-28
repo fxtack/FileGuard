@@ -175,88 +175,76 @@ FgRuleEntryFreeRoutine(
 
 _Check_return_
 NTSTATUS
-FgAddRule(
+FgAddRuleToTable(
+    _Inout_ PRTL_GENERIC_TABLE RuleTable,
+    _In_ PEX_PUSH_LOCK Lock,
     _In_ PFG_RULE Rule
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    PFG_INSTANCE_CONTEXT instanceContext = NULL;
-    FG_RULE_ENTRY ruleEntry = { 0 };
     PFG_RULE_ENTRY ruleEntry = NULL;
+    FG_RULE_ENTRY newEntry = { 0 };
     BOOLEAN added = FALSE;
 
-    if (NULL == Rule) return STATUS_INVALID_PARAMETER_1;
+    if (NULL == Lock) return STATUS_INVALID_PARAMETER_1;
+    if (NULL == RuleTable) return STATUS_INVALID_PARAMETER_2;
+    if (NULL == Rule) return STATUS_INVALID_PARAMETER_3;
 
-    ruleEntry.FilePathIndex.MaximumLength = (USHORT)Rule->FilePathNameSize;
-    ruleEntry.FilePathIndex.Length = (USHORT)Rule->FilePathNameSize;
-    ruleEntry.FilePathIndex.Buffer = Rule->FilePathName;
+    FgInitializeRuleEntry(Rule, &newEntry);
+    
+    FltAcquirePushLockExclusive(Lock);
 
-    status = FgGetInstanceContextByPath(&ruleEntry.FilePathIndex, &instanceContext);
-    if (!NT_SUCCESS(status)) {
-        goto Cleanup;
-    }
-
-    //
-    // Add rule to table that maintain in instance context.
-    //
-    FltAcquirePushLockExclusive(instanceContext->RulesTableLock);
-
-    ruleEntry = RtlInsertElementGenericTable(&instanceContext->RulesTable,
-                                             Rule,
+    ruleEntry = RtlInsertElementGenericTable(RuleTable,
+                                             &newEntry,
                                              sizeof(FG_RULE_ENTRY),
                                              &added);
-    if (NULL != ruleEntry && added)
-        status = STATUS_SUCCESS;
-    else if (NULL != ruleEntry && !added)
-        status = STATUS_DUPLICATE_OBJECTID;
-    else
-        status = STATUS_UNSUCCESSFUL;
+    if (NULL != ruleEntry && added) status = STATUS_SUCCESS;
+    else if (NULL != ruleEntry && !added) status = STATUS_DUPLICATE_OBJECTID;
+    else status = STATUS_UNSUCCESSFUL;
 
-    FltReleasePushLock(instanceContext->RulesTableLock);
-
-Cleanup:
-
-    if (NULL != instanceContext) {
-        FltReleaseContext(instanceContext);
-    }
+    FltReleasePushLock(Lock);
 
     return status;
 }
 
 _Check_return_
 NTSTATUS
-FgRemoveRule(
+FgRemoveRuleFromTable(
+    _Inout_ PRTL_GENERIC_TABLE RuleTable,
+    _In_ PEX_PUSH_LOCK Lock,
     _In_ PFG_RULE Rule
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    PFG_INSTANCE_CONTEXT instanceContext = NULL;
-    FG_RULE_ENTRY ruleEntry = { 0 };
+    FG_RULE_ENTRY removeEntry = { 0 };
+    PFG_RULE_ENTRY existsEntry = NULL;
     BOOLEAN removed = FALSE;
 
-    if (NULL == Rule) return STATUS_INVALID_PARAMETER_1;
+    if (NULL == Lock) return STATUS_INVALID_PARAMETER_1;
+    if (NULL == RuleTable) return STATUS_INVALID_PARAMETER_2;
+    if (NULL == Rule) return STATUS_INVALID_PARAMETER_3;
 
-    ruleEntry.FilePathIndex.MaximumLength = (USHORT)Rule->FilePathNameSize;
-    ruleEntry.FilePathIndex.Length = (USHORT)Rule->FilePathNameSize;
-    ruleEntry.FilePathIndex.Buffer = Rule->FilePathName;
+    removeEntry.FilePathIndex.Buffer = Rule->FilePathName;
+    removeEntry.FilePathIndex.Length = Rule->FilePathNameSize;
+    removeEntry.FilePathIndex.MaximumLength = Rule->FilePathNameSize;
 
-    status = FgGetInstanceContextByPath(&ruleEntry.FilePathIndex, &instanceContext);
-    if (!NT_SUCCESS(status)) {
-        goto Cleanup;
+    FltAcquirePushLockExclusive(Lock);
+
+    existsEntry = RtlLookupElementGenericTable(RuleTable, &removeEntry);
+    if (NULL == existsEntry) {
+
+        status = STATUS_NOT_FOUND;
+
+    } else {
+
+        FgDeleteRuleEntry(existsEntry);
+
+        if (!RtlDeleteElementGenericTable(RuleTable, existsEntry)) {
+            status = STATUS_UNSUCCESSFUL;
+        }
     }
 
-    FltAcquirePushLockExclusive(instanceContext->RulesTableLock);
-
-    removed = RtlDeleteElementGenericTable(&instanceContext->RulesTable, &ruleEntry);
-    if (!removed) status = STATUS_NOT_FOUND;
-
-    FltReleasePushLock(instanceContext->RulesTableLock);
-
-Cleanup:
-
-    if (NULL != instanceContext) {
-        FltReleaseContext(instanceContext);
-    }
+    FltReleasePushLock(Lock);
 
     return status;
 }

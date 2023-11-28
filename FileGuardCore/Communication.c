@@ -142,6 +142,7 @@ FgCoreControlMessageNotifyCallback(
     PFG_MESSAGE_RESULT result = NULL;
     UNICODE_STRING volumeName = { 0 };
     ULONG removedRules;
+    PFG_INSTANCE_CONTEXT instanceContext = NULL;
 
     UNREFERENCED_PARAMETER(ConnectionCookie);
 
@@ -180,10 +181,16 @@ FgCoreControlMessageNotifyCallback(
         volumeName.Buffer = message->AddRule.FilePathName;
         volumeName.Length = message->AddRule.VolumeNameSize;
         volumeName.MaximumLength = message->AddRule.VolumeNameSize;
-        
-        // Get instance context
 
-        status = FgAddRule((PFG_RULE)Input);
+        status = FgGetInstanceContextFromVolumeName(&volumeName, &instanceContext);
+        if (!NT_SUCCESS(status)) {
+            LOG_ERROR("NTSTATUS: '0x%08x', get instance context from volume name", status);
+            break;
+        }
+
+        status = FgAddRuleToTable(instanceContext->RulesTableLock, 
+                                  instanceContext->RulesTableLock, 
+                                  &message->AddRule);
         if (!NT_SUCCESS(status)) {
             LOG_ERROR("NTSTATUS: '0x%08x', add rule failed", status);
         }
@@ -197,6 +204,10 @@ FgCoreControlMessageNotifyCallback(
 
         if (NULL == Input) return STATUS_INVALID_PARAMETER_2;
         if (InputSize <= sizeof(FG_MESSAGE)) return STATUS_INVALID_PARAMETER_3;
+
+        volumeName.Buffer = message->AddRule.FilePathName;
+        volumeName.Length = message->AddRule.VolumeNameSize;
+        volumeName.MaximumLength = message->AddRule.VolumeNameSize;
 
         status = FgRemoveRule((PFG_RULE)Input);
         if (!NT_SUCCESS(status)) {
