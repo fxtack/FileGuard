@@ -57,9 +57,9 @@ Routine Description:
 
 Arguments:
 
-    String - A pointer to a variable that receives the unicode string.
-
     Size   - Supplies the size of the unicode string buffer to be allocated.
+
+    String - A pointer to a variable that receives the unicode string.
 
 Return Value:
 
@@ -121,9 +121,9 @@ Return Value:
 _Check_return_
 NTSTATUS
 FgAllocateBuffer(
-    _Inout_ PVOID      *Buffer,
-    _In_    POOL_FLAGS PoolFlags,
-    _In_    SIZE_T     Size
+    _Inout_ PVOID *Buffer,
+    _In_ POOL_FLAGS PoolFlags,
+    _In_ SIZE_T Size
     )
 /*++
 
@@ -198,11 +198,11 @@ FgAllocatePushLock(
 
 Routine Description:
 
-    This routine allocates a new ERESOURCE from the non-paged pool and initializes it.
+    This routine allocates a new PEX_PUSH_LOCK from the non-paged pool and initializes it.
 
 Arguments:
 
-    Resource - Supplies pointer to the PERESOURCE to be created.
+    PushLock - Supplies pointer to the PEX_PUSH_LOCK to be created.
 
 Return value:
 
@@ -244,11 +244,11 @@ FgFreePushLock(
 
 Routine Description:
 
-    This routine frees the PERESOURCE previously allocated by 'FgAllocateResource'.
+    This routine frees the PEX_PUSH_LOCK previously allocated by 'FgAllocatePushLock'.
 
 Arguments:
 
-    Resource - Supplies pointer to the ERESOURCE to be freed.
+    PushLock - Supplies pointer to the PEX_PUSH_LOCK to be freed.
                If it's NULL, this function will do nothing.
 
 Return value:
@@ -259,18 +259,18 @@ Return value:
 { 
     PAGED_CODE();
 
-    FLT_ASSERT(NULL != PushLock);
-
-    FltDeletePushLock(PushLock);
-
-    ExFreePoolWithTag((PVOID)PushLock, FG_PUSHLOCK_NON_PAGED_MEM_TAG);
+    if (NULL != PushLock) {
+        FltDeletePushLock(PushLock);
+        ExFreePoolWithTag((PVOID)PushLock, FG_PUSHLOCK_NON_PAGED_MEM_TAG);
+    }
 }
 
 /*-------------------------------------------------------------
     Exception routines.
 -------------------------------------------------------------*/
 
-LONG AsMessageException(
+LONG 
+AsMessageException(
     _In_ PEXCEPTION_POINTERS ExceptionPointer,
     _In_ BOOLEAN AccessingUserBuffer
     )
