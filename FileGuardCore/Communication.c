@@ -170,17 +170,18 @@ FgCoreControlMessageNotifyCallback(
         break;
 
     case AddRule:
+    case RemoveRule:
 
         //
-        // Add a rule to an instance rule table.
+        // Add or remove a rule.
         //
 
         if (NULL == Input) return STATUS_INVALID_PARAMETER_2;
         if (InputSize <= sizeof(FG_MESSAGE)) return STATUS_INVALID_PARAMETER_3;
 
-        volumeName.Buffer = message->AddRule.FilePathName;
-        volumeName.Length = message->AddRule.VolumeNameSize;
-        volumeName.MaximumLength = message->AddRule.VolumeNameSize;
+        volumeName.Buffer = message->SingleRule.Rule.FilePathName;
+        volumeName.Length = message->SingleRule.Rule.VolumeNameSize;
+        volumeName.MaximumLength = message->SingleRule.Rule.VolumeNameSize;
 
         status = FgGetInstanceContextFromVolumeName(&volumeName, &instanceContext);
         if (!NT_SUCCESS(status)) {
@@ -188,30 +189,23 @@ FgCoreControlMessageNotifyCallback(
             break;
         }
 
-        status = FgAddRuleToTable(instanceContext->RulesTableLock, 
-                                  instanceContext->RulesTableLock, 
-                                  &message->AddRule);
-        if (!NT_SUCCESS(status)) {
-            LOG_ERROR("NTSTATUS: '0x%08x', add rule failed", status);
-        }
-        break;
+        if (commandType == AddRule) {
 
-    case RemoveRule:
+            status = FgAddRuleToTable(&instanceContext->RulesTable,
+                                      instanceContext->RulesTableLock,
+                                      &message->SingleRule.Rule);
+            if (!NT_SUCCESS(status)) {
+                LOG_ERROR("NTSTATUS: '0x%08x', add rule failed", status);
+            }
 
-        //
-        // Remove a rule from an instance rule table.
-        //
+        } else {
 
-        if (NULL == Input) return STATUS_INVALID_PARAMETER_2;
-        if (InputSize <= sizeof(FG_MESSAGE)) return STATUS_INVALID_PARAMETER_3;
-
-        volumeName.Buffer = message->AddRule.FilePathName;
-        volumeName.Length = message->AddRule.VolumeNameSize;
-        volumeName.MaximumLength = message->AddRule.VolumeNameSize;
-
-        status = FgRemoveRule((PFG_RULE)Input);
-        if (!NT_SUCCESS(status)) {
-            LOG_ERROR("NTSTATUS: '0x%08x', remove rule failed", status);
+            status = FgRemoveRuleFromTable(&instanceContext->RulesTable,
+                                           instanceContext->RulesTableLock,
+                                           &message->SingleRule.Rule);
+            if (!NT_SUCCESS(status)) {
+                LOG_ERROR("NTSTATUS: '0x%08x', remove rule failed", status);
+            }
         }
         break;
 

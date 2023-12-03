@@ -74,9 +74,9 @@ typedef struct _FG_MESSAGE {
 
         struct {
 
-            FG_RULE;
+            FG_RULE Rule;
 
-        } AddRule, RemoveRule;
+        } SingleRule;
 
         struct {
 
