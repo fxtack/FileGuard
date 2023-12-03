@@ -49,6 +49,26 @@ FgInitializeRuleEntry(
     _In_ PFG_RULE Rule,
     _Inout_ PFG_RULE_ENTRY RuleEntry
     ) 
+/*++
+
+Routine Description:
+
+    Initialize a rule entry from a rule. 
+
+Arguments:
+
+    Rule      - Routine will copy rule to the rule entry.
+
+    RuleEntry - A pointer to a variable that receives the rule entry.
+
+Return Value:
+
+    STATUS_SUCCESS                - Success.
+    STATUS_INSUFFICIENT_RESOURCES - Failure. Unable to allocate memory.
+    STATUS_INVALID_PARAMETER_1    - Failure. The 'Buffer' parameter is NULL.
+    STATUS_INVALID_PARAMETER_2    - Failure. The 'Size' parameter is equal to zero.
+
+--*/
 {
     NTSTATUS status = STATUS_SUCCESS;
     PFG_RULE rule = NULL;
@@ -113,6 +133,25 @@ FgRuleEntryCompareRoutine(
     _In_ PVOID LEntry,
     _In_ PVOID REntry
     )
+/*++
+
+Routine Description:
+
+    This routine is the callback for the generic table routines.
+
+Arguments:
+
+    Table  - Table for which this is invoked.
+
+    LEntry - An element in the table to compare.
+
+    REntry - Another element in the table to compare.
+
+Return Value:
+
+    RTL_GENERIC_COMPARE_RESULTS.
+
+--*/
 {
     LONG compareResult = 0;
     PFG_RULE_ENTRY lRuleEntry = LEntry;
@@ -140,6 +179,23 @@ FgRuleEntryAllocateRoutine(
     _In_ PRTL_GENERIC_TABLE Table,
     _In_ CLONG Size
     )
+/*++
+
+Routine Description:
+
+    This routine is the callback for allocation for entries in the generic table.
+
+Arguments:
+
+    Table - Table for which this is invoked.
+
+    Size  - Amount of memory to allocate.
+
+Return Value:
+
+    Pointer to allocated memory if successful, else NULL.
+
+--*/
 {
     PVOID entry = NULL;
 
@@ -163,6 +219,24 @@ FgRuleEntryFreeRoutine(
     _In_ PRTL_GENERIC_TABLE Table,
     _In_ __drv_freesMem(Mem) _Post_invalid_ PVOID Entry
     )
+/*++
+
+Routine Description:
+
+    This routine is the callback for releasing memory for entries in the generic
+    table.
+
+Arguments:
+
+    Table - Table for which this is invoked.
+
+    Entry - Entry to free.
+
+Return Value:
+
+    None.
+
+--*/
 {
     UNREFERENCED_PARAMETER(Table);
 
@@ -186,8 +260,8 @@ FgAddRuleToTable(
     FG_RULE_ENTRY newEntry = { 0 };
     BOOLEAN added = FALSE;
 
-    if (NULL == Lock) return STATUS_INVALID_PARAMETER_1;
-    if (NULL == RuleTable) return STATUS_INVALID_PARAMETER_2;
+    if (NULL == RuleTable) return STATUS_INVALID_PARAMETER_1;
+    if (NULL == Lock) return STATUS_INVALID_PARAMETER_2;
     if (NULL == Rule) return STATUS_INVALID_PARAMETER_3;
 
     FgInitializeRuleEntry(Rule, &newEntry);
@@ -218,10 +292,9 @@ FgRemoveRuleFromTable(
     NTSTATUS status = STATUS_SUCCESS;
     FG_RULE_ENTRY removeEntry = { 0 };
     PFG_RULE_ENTRY existsEntry = NULL;
-    BOOLEAN removed = FALSE;
 
-    if (NULL == Lock) return STATUS_INVALID_PARAMETER_1;
-    if (NULL == RuleTable) return STATUS_INVALID_PARAMETER_2;
+    if (NULL == RuleTable) return STATUS_INVALID_PARAMETER_1;
+    if (NULL == Lock) return STATUS_INVALID_PARAMETER_2;
     if (NULL == Rule) return STATUS_INVALID_PARAMETER_3;
 
     removeEntry.FilePathIndex.Buffer = Rule->FilePathName;
@@ -288,7 +361,7 @@ Cleanup:
 
 _Check_return_
 NTSTATUS
-FgMatchRule(
+FgMatchRuleByFileName(
     _In_ PRTL_GENERIC_TABLE Table,
     _In_ PEX_PUSH_LOCK Lock,
     _In_ PUNICODE_STRING FilePathIndex,

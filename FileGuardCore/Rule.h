@@ -153,7 +153,7 @@ FgCleanupRules(
 
 _Check_return_
 NTSTATUS
-FgMatchRule(
+FgMatchRuleByFileName(
     _In_ PRTL_GENERIC_TABLE Table,
     _In_ PEX_PUSH_LOCK Lock,
     _In_ PUNICODE_STRING FilePathIndex,
