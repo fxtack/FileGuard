@@ -3,41 +3,67 @@
 #ifndef __FGLIB_H__
 #define __FGLIB_H__
 
-#include <iostream>
-#include <cstring>
-
 #include <windows.h>
 #include <fltUser.h>
 
 #include "FileGuard.h"
 
-namespace fileguard {
-	class Client {
-	public:
-		Client();
-		~Client();
-		void get_core_version(FG_CORE_VERSION& core_version);
-		HRESULT add_rule(FG_RULE_CLASS rule_class, const std::wstring& file_path_name);
-		HRESULT add_rule(const FG_RULE& rule);
-		HRESULT cleanup_rules(const std::wstring& volume_name);
-		HRESULT cleanup_rules();
+#define FG_LIB_MAJOR_VERSION ((USHORT)0)
+#define FG_LIB_MINOR_VERSION ((USHORT)0)
+#define FG_LIB_PATCH_VERSION ((USHORT)1)
+#define FG_LIB_BUILD_VERSION ((USHORT)0)
 
-	private:
-		HANDLE _port;
-		FG_CORE_VERSION _core_version;
-	};
-}
+typedef struct _FG_LIB_VERSION {
+	USHORT Major;
+	USHORT Minor;
+	USHORT Patch;
+	USHORT Build;
+} FG_LIB_VERSION, *PFG_LIB_VERSION;
 
-#define THROW_IF_ERROR(_hresult_) if (IS_ERROR(_hresult_)) { throw std::system_error(hr, std::system_category()); };
+extern 
+HRESULT 
+FgGetLibVersion(
+	_Outptr_ FG_LIB_VERSION *LibVersion
+);
 
-//#ifdef FILEGUARDLIB_EXPORTS
-//#define FGLIB_API __declspec(dllexport)
-//#else
-//#define FGLIB_API __declspec(dllimport)
-//#endif
-//
-//extern "C" FGLIB_API HRESULT FglGetVersion(FG_CORE_VERSION& core_version);
-//extern "C" FGLIB_API HRESULT FglAddRule(const FG_RULE& rule);
-//extern "C" FGLIB_API HRESULT FglCleanupRules();
+extern 
+HRESULT 
+FgConnectCore(
+	_Outptr_ HANDLE* PortHandle
+);
+
+extern
+HRESULT
+FgDisconnectCore(
+	_Inout_ HANDLE PortHandle
+);
+
+extern 
+HRESULT 
+FgGetCoreVersion(
+	_In_ HANDLE PortHandle,
+	_Outptr_ FG_CORE_VERSION *CoreVersion
+);
+
+extern 
+HRESULT 
+FgAddRule(
+	_In_ HANDLE PortHandle,
+	_Outptr_ FG_RULE *Rule
+);
+
+extern 
+HRESULT 
+FgRemoveRule(
+	_In_ HANDLE PortHandle,
+	_Outptr_ FG_RULE *Rule
+);
+
+extern 
+HRESULT 
+FgCleanupRules(
+	_In_ HANDLE PortHandle,
+	_Outptr_ WCHAR *VolumeName
+);
 
 #endif
