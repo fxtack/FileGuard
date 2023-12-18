@@ -223,13 +223,8 @@ FgCoreControlMessageNotifyCallback(
         message = (PFG_MESSAGE)Input;
         if (0 == message->CleanupRules.VolumeNameSize || NULL == message->CleanupRules.VolumeName) {
 
-            //
-            // Clear all instance rule tables.
-            //
-            status = FgMessageCleanupRules(NULL, &removedRules);
-            if (!NT_SUCCESS(status)) {
-                LOG_ERROR("NTSTATUS: '0x%08x', cleanup all rules failed", status);
-            }
+            DBG_TRACE("Volume name required for cleanup rules");
+            return STATUS_INVALID_PARAMETER;
 
         } else {
 
@@ -261,39 +256,39 @@ FgCoreControlMessageNotifyCallback(
 
 NTSTATUS
 FgMessageCleanupRules(
-    _In_opt_ PUNICODE_STRING VolumeName,
-    _Out_ ULONG *RulesRemoved
+    _In_ PUNICODE_STRING VolumeName,
+    _Outptr_ ULONG *RulesRemoved
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    PLIST_ENTRY entry = NULL, next = NULL;
     PFG_INSTANCE_CONTEXT instanceContext = NULL;
     ULONG rulesRemoved = 0ul;
 
+    if (NULL == VolumeName) return STATUS_INVALID_PARAMETER_1;
     if (NULL == RulesRemoved) return STATUS_INVALID_PARAMETER_2;
 
     *RulesRemoved = 0ul;
 
-    LIST_FOR_EACH_SAFE(entry, next, &Globals.InstanceContextList) {
+    status = FgGetInstanceContextFromVolumeName(VolumeName, &instanceContext);
+    if (!NT_SUCCESS(status)) {
+        LOG_ERROR("NTSTATUS: '0x%08x', get instance context from '%wZ' failed", status, VolumeName);
+        goto Cleanup;
+    }
 
-        instanceContext = CONTAINING_RECORD(entry, FG_INSTANCE_CONTEXT, List);
-        
-        if (NULL != VolumeName) {
-            if (RtlEqualUnicodeString(VolumeName, &instanceContext->VolumeName, FALSE)) {
+    status = FgCleanupRules(&instanceContext->RulesTable, 
+                            instanceContext->RulesTableLock, 
+                            RulesRemoved);
+    if (!NT_SUCCESS(status)) {
+        LOG_ERROR("NTSTATUS: '0x%08x', cleanup rules from '%wZ' volume instance failed", status, VolumeName);
+        goto Cleanup;
+    }
 
-                status = FgCleanupRules(&instanceContext->RulesTable, 
-                                        instanceContext->RulesTableLock, 
-                                        &rulesRemoved);
-                *RulesRemoved = rulesRemoved;
-                break;
-            }
-        } else {
+    *RulesRemoved = rulesRemoved;
 
-            status = FgCleanupRules(&instanceContext->RulesTable, 
-                                    instanceContext->RulesTableLock, 
-                                    &rulesRemoved);
-            *RulesRemoved += rulesRemoved;
-        }
+Cleanup:
+
+    if (NULL != instanceContext) {
+        FltReleaseContext(instanceContext);
     }
 
     return status;

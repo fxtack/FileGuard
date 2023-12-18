@@ -73,17 +73,12 @@ typedef struct _FG_MESSAGE {
     union {
 
         struct {
-
             FG_RULE Rule;
-
         } SingleRule;
 
         struct {
-
             USHORT VolumeNameSize;
-
             WCHAR VolumeName[];
-
         } CleanupRules;
 
     } DUMMYUNIONNAME;

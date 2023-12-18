@@ -71,8 +71,8 @@ FgCoreControlMessageNotifyCallback(
 
 NTSTATUS
 FgMessageCleanupRules(
-    _In_opt_ PUNICODE_STRING VolumeName,
-    _Out_ ULONG *RulesRemoved
+    _In_ PUNICODE_STRING VolumeName,
+    _Outptr_ ULONG *RulesRemoved
 );
 
 /*-------------------------------------------------------------
