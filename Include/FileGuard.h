@@ -27,7 +27,7 @@ typedef enum _FG_MESSAGE_TYPE {
 
     RemoveRule,
 
-    CleanupRules
+    CleanupVolumeRules
 
 } FG_MESSAGE_TYPE;
 
@@ -60,37 +60,25 @@ typedef struct _FG_RULE {
 // Message of user application send to core.
 //
 typedef struct _FG_MESSAGE {
-
     FG_MESSAGE_TYPE Type;
-
     union {
-
         FG_RULE SingleRule;
-
         struct {
             USHORT VolumeNameSize;
             WCHAR VolumeName[];
-        } CleanupRules;
-
+        } Volume;
     } DUMMYUNIONNAME;
-
 } FG_MESSAGE, *PFG_MESSAGE;
 
 //
 // Message result of core returned.
 //
 typedef struct _FG_MESSAGE_RESULT {
-
     NTSTATUS Status;
-
     union {
-
         FG_CORE_VERSION CoreVersion;
-
         ULONG RemovedRules;
-
     } DUMMYUNIONNAME;
-
 } FG_MESSAGE_RESULT, *PFG_MESSAGE_RESULT;
 
 typedef struct _FG_FILE_ID_DESCRIPTOR {

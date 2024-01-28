@@ -209,7 +209,7 @@ FgCoreControlMessageNotifyCallback(
         }
         break;
 
-    case CleanupRules:
+    case CleanupVolumeRules:
 
         //
         // Clear all rules in all instance rule tables or all rules in an instance rule table.
@@ -220,7 +220,7 @@ FgCoreControlMessageNotifyCallback(
         if (NULL == Output) return STATUS_INVALID_PARAMETER_4;
         if (OutputSize < sizeof(FG_MESSAGE_RESULT)) return STATUS_INVALID_PARAMETER_5;
         
-        if (0 == message->CleanupRules.VolumeNameSize || NULL == message->CleanupRules.VolumeName) {
+        if (0 == message->Volume.VolumeNameSize || NULL == message->Volume.VolumeName) {
 
             DBG_TRACE("Volume name required for cleanup rules");
             return STATUS_INVALID_PARAMETER;
@@ -230,9 +230,9 @@ FgCoreControlMessageNotifyCallback(
             //
             // Cleanr all rules in an isntance rule table.
             //
-            volumeName.Buffer = message->CleanupRules.VolumeName;
-            volumeName.MaximumLength = message->CleanupRules.VolumeNameSize;
-            volumeName.Length = message->CleanupRules.VolumeNameSize;
+            volumeName.Buffer = message->Volume.VolumeName;
+            volumeName.MaximumLength = message->Volume.VolumeNameSize;
+            volumeName.Length = message->Volume.VolumeNameSize;
 
             status = FgProcessingCleanupRulesMessage(&volumeName, &removedRules);
             if (!NT_SUCCESS(status)) {

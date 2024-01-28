@@ -70,7 +70,7 @@ FgCoreControlMessageNotifyCallback(
 );
 
 NTSTATUS
-FgMessageCleanupRules(
+FgProcessingCleanupRulesMessage(
     _In_ PUNICODE_STRING VolumeName,
     _Outptr_ ULONG *RulesRemoved
 );

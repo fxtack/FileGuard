@@ -129,7 +129,7 @@ FgRuleEntryFreeRoutine(
 
 _Check_return_
 NTSTATUS
-FgAddRuleToTable(
+FgAddRule(
     _Inout_ PRTL_GENERIC_TABLE RuleTable,
     _In_ PEX_PUSH_LOCK Lock,
     _In_ PFG_RULE Rule
@@ -137,7 +137,7 @@ FgAddRuleToTable(
 
 _Check_return_
 NTSTATUS
-FgRemoveRuleFromTable(
+FgRemoveRule(
     _Inout_ PRTL_GENERIC_TABLE RuleTable,
     _In_ PEX_PUSH_LOCK Lock,
     _In_ PFG_RULE Rule
