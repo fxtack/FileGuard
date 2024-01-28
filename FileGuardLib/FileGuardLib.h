@@ -8,6 +8,8 @@
 
 #include "FileGuard.h"
 
+#pragma comment(lib, "Fltlib.lib")
+
 #define FG_LIB_MAJOR_VERSION ((USHORT)0)
 #define FG_LIB_MINOR_VERSION ((USHORT)0)
 #define FG_LIB_PATCH_VERSION ((USHORT)1)
@@ -23,47 +25,47 @@ typedef struct _FG_LIB_VERSION {
 extern 
 HRESULT 
 FgGetLibVersion(
-	_Outptr_ FG_LIB_VERSION *LibVersion
+	_Out_ FG_LIB_VERSION *LibVersion
 );
 
 extern 
 HRESULT 
 FgConnectCore(
-	_Outptr_ HANDLE* PortHandle
+	_Out_ HANDLE* PortHandle
 );
 
 extern
 HRESULT
 FgDisconnectCore(
-	_Inout_ HANDLE PortHandle
+	_In_ HANDLE PortHandle
 );
 
 extern 
 HRESULT 
 FgGetCoreVersion(
 	_In_ HANDLE PortHandle,
-	_Outptr_ FG_CORE_VERSION *CoreVersion
+	_Outptr_ FG_CORE_VERSION* CoreVersion
 );
 
 extern 
 HRESULT 
 FgAddRule(
 	_In_ HANDLE PortHandle,
-	_Outptr_ FG_RULE *Rule
+	_Out_ FG_RULE *Rule
 );
 
 extern 
 HRESULT 
 FgRemoveRule(
 	_In_ HANDLE PortHandle,
-	_Outptr_ FG_RULE *Rule
+	_Out_ FG_RULE *Rule
 );
 
 extern 
 HRESULT 
 FgCleanupRules(
 	_In_ HANDLE PortHandle,
-	_Outptr_ WCHAR *VolumeName
+	_Out_ WCHAR *VolumeName
 );
 
 #endif

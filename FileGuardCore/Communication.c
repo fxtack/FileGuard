@@ -179,9 +179,9 @@ FgCoreControlMessageNotifyCallback(
         if (NULL == Input) return STATUS_INVALID_PARAMETER_2;
         if (InputSize <= sizeof(FG_MESSAGE)) return STATUS_INVALID_PARAMETER_3;
 
-        volumeName.Buffer = message->SingleRule.Rule.FilePathName;
-        volumeName.Length = message->SingleRule.Rule.VolumeNameSize;
-        volumeName.MaximumLength = message->SingleRule.Rule.VolumeNameSize;
+        volumeName.Buffer = message->SingleRule.FilePathName;
+        volumeName.Length = message->SingleRule.VolumeNameSize;
+        volumeName.MaximumLength = message->SingleRule.VolumeNameSize;
 
         status = FgGetInstanceContextFromVolumeName(&volumeName, &instanceContext);
         if (!NT_SUCCESS(status)) {
@@ -191,25 +191,25 @@ FgCoreControlMessageNotifyCallback(
 
         if (commandType == AddRule) {
 
-            status = FgAddRuleToTable(&instanceContext->RulesTable,
+            status = FgAddRule(&instanceContext->RulesTable,
                                       instanceContext->RulesTableLock,
-                                      &message->SingleRule.Rule);
+                                      &message->SingleRule);
             if (!NT_SUCCESS(status)) {
                 LOG_ERROR("NTSTATUS: '0x%08x', add rule failed", status);
             }
 
         } else {
 
-            status = FgRemoveRuleFromTable(&instanceContext->RulesTable,
+            status = FgRemoveRule(&instanceContext->RulesTable,
                                            instanceContext->RulesTableLock,
-                                           &message->SingleRule.Rule);
+                                           &message->SingleRule);
             if (!NT_SUCCESS(status)) {
                 LOG_ERROR("NTSTATUS: '0x%08x', remove rule failed", status);
             }
         }
         break;
 
-    case CleanupRule:
+    case CleanupRules:
 
         //
         // Clear all rules in all instance rule tables or all rules in an instance rule table.
@@ -220,7 +220,6 @@ FgCoreControlMessageNotifyCallback(
         if (NULL == Output) return STATUS_INVALID_PARAMETER_4;
         if (OutputSize < sizeof(FG_MESSAGE_RESULT)) return STATUS_INVALID_PARAMETER_5;
         
-        message = (PFG_MESSAGE)Input;
         if (0 == message->CleanupRules.VolumeNameSize || NULL == message->CleanupRules.VolumeName) {
 
             DBG_TRACE("Volume name required for cleanup rules");
@@ -235,7 +234,7 @@ FgCoreControlMessageNotifyCallback(
             volumeName.MaximumLength = message->CleanupRules.VolumeNameSize;
             volumeName.Length = message->CleanupRules.VolumeNameSize;
 
-            status = FgMessageCleanupRules(&volumeName, &removedRules);
+            status = FgProcessingCleanupRulesMessage(&volumeName, &removedRules);
             if (!NT_SUCCESS(status)) {
                 LOG_ERROR("NTSTATUS: '0x%08x', cleanup rules for volume '%wZ' instance failed", status, &volumeName);
             }
@@ -255,7 +254,7 @@ FgCoreControlMessageNotifyCallback(
 }
 
 NTSTATUS
-FgMessageCleanupRules(
+FgProcessingCleanupRulesMessage(
     _In_ PUNICODE_STRING VolumeName,
     _Outptr_ ULONG *RulesRemoved
     )
@@ -277,7 +276,7 @@ FgMessageCleanupRules(
 
     status = FgCleanupRules(&instanceContext->RulesTable, 
                             instanceContext->RulesTableLock, 
-                            RulesRemoved);
+                            &rulesRemoved);
     if (!NT_SUCCESS(status)) {
         LOG_ERROR("NTSTATUS: '0x%08x', cleanup rules from '%wZ' volume instance failed", status, VolumeName);
         goto Cleanup;

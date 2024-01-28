@@ -27,7 +27,7 @@ typedef enum _FG_MESSAGE_TYPE {
 
     RemoveRule,
 
-    CleanupRule
+    CleanupRules
 
 } FG_MESSAGE_TYPE;
 
@@ -44,24 +44,17 @@ typedef ULONG* PFG_RULE_CLASS;
 #define RULE_UNKNOWN       ((ULONG)0x00000000)
 #define RULE_ACCESS_DENIED ((ULONG)0x00000001)
 #define RULE_READONLY      ((ULONG)0x00000002)
-#define RULE_HIDE          ((ULONG)0x00000003)
 
 #define RULE_MATCH_PATH ((ULONG)0x00000001)
 #define RULE_MATCH_NAME ((ULONG)0x00000002)
 #define RULE_MATCH_USER ((ULONG)0x00000003)
 
 typedef struct _FG_RULE {
-
     FG_RULE_CLASS Class;
-
     USHORT FilePathNameSize;
-
     USHORT VolumeNameSize;
-
     WCHAR FilePathName[];
-
 } FG_RULE, *PFG_RULE;
-
 
 //
 // Message of user application send to core.
@@ -72,9 +65,7 @@ typedef struct _FG_MESSAGE {
 
     union {
 
-        struct {
-            FG_RULE Rule;
-        } SingleRule;
+        FG_RULE SingleRule;
 
         struct {
             USHORT VolumeNameSize;
