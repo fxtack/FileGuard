@@ -7,6 +7,9 @@ Output/
 Intermediate/
 RC*
 
+# Rust output
+target/
+
 *.vcxproj.user
 
 # User-specific files
