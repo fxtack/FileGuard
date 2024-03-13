@@ -88,6 +88,25 @@ Environment:
 #endif
 
 /*-------------------------------------------------------------
+    Buffer allocation/freeing routines.
+-------------------------------------------------------------*/
+
+_Check_return_
+NTSTATUS
+FgAllocateBufferEx(
+    _Inout_ PVOID *Buffer,
+    _In_ POOL_FLAGS Flags,
+    _In_ SIZE_T Size,
+    _In_ ULONG Tag
+);
+
+#define FgAllocateBuffer(_buffer_ptr_, _size_) FgAllocateBufferEx((_buffer_ptr_), \
+                                                                  POOL_FLAG_NON_PAGED, \
+                                                                  (_size_), \
+                                                                  FG_BUFFER_NON_PAGED_TAG)
+#define FgFreeBuffer(_buffer_) ExFreePool((_buffer_))
+
+/*-------------------------------------------------------------
     Unicode string allocation/freeing routines.
 -------------------------------------------------------------*/
 
@@ -98,27 +117,7 @@ FgAllocateUnicodeString(
     _Out_ PUNICODE_STRING String
 );
 
-VOID
-FgFreeUnicodeString(
-    _Inout_ PUNICODE_STRING String
-);
-
-/*-------------------------------------------------------------
-    Buffer allocation/freeing routines.
--------------------------------------------------------------*/
-
-_Check_return_
-NTSTATUS
-FgAllocateBuffer(
-    _Inout_ PVOID      *Buffer,
-    _In_    POOL_FLAGS PoolFlags,
-    _In_    SIZE_T     Size
-);
-
-VOID
-FgFreeBuffer(
-    _Inout_ PVOID Buffer
-);
+#define FgFreeUnicodeString(_string_) FgFreeBuffer((_string_));
 
 /*-------------------------------------------------------------
     Push lock routines.
@@ -126,14 +125,22 @@ FgFreeBuffer(
 
 _Check_return_
 NTSTATUS
-FgAllocatePushLock(
-    _Inout_ PEX_PUSH_LOCK *PushLock
+FgCreatePushLock(
+    _Inout_ PEX_PUSH_LOCK *Lock
 );
 
+_Check_return_
+FORCEINLINE
 VOID
-FgFreePushLock(
-    _Inout_ PEX_PUSH_LOCK PushLock
-);
+FgReleasePushLock(
+    _Inout_ PEX_PUSH_LOCK Lock
+    )
+{
+    if (NULL != Lock) {
+        FltDeletePushLock(Lock);
+        FgFreeBuffer(Lock);
+    }
+}
 
 /*-------------------------------------------------------------
     Other tool routines.

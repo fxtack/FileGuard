@@ -40,6 +40,52 @@ Environment:
 #include "Utilities.h"
 
 /*-------------------------------------------------------------
+    Buffer allocation/freeing routines.
+-------------------------------------------------------------*/
+
+_Check_return_
+NTSTATUS
+FgAllocateBufferEx(
+    _Inout_ PVOID* Buffer,
+    _In_ POOL_FLAGS Flags,
+    _In_ SIZE_T Size,
+    _In_ ULONG Tag
+)
+/*++
+
+Routine Description:
+
+    This routine allocates a memory buffer.
+
+Arguments:
+
+    Buffer - A pointer to a variable that receives the memory buffer.
+    Flags  - Type of the pool to allocate memory from.
+    Size   - Supplies the size of the buffer to be allocated.
+    Tag    - Memory pool tag.
+
+Return Value:
+
+    STATUS_SUCCESS                - Success.
+    STATUS_INSUFFICIENT_RESOURCES - Failure. Unable to allocate memory.
+    STATUS_INVALID_PARAMETER_1    - Failure. The 'Buffer' parameter is NULL.
+    STATUS_INVALID_PARAMETER_2    - Failure. The 'Size' parameter is equal to zero.
+
+--*/
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PVOID buffer = NULL;
+
+    if (NULL == Buffer) return STATUS_INVALID_PARAMETER_1;
+    if (0 == Size) return STATUS_INVALID_PARAMETER_2;
+
+    buffer = ExAllocatePool2(Flags, Size, Tag);
+    if (NULL == buffer) status = STATUS_INSUFFICIENT_RESOURCES;
+
+    return status;
+}
+
+/*-------------------------------------------------------------
     Unicode string allocation/freeing routines.
 -------------------------------------------------------------*/
 
@@ -47,7 +93,7 @@ _Check_return_
 NTSTATUS
 FgAllocateUnicodeString(
     _In_ USHORT Size,
-    _Out_ PUNICODE_STRING String
+    _Out_ PUNICODE_STRING* String
     )
 /*++
 
@@ -58,7 +104,6 @@ Routine Description:
 Arguments:
 
     Size   - Supplies the size of the unicode string buffer to be allocated.
-
     String - A pointer to a variable that receives the unicode string.
 
 Return Value:
@@ -71,118 +116,24 @@ Return Value:
 --*/
 {
     NTSTATUS status = STATUS_SUCCESS;
-
-    PAGED_CODE();
+    PUNICODE_STRING stringBuffer = NULL;
 
     if (Size <= 0) return STATUS_INVALID_PARAMETER_1;
     if (NULL == String) return STATUS_INVALID_PARAMETER_2;
 
-    String->Buffer = ExAllocatePool2(POOL_FLAG_PAGED, Size, FG_UNICODE_STRING_PAGED_MEM_TAG);
-    String->Length = 0;
-    String->MaximumLength = Size;
+    status = FgAllocateBufferEx(&stringBuffer,
+                                POOL_FLAG_NON_PAGED, 
+                                sizeof(UNICODE_STRING) + Size,
+                                FG_UNICODE_STRING_NON_PAGED_TAG);
+    if (!NT_SUCCESS(status)) return status;
+    
+    stringBuffer->Length = 0;
+    stringBuffer->MaximumLength = Size;
+    stringBuffer->Buffer = Add2Ptr(stringBuffer, sizeof(UNICODE_STRING));
+
+    *String = stringBuffer;
 
     return status;
-}
-
-VOID
-FgFreeUnicodeString(
-    _Inout_ PUNICODE_STRING String
-    )
-/*++
-
-Routine Description:
-
-    This routine frees a unicode string.
-
-Arguments:
-
-    String - Supplies the string to be freed.
-
-Return Value:
-
-    None
-
---*/
-{
-    PAGED_CODE();
-
-    FLT_ASSERT(NULL != String);
-    FLT_ASSERT(NULL != String->Buffer);
-
-    String->Length = 0;
-    String->MaximumLength = 0;
-    ExFreePoolWithTag(String->Buffer, FG_UNICODE_STRING_PAGED_MEM_TAG);
-}
-
-/*-------------------------------------------------------------
-    Buffer allocation/freeing routines.
--------------------------------------------------------------*/
-
-_Check_return_
-NTSTATUS
-FgAllocateBuffer(
-    _Inout_ PVOID *Buffer,
-    _In_ POOL_FLAGS PoolFlags,
-    _In_ SIZE_T Size
-    )
-/*++
-
-Routine Description:
-
-    This routine allocates a memory buffer.
-
-Arguments:
-
-    Buffer   - A pointer to a variable that receives the memory buffer.
-
-    PoolType - Type of the pool to allocate memory from.
-
-    Size     - Supplies the size of the buffer to be allocated.
-
-Return Value:
-
-    STATUS_SUCCESS                - Success.
-    STATUS_INSUFFICIENT_RESOURCES - Failure. Unable to allocate memory.
-    STATUS_INVALID_PARAMETER_1    - Failure. The 'Buffer' parameter is NULL.
-    STATUS_INVALID_PARAMETER_2    - Failure. The 'Size' parameter is equal to zero.
-
---*/
-{
-    PAGED_CODE();
-
-    if (NULL == Buffer) return STATUS_INVALID_PARAMETER_1;
-    if (0    == Size)   return STATUS_INVALID_PARAMETER_2;
-
-    *Buffer = ExAllocatePool2(PoolFlags, Size, FG_BUFFER_PAGED_MEM_TAG);
-
-    return STATUS_SUCCESS;
-}
-
-VOID
-FgFreeBuffer(
-    _Inout_ PVOID Buffer
-    )
-/*++
-
-Routine Description:
-
-    This routine frees a memory buffer.
-
-Arguments:
-
-    Buffer - Supplies the buffer to be freed.
-
-Return Value:
-
-    None
-
---*/
-{
-    PAGED_CODE();
-
-    FLT_ASSERT(NULL != Buffer);
-
-    ExFreePoolWithTag(Buffer, FG_BUFFER_PAGED_MEM_TAG);
 }
 
 /*-------------------------------------------------------------
@@ -191,8 +142,8 @@ Return Value:
 
 _Check_return_
 NTSTATUS
-FgAllocatePushLock(
-    _Inout_ PEX_PUSH_LOCK* PushLock
+FgCreatePushLock(
+    _Inout_ PEX_PUSH_LOCK* Lock
     )
 /*++
 
@@ -202,7 +153,7 @@ Routine Description:
 
 Arguments:
 
-    PushLock - Supplies pointer to the PEX_PUSH_LOCK to be created.
+    Lock - Supplies pointer to the PEX_PUSH_LOCK to be created.
 
 Return value:
 
@@ -211,58 +162,27 @@ Return value:
 --*/
 {
     NTSTATUS status = STATUS_SUCCESS;
-    PEX_PUSH_LOCK pushLock = NULL;
+    PEX_PUSH_LOCK lock = NULL;
 
-    PAGED_CODE();
-
-    if (NULL == PushLock) return STATUS_INVALID_PARAMETER_1;
+    if (NULL == Lock) return STATUS_INVALID_PARAMETER_1;
 
     //
     // Allocate resource by non-paged memory.
     //
-    pushLock = (PEX_PUSH_LOCK)ExAllocatePool2(POOL_FLAG_NON_PAGED,
-                                              sizeof(ERESOURCE),
-                                              FG_PUSHLOCK_NON_PAGED_MEM_TAG);
-    if (NULL == pushLock)
-        return STATUS_INSUFFICIENT_RESOURCES;
+    status = (PEX_PUSH_LOCK)FgAllocateBufferEx(&lock,
+                                               POOL_FLAG_NON_PAGED,
+                                               sizeof(EX_PUSH_LOCK),
+                                               FG_PUSHLOCK_NON_PAGED_TAG);
+    if (!NT_SUCCESS(status)) return status;
 
     //
     // Initialize resource.
     //
-    FltInitializePushLock(pushLock);
+    FltInitializePushLock(lock);
 
-    *PushLock = pushLock;
+    *Lock = lock;
 
     return status;
-}
-
-VOID
-FgFreePushLock(
-    _Inout_ PEX_PUSH_LOCK PushLock
-    )
-/*++
-
-Routine Description:
-
-    This routine frees the PEX_PUSH_LOCK previously allocated by 'FgAllocatePushLock'.
-
-Arguments:
-
-    PushLock - Supplies pointer to the PEX_PUSH_LOCK to be freed.
-               If it's NULL, this function will do nothing.
-
-Return value:
-
-    None.
-
---*/
-{ 
-    PAGED_CODE();
-
-    if (NULL != PushLock) {
-        FltDeletePushLock(PushLock);
-        ExFreePoolWithTag((PVOID)PushLock, FG_PUSHLOCK_NON_PAGED_MEM_TAG);
-    }
 }
 
 /*-------------------------------------------------------------
@@ -283,7 +203,6 @@ Routine Description:
 Arguments:
 
     ExceptionPointer    - The exception record.
-
     AccessingUserBuffer - If TRUE, overrides FsRtlIsNtStatusExpected to allow
                           the caller to munge the error to a desired status.
 
