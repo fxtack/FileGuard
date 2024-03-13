@@ -20,15 +20,10 @@
 -------------------------------------------------------------*/
 
 typedef enum _FG_MESSAGE_TYPE {
-
     GetCoreVersion,
-
     AddRule,
-
     RemoveRule,
-
     CleanupVolumeRules
-
 } FG_MESSAGE_TYPE;
 
 typedef struct _FG_CORE_VERSION {
@@ -38,19 +33,17 @@ typedef struct _FG_CORE_VERSION {
     ULONG Build;
 } FG_CORE_VERSION, * PFG_CORE_VERSION;
 
-typedef ULONG FG_RULE_CLASS;
-typedef ULONG* PFG_RULE_CLASS;
+#define RULE_POLICY_UNKNOWN       ((USHORT)0x0000)
+#define RULE_POLICY_ACCESS_DENIED ((USHORT)0x0001)
+#define RULE_POLICY_READONLY      ((USHORT)0x0002)
+#define RULE_POLICY_HIDE          ((USHORT)0x0003)
 
-#define RULE_UNKNOWN       ((ULONG)0x00000000)
-#define RULE_ACCESS_DENIED ((ULONG)0x00000001)
-#define RULE_READONLY      ((ULONG)0x00000002)
-
-#define RULE_MATCH_PATH ((ULONG)0x00000001)
-#define RULE_MATCH_NAME ((ULONG)0x00000002)
-#define RULE_MATCH_USER ((ULONG)0x00000003)
+#define RULE_MATCH_PATH ((USHORT)0x0001)
+#define RULE_MATCH_NAME ((USHORT)0x0002)
 
 typedef struct _FG_RULE {
-    FG_RULE_CLASS Class;
+    USHORT RulePolicy;
+    USHORT RuleMatch;
     USHORT FilePathNameSize;
     USHORT VolumeNameSize;
     WCHAR FilePathName[];
