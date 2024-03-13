@@ -80,12 +80,9 @@ Routine Description:
 Arguments:
 
     Filter          - Pointer to the filter structure.
-
     Volume          - Pointer to the FLT_VOLUME.
-
     Instance        - Opaque instance pointer for the caller.
                       This parameter is required and cannot be NULL.
-
     InstanceContext - The output instance context.
 
 Return Value:
@@ -96,7 +93,9 @@ Return Value:
 {
     NTSTATUS status = STATUS_SUCCESS;
     PFG_INSTANCE_CONTEXT instanceContext = NULL;
-    ULONG volumeNameSize = 0UL;
+    PEX_PUSH_LOCK lock = NULL;
+    PUNICODE_STRING volumeName = NULL;
+    ULONG volumeNameSize = 0ul;
 
     PAGED_CODE();
 
@@ -112,12 +111,11 @@ Return Value:
         DBG_ERROR("NTSTATUS: '0x%08x' allocate instance context failed", status);
         goto Cleanup;
     }
+    RtlZeroMemory(instanceContext, sizeof(FG_INSTANCE_CONTEXT));
 
-    instanceContext->VolumeName.Buffer = NULL;
-
-    status = FgAllocatePushLock(&instanceContext->RulesTableLock);
+    status = FgCreatePushLock(&lock);
     if (!NT_SUCCESS(status)) {
-        DBG_ERROR("NTSTATUS: '0x%08x', allocate resource failed", status);
+        DBG_ERROR("NTSTATUS: '0x%08x', allocate lock failed", status);
         goto Cleanup;
     }
 
@@ -129,13 +127,13 @@ Return Value:
 
     } else {
 
-        status = FgAllocateUnicodeString((USHORT)volumeNameSize, &instanceContext->VolumeName);
+        status = FgAllocateUnicodeString((USHORT)volumeNameSize, &volumeName);
         if (!NT_SUCCESS(status)) {
             DBG_ERROR("Error(0x%08x), allocate unicode string for get volume name failed", status);
             goto Cleanup;
         }
 
-        status = FltGetVolumeName(Volume, &instanceContext->VolumeName, &volumeNameSize);
+        status = FltGetVolumeName(Volume, &volumeName, &volumeNameSize);
         if (!NT_SUCCESS(status)) {
             DBG_ERROR("Error(0x%08x), get volume name failed", status);
             goto Cleanup;
@@ -161,11 +159,11 @@ Cleanup:
         if (NULL != instanceContext) {
 
             if (NULL != instanceContext->RulesTableLock) {
-                FgFreePushLock(instanceContext->RulesTableLock);
+                FgReleasePushLock(instanceContext->RulesTableLock);
             }
 
-            if (NULL != instanceContext->VolumeName.Buffer) {
-                FgFreeUnicodeString(&instanceContext->VolumeName);
+            if (NULL != instanceContext->VolumeName) {
+                FgFreeUnicodeString(instanceContext->VolumeName);
             }
         }
     }
@@ -304,7 +302,7 @@ Return Value:
     FLT_ASSERT(NULL != Context);
     FLT_ASSERT(FLT_INSTANCE_CONTEXT == ContextType);
 
-    DBG_TRACE("Volume '%wZ' instance cleanup", &instanceContext->VolumeName);
+    DBG_TRACE("Volume '%wZ' instance cleanup", instanceContext->VolumeName);
 
     //
     // Remove instance context from global list.
@@ -318,8 +316,8 @@ Return Value:
     //
     FgCleanupRules(&instanceContext->RulesTable, instanceContext->RulesTableLock, NULL);
 
-    if (NULL != instanceContext->VolumeName.Buffer) {
-        FgFreeUnicodeString(&instanceContext->VolumeName);
+    if (NULL != instanceContext->VolumeName) {
+        FgFreeUnicodeString(instanceContext->VolumeName);
     }
 
     //

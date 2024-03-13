@@ -65,7 +65,7 @@ typedef struct _FG_INSTANCE_CONTEXT {
     //
     // Name of instance volume.
     //
-    UNICODE_STRING VolumeName;
+    PUNICODE_STRING VolumeName;
 
     //
     // Rule match mode.

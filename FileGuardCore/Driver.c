@@ -106,25 +106,25 @@ EXTERN_C_END
 #endif
 
 //  operation registration
-CONST FLT_OPERATION_REGISTRATION Callbacks[] = {
+CONST FLT_OPERATION_REGISTRATION OperationCallbacks[] = {
 
     { IRP_MJ_CREATE,
-      FLTFL_OPERATION_REGISTRATION_SKIP_PAGING_IO,
+      0,
       FgPreCreateOperationCallback,
       FgPostCreateOperationCallback },
 
     { IRP_MJ_WRITE,
-      FLTFL_OPERATION_REGISTRATION_SKIP_PAGING_IO ,
+      0,
       FgPreWriteOperationCallback,
       NULL },
 
     { IRP_MJ_SET_INFORMATION,
-      FLTFL_OPERATION_REGISTRATION_SKIP_PAGING_IO ,
+      0,
       FgPreSetInformationOperationCallback,
       NULL },
 
     { IRP_MJ_CLEANUP,
-      FLTFL_OPERATION_REGISTRATION_SKIP_PAGING_IO ,
+      0,
       FgPreCleanupOperationCallback,
       FgPostCleanupOperationCallback },
 
@@ -144,7 +144,7 @@ CONST FLT_REGISTRATION FilterRegistration = {
     0,                              // Flags
 
     FgCoreContextRegistration,      // Context
-    Callbacks,                      // Operation callbacks
+    OperationCallbacks,             // Operation callbacks
 
     FgCoreUnload,                   // MiniFilterUnload
 
@@ -152,7 +152,7 @@ CONST FLT_REGISTRATION FilterRegistration = {
     FgCoreInstanceQueryTeardown,    // InstanceQueryTeardown
     FgCoreInstanceTeardownStart,    // InstanceTeardownStart
     FgCoreInstanceTeardownComplete, // InstanceTeardownComplete
-
+    
     NULL,                           // GenerateFileName
     NULL,                           // GenerateDestinationFileName
     NULL                            // NormalizeNameComponent
@@ -163,7 +163,6 @@ DriverEntry(
     _In_ PDRIVER_OBJECT DriverObject,
     _In_ PUNICODE_STRING RegistryPath
 ) {
-
     NTSTATUS status = STATUS_SUCCESS;
     OBJECT_ATTRIBUTES attributes = { 0 };
     PSECURITY_DESCRIPTOR securityDescriptor = NULL;
@@ -191,7 +190,6 @@ DriverEntry(
         //
         status = FgSetConfiguration(RegistryPath);
         if (!NT_SUCCESS(status)) {
-
             DBG_ERROR("NTSTATUS: '0x%08x', set configuration failed", status);
             leave;
         }
@@ -216,20 +214,14 @@ DriverEntry(
         //
         // Register filter driver.
         //
-        status = FltRegisterFilter(DriverObject,
-                                   &FilterRegistration,
-                                   &Globals.Filter);
-        if (!NT_SUCCESS(status)) { 
-
+        status = FltRegisterFilter(DriverObject, &FilterRegistration, &Globals.Filter);
+        if (!NT_SUCCESS(status)) {
             DBG_ERROR("NTSTATUS: '0x%08x', register filter failed", status);
             leave;
         };
 
-
-        status = FltBuildDefaultSecurityDescriptor(&securityDescriptor,
-                                                   FLT_PORT_ALL_ACCESS);
+        status = FltBuildDefaultSecurityDescriptor(&securityDescriptor, FLT_PORT_ALL_ACCESS);
         if (!NT_SUCCESS(status)) {
-
             DBG_ERROR("NTSTATUS: '0x%08x', build security descriptor failed", status);
             leave;
         }
@@ -252,8 +244,7 @@ DriverEntry(
                                             FgCoreControlPortDisconnectCallback,
                                             FgCoreControlMessageNotifyCallback,
                                             1);
-        if (!NT_SUCCESS(status)) { 
-
+        if (!NT_SUCCESS(status)) {
             DBG_ERROR("NTSTATUS: '0x%08x', create core control communication port failed", status);
             leave;
         }
@@ -276,8 +267,7 @@ DriverEntry(
                                             FgMonitorPortDisconnectCallback,
                                             NULL,
                                             1);
-        if (!NT_SUCCESS(status)) { 
-
+        if (!NT_SUCCESS(status)) {
             DBG_ERROR("NTSTATUS: '0x%08x', create monitor communication port failed", status);
             leave;
         }
@@ -290,7 +280,6 @@ DriverEntry(
                                              &Globals.MonitorRecordsQueue,
                                              &monitorContext);
         if (!NT_SUCCESS(status) || NULL == monitorContext) {
-
             DBG_ERROR("NTSTATUS: '0x%08x', create monitor start context failed", status);
             leave;
         }
@@ -306,7 +295,6 @@ DriverEntry(
                                       FgMonitorStartRoutine,
                                       monitorContext);
         if (!NT_SUCCESS(status)) {
-
             DBG_ERROR("NTSTATUS: '0x%08x', create monitor thread failed", status);
             leave;
         }
@@ -479,10 +467,9 @@ Return Value:
     LOG_INFO("Start setup a instance for the volume");
 
     if (FLT_FSTYPE_NTFS != VolumeFilesystemType) {
+        status = STATUS_FLT_DO_NOT_ATTACH;
 
         LOG_WARNING("Attempt to attach to a non NTFS file system");
-
-        status = STATUS_FLT_DO_NOT_ATTACH;
         goto Cleanup;
     }
 
@@ -494,9 +481,7 @@ Return Value:
                                      FltObjects->Instance,
                                      &instanceContext);
     if (!NT_SUCCESS(status)) {
-
         DBG_ERROR("NTSTATUS: '0x%08x', allocate instance context failed", status);
-
         goto Cleanup;
     }
 
@@ -508,13 +493,11 @@ Return Value:
                                   instanceContext, 
                                   NULL);
     if (!NT_SUCCESS(status)) {
-
         DBG_ERROR("NTSTATUS: '0x%08x', set instance context failed", status);
-
         goto Cleanup;
     }
 
-    LOG_INFO("Instance setup for volume '%wZ' finish", &instanceContext->VolumeName);
+    LOG_INFO("Instance setup for volume '%wZ' finish", instanceContext->VolumeName);
 
 Cleanup:
 
@@ -621,12 +604,10 @@ Return Value:
                              valueLength,
                              &resultLength);
     if (NT_SUCCESS(status)) {
-
         Globals.LogLevel = *(PULONG)value->Data;
     } else {
         
         LOG_ERROR("NTSTATUS: '0x%08x', read log level registry configuration failed", status);
-
         status = STATUS_SUCCESS;
     }
 

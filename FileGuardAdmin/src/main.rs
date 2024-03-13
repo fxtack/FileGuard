@@ -1,3 +1,6 @@
+mod cli;
+mod fileguard;
+
 fn main() {
-    println!("Hello, world!");
+    cli::parse_and_run();
 }
