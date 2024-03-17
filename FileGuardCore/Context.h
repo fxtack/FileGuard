@@ -68,24 +68,19 @@ typedef struct _FG_INSTANCE_CONTEXT {
     PUNICODE_STRING VolumeName;
 
     //
-    // Rule match mode.
+    // The list of rules that apply in instance.
     //
-    ULONG RuleMatchMode;
+    LIST_ENTRY RulesList;
 
     //
-    // The generic table save rules that apply in instance.
-    //
-    RTL_GENERIC_TABLE RulesTable;
-
-    //
-    // The rules table lock.
+    // The lock of rules list.
     //
     PEX_PUSH_LOCK RulesTableLock;
 
 } FG_INSTANCE_CONTEXT, *PFG_INSTANCE_CONTEXT;
 
 _Check_return_ 
-NTSTATUS 
+NTSTATUS
 FgCreateInstanceContext(
     _In_     PFLT_FILTER Filter,
     _In_     PFLT_VOLUME Volume,
@@ -125,14 +120,29 @@ typedef struct _FG_FILE_CONTEXT {
     //
     // File name inforamtion.
     //
-    volatile PFLT_FILE_NAME_INFORMATION NameInfo;
+    volatile PFLT_FILE_NAME_INFORMATION FileNameInfo;
 
     //
-    // Rule class.
+    // The policy of the rule.
     //
-    FG_RULE_CLASS RuleClass;
+    USHORT RulePolicy;
+
+    //
+    // The method of the rule matches to.
+    //
+    USHORT RuleMatch;
 
 } FG_FILE_CONTEXT, *PFG_FILE_CONTEXT;
+
+_Check_return_
+NTSTATUS
+FgCreateOrFindFileContext(
+    _In_ PFLT_FILE_NAME_INFORMATION FileNameInfo,
+    _In_ USHORT RulePolicy,
+    _In_ USHORT RuleMatch,
+    _Inout_opt_ BOOLEAN Created,
+    _Inout_ PFG_FILE_CONTEXT *FileContext
+);
 
 VOID
 FgCleanupFileContext(
@@ -154,11 +164,9 @@ typedef struct _FG_COMPLETION_CONTEXT {
     union _COMPLETION_CONTEXT_DATA {
 
         struct {
-
-            FG_RULE_CLASS RuleClass;
-
             PFLT_FILE_NAME_INFORMATION FileNameInfo;
-
+            USHORT RulePolicy;
+            USHORT RuleMatch;
         } Create;
 
     } DUMMYUNIONNAME;

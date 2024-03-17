@@ -334,6 +334,19 @@ Return Value:
     File context structure and routines.
 -------------------------------------------------------------*/
 
+_Check_return_
+NTSTATUS
+FgCreateOrFindFileContext(
+    _In_ PFLT_FILE_NAME_INFORMATION FileNameInfo,
+    _In_ USHORT RulePolicy,
+    _In_ USHORT RuleMatch,
+    _Inout_opt_ BOOLEAN Created,
+    _Inout_ PFG_FILE_CONTEXT* FileContext
+    )
+{
+
+}
+
 VOID
 FgCleanupFileContext(
     _In_ PFLT_CONTEXT Context,
@@ -346,7 +359,7 @@ FgCleanupFileContext(
 
     DBG_TRACE("Cleanup file context, address: '%p'", Context);
 
-    if (NULL != fileContext->NameInfo) {
-        FltReleaseFileNameInformation(InterlockedExchangePointer(&fileContext->NameInfo, NULL));
+    if (NULL != fileContext->FileNameInfo) {
+        FltReleaseFileNameInformation(InterlockedExchangePointer(&fileContext->FileNameInfo, NULL));
     }
 }
