@@ -44,9 +44,8 @@ typedef struct _FG_CORE_VERSION {
 typedef struct _FG_RULE {
     USHORT RulePolicy;
     USHORT RuleMatch;
-    USHORT FilePathNameSize;
-    USHORT VolumeNameSize;
-    WCHAR FilePathName[];
+    USHORT PathExpressionSize; // The bytes size of `FilePathName`, contain null wide char.
+    WCHAR PathExpression[];    // End of null.
 } FG_RULE, *PFG_RULE;
 
 //

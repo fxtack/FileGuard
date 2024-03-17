@@ -114,7 +114,7 @@ _Check_return_
 NTSTATUS
 FgAllocateUnicodeString(
     _In_ USHORT Size,
-    _Out_ PUNICODE_STRING String
+    _Out_ PUNICODE_STRING* String
 );
 
 #define FgFreeUnicodeString(_string_) FgFreeBuffer((_string_));

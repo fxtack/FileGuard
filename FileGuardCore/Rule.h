@@ -42,26 +42,23 @@ Environment:
 #define __RULE_H__
 
 typedef struct _FG_RULE_ENTRY {
+
+    LIST_ENTRY List;
     
     //
     // File path
     //
-    UNICODE_STRING FilePathIndex;
+    PUNICODE_STRING PathExpression;
 
     //
-    // Rule.
+    // The policy of the rule.
     //
-    PFG_RULE Rule;
+    USHORT RulePolicy;
 
     //
-    // Lock of stream contexts list.
+    // The method of the rule matches to.
     //
-    PKGUARDED_MUTEX StreamContextsListMutex;
-
-    //
-    // The list of stream contexts that matched with rule.
-    //
-    PLIST_ENTRY StreamContextsList;
+    USHORT RuleMatch;
 
 } FG_RULE_ENTRY, *PFG_RULE_ENTRY;
 
@@ -71,93 +68,60 @@ typedef struct _FG_RULE_ENTRY {
 
 _Check_return_
 NTSTATUS
-FgInitializeRuleEntry(
-    _In_ PFG_RULE Rule,
-    _Inout_ PFG_RULE_ENTRY RuleEntry
+FgAddRule(
+    _In_ PLIST_ENTRY List,
+    _In_ PEX_PUSH_LOCK Lock,
+    _In_ PFG_RULE Rule
+);
+
+_Check_return_
+NTSTATUS
+FgFindAndRemoveRule(
+    _In_ PLIST_ENTRY List,
+    _In_ PEX_PUSH_LOCK Lock,
+    _In_ PFG_RULE Rule
+);
+
+_Check_return_
+BOOLEAN
+FgMatchRule(
+    _In_ PLIST_ENTRY RuleList,
+    _In_ PEX_PUSH_LOCK ListLock,
+    _In_ PFLT_FILE_NAME_INFORMATION FileNameInfo
 );
 
 FORCEINLINE
 VOID
-FgDeleteRuleEntry(
+FgFreeRuleEntry(
     _In_ PFG_RULE_ENTRY RuleEntry
-    )
-{
+) {
     FLT_ASSERT(NULL != RuleEntry);
 
-    if (NULL != RuleEntry->Rule) {
-        FgFreeBuffer(RuleEntry->Rule);
+    if (NULL != RuleEntry->PathExpression) {
+        FgFreeUnicodeString(RuleEntry->PathExpression);
     }
 
-    if (NULL != RuleEntry->StreamContextsListMutex) {
-        FgFreeBuffer(RuleEntry->StreamContextsListMutex);
-    }
-
-    if (NULL != RuleEntry->StreamContextsList) {
-        FgFreeBuffer(RuleEntry->StreamContextsList);
-    }
+    FgFreeBuffer(RuleEntry);
 }
 
-/*-------------------------------------------------------------
-    Rule entry generic table routines
--------------------------------------------------------------*/
-
-RTL_GENERIC_COMPARE_RESULTS
-NTAPI
-FgRuleEntryCompareRoutine(
-    _In_ PRTL_GENERIC_TABLE Table,
-    _In_ PVOID LEntry,
-    _In_ PVOID REntry
-);
-
-PVOID 
-NTAPI 
-FgRuleEntryAllocateRoutine(
-    _In_ PRTL_GENERIC_TABLE Table,
-    _In_ CLONG Size
-);
-
-VOID 
-NTAPI 
-FgRuleEntryFreeRoutine(
-    _In_ PRTL_GENERIC_TABLE Table,
-    _In_ __drv_freesMem(Mem) _Post_invalid_ PVOID Entry
-);
-
-/*-------------------------------------------------------------
-    Rule entry generic table operation routines
--------------------------------------------------------------*/
-
-_Check_return_
-NTSTATUS
-FgAddRule(
-    _Inout_ PRTL_GENERIC_TABLE RuleTable,
+FORCEINLINE
+VOID
+FgCleanupRuleEntriesList(
     _In_ PEX_PUSH_LOCK Lock,
-    _In_ PFG_RULE Rule
-);
+    _In_ PLIST_ENTRY RuleEntriesList
+) {
+    PLIST_ENTRY entry = NULL;
+    PFG_RULE_ENTRY ruleEntry = NULL;
 
-_Check_return_
-NTSTATUS
-FgRemoveRule(
-    _Inout_ PRTL_GENERIC_TABLE RuleTable,
-    _In_ PEX_PUSH_LOCK Lock,
-    _In_ PFG_RULE Rule
-);
+    FltAcquirePushLockExclusive(Lock);
 
-_Check_return_
-NTSTATUS
-FgCleanupRules(
-    _In_ PRTL_GENERIC_TABLE Table,
-    _In_ PEX_PUSH_LOCK Lock,
-    _Out_opt_ ULONG* RulesRemoved
-);
+    while (!IsListEmpty(RuleEntriesList)) {
+        entry = RemoveHeadList(RuleEntriesList);
+        ruleEntry = CONTAINING_RECORD(entry, FG_RULE_ENTRY, List);
+        FgFreeRuleEntry(ruleEntry);
+    }
 
-_Check_return_
-NTSTATUS
-FgMatchRuleByFileName(
-    _In_ PRTL_GENERIC_TABLE Table,
-    _In_ PEX_PUSH_LOCK Lock,
-    _In_ PUNICODE_STRING FilePathIndex,
-    _Out_ FG_RULE_CLASS *MatchedRuleClass
-);
+    FltReleaseContext(Lock);
+}
 
 #endif
