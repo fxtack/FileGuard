@@ -125,7 +125,7 @@ typedef struct _FG_FILE_CONTEXT {
     //
     // The policy of the rule.
     //
-    USHORT RulePolicy;
+    ULONG RuleCode;
 
     //
     // The method of the rule matches to.
@@ -165,13 +165,21 @@ typedef struct _FG_COMPLETION_CONTEXT {
 
         struct {
             PFLT_FILE_NAME_INFORMATION FileNameInfo;
-            USHORT RulePolicy;
-            USHORT RuleMatch;
+            ULONG RuleCode;
         } Create;
 
     } DUMMYUNIONNAME;
 
 } FG_COMPLETION_CONTEXT, *PFG_COMPLETION_CONTEXT;
+
+_Check_return_
+NTSTATUS
+FgAllocateCompletionContext(
+    _In_ UCHAR MajorFunction,
+    _Inout_ PFG_COMPLETION_CONTEXT* CompletionContext
+);
+
+#define FgFreeCompletionContext(_context_) FgFreeBuffer((_context_));
 
 #pragma warning(pop)
 

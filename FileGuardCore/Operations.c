@@ -40,7 +40,7 @@ Environment:
 #include "Operations.h"
 
 FLT_PREOP_CALLBACK_STATUS
-FgPreCreateOperationCallback(
+FgPreCreateCallback(
     _Inout_ PFLT_CALLBACK_DATA Data,
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
     _Flt_CompletionContext_Outptr_ PVOID* CompletionContext
@@ -73,10 +73,6 @@ Return Value:
     PFLT_FILE_NAME_INFORMATION nameInfo = NULL;
     PFG_INSTANCE_CONTEXT instanceContext = NULL;
     PFG_COMPLETION_CONTEXT completionContext = NULL;
-    FG_RULE_CLASS matchedRuleClass = 0;
-
-    UNREFERENCED_PARAMETER(FltObjects);
-    UNREFERENCED_PARAMETER(CompletionContext);
 
     PAGED_CODE();
 
@@ -104,10 +100,8 @@ Return Value:
         DBG_ERROR("NTSTATUS: '0x%08x', parse file name information failed", status);
         goto Cleanup;
     }
-
-    //
+    
     // Ignore volume root directory operations.
-    //
     if (0 == nameInfo->FinalComponent.Length) {
         callbackStatus = FLT_PREOP_SUCCESS_NO_CALLBACK;
         goto Cleanup;
@@ -156,20 +150,19 @@ Return Value:
     //
     // Allocate and setup completion context.
     //
-    status = FgAllocateBuffer(&completionContext, POOL_FLAG_PAGED, sizeof(FG_COMPLETION_CONTEXT));
+    status = FgAllocateCompletionContext(Data->Iopb->MajorFunction, &completionContext);
     if (!NT_SUCCESS(status)) {
         DBG_ERROR("Error(0x%08x), allocate create callback context failed", status);
         goto Cleanup;
+
+    } else {
+
+        FltReferenceFileNameInformation(nameInfo);
+        completionContext->Create.FileNameInfo = nameInfo;
+
+        *CompletionContext = completionContext;
     }
-
-    completionContext->MajorFunction = Data->Iopb->MajorFunction;
-    completionContext->Create.RuleClass = matchedRuleClass;
-
-    FltReferenceFileNameInformation(nameInfo);
-    completionContext->Create.FileNameInfo = nameInfo;
-
-    *CompletionContext = completionContext;
-
+    
 Cleanup:
 
     if (!NT_SUCCESS(status)) {
@@ -189,7 +182,7 @@ Cleanup:
 }
 
 FLT_POSTOP_CALLBACK_STATUS
-FgPostCreateOperationCallback(
+FgPostCreateCallback(
     _Inout_ PFLT_CALLBACK_DATA Data,
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
     _In_opt_ PVOID CompletionContext,
@@ -223,45 +216,39 @@ Return Value:
 {
     NTSTATUS status = STATUS_SUCCESS;
     FLT_POSTOP_CALLBACK_STATUS callbackStatus = FLT_POSTOP_FINISHED_PROCESSING;
-    PFG_COMPLETION_CONTEXT completionContext = NULL;
-    PFLT_FILE_NAME_INFORMATION nameInfo = NULL;
+    PFG_COMPLETION_CONTEXT completionContext = CompletionContext;
+    PFLT_FILE_NAME_INFORMATION nameInfo = completionContext->Create.FileNameInfo;
     PFG_FILE_CONTEXT fileContext = NULL, oldFileContext = NULL;
-    FG_RULE_CLASS ruleClass = 0;
-
-    UNREFERENCED_PARAMETER(FltObjects);
 
     PAGED_CODE();
 
     FLT_ASSERT(NULL != Data);
     FLT_ASSERT(NULL != Data->Iopb);
     FLT_ASSERT(IRP_MJ_CREATE == Data->Iopb->MajorFunction);
+    FLT_ASSERT(NULL != completionContext);
+    FLT_ASSERT(NULL != nameInfo);
 
     if (FlagOn(Flags, FLTFL_POST_OPERATION_DRAINING)) {
+        LOG_WARNING("File '%wZ' operation draining", &nameInfo->Name);
         status = STATUS_DEVICE_REMOVED;
         goto Cleanup;
     }
-
-    FLT_ASSERT(NULL != CompletionContext);
-    completionContext = CompletionContext;
-    nameInfo = completionContext->Create.FileNameInfo;
-    ruleClass = completionContext->Create.RuleClass;
-
-    //
-    // We are only interested in successfully opened files.
-    // Only after the file is successfully opened can the stream context be set.
-    //
+    
     if (!NT_SUCCESS(Data->IoStatus.Status)) {
+        DBG_WARNING("File '%wZ' operation result status: 0x%08x",
+                    &nameInfo->Name,
+                    Data->IoStatus.Status);
         goto Cleanup;
     }
 
     status = FltGetFileContext(Data->Iopb->TargetInstance,
                                Data->Iopb->TargetFileObject, 
                                &fileContext);
-    if (STATUS_NOT_FOUND == status) {
+    if (!NT_SUCCESS(status) && STATUS_NOT_FOUND != status) {
+        DBG_ERROR("NTSTATUS: '0x%08x', get stream context failed", status);
+        goto Cleanup;
 
-        //
-        // Allocate and setup stream context.
-        //
+    } else if (STATUS_NOT_FOUND == status) {
 
         status = FltAllocateContext(Globals.Filter, 
                                     FLT_FILE_CONTEXT, 
@@ -271,46 +258,42 @@ Return Value:
         if (!NT_SUCCESS(status)) {
             DBG_ERROR("NTSTATUS: '0x%08x', allocate file context failed", status);
             goto Cleanup;
+        } else {
+            RtlZeroMemory(fileContext, sizeof(FG_FILE_CONTEXT));
         }
 
         status = FltSetFileContext(Data->Iopb->TargetInstance,
-                                     Data->Iopb->TargetFileObject,
-                                     FLT_SET_CONTEXT_KEEP_IF_EXISTS,
-                                     fileContext,
-                                     &oldFileContext);
+                                   Data->Iopb->TargetFileObject,
+                                   FLT_SET_CONTEXT_KEEP_IF_EXISTS,
+                                   fileContext,
+                                   &oldFileContext);
         if (!NT_SUCCESS(status) && STATUS_FLT_CONTEXT_ALREADY_DEFINED != status) {
             DBG_ERROR("NTSTATUS: '0x%08x', set file context failed", status);
             goto Cleanup;
+
+        } else if (STATUS_FLT_CONTEXT_ALREADY_DEFINED == status) {
+
+#ifdef DBG
+
+            DBG_TRACE("File context '%p' already defined for '%wZ'", oldFileContext, &nameInfo->Name);
+
+            if (oldFileContext->RuleCode != completionContext->Create.RuleCode) {
+                DBG_WARNING("File context '%p' rule updated from '%lu' to '%lu'", 
+                            oldFileContext, 
+                            oldFileContext->RuleCode,
+                            completionContext->Create.RuleCode);
+            }
+#endif
+
+            InterlockedExchange16(&oldFileContext->RuleCode, completionContext->Create.RuleCode);
+
+        } else {
+
+            DBG_TRACE("File context '%p' setup for file '%wZ'", fileContext, &nameInfo->Name);
+
+            FltReferenceFileNameInformation(nameInfo);
+            InterlockedExchangePointer(&fileContext->FileNameInfo, nameInfo);
         }
-        
-        FltReferenceFileNameInformation(nameInfo);
-        InterlockedExchangePointer(&fileContext->NameInfo, nameInfo);
-
-        DBG_TRACE("Set up file context for: '%wZ'", &nameInfo->Name);
-
-    } else if (STATUS_NOT_SUPPORTED == status) {
-
-        //
-        // Stream context not support for this file object.
-        // We don't consider protecting files that do not support stream context.
-        //
-
-        status = STATUS_SUCCESS;
-        goto Cleanup;
-    
-    } else if (!NT_SUCCESS(status)) {
-
-        DBG_ERROR("NTSTATUS: '0x%08x', get stream context failed", status);
-        goto Cleanup;
-    }
-    
-    if (STATUS_FLT_CONTEXT_ALREADY_DEFINED == status && NULL != oldFileContext) {
-
-        oldFileContext->RuleClass = ruleClass;
-
-    } else if (NULL != fileContext) {
-
-        fileContext->RuleClass = ruleClass;
     }
 
 Cleanup:
@@ -318,6 +301,10 @@ Cleanup:
     if (!NT_SUCCESS(status)) {
         FltCancelFileOpen(Data->Iopb->TargetInstance, Data->Iopb->TargetFileObject);
         SET_CALLBACK_DATA_STATUS(Data, status);
+    }
+
+    if (NULL != nameInfo) {
+        FltReleaseFileNameInformation(nameInfo);
     }
 
     if (NULL != fileContext) {
@@ -328,12 +315,8 @@ Cleanup:
         FltReleaseContext(oldFileContext);
     }
 
-    if (NULL != nameInfo) {
-        FltReleaseFileNameInformation(nameInfo);
-    }
-
     if (NULL != CompletionContext) {
-        FgFreeBuffer(CompletionContext);
+        FgFreeCompletionContext(CompletionContext);
     }
 
     return callbackStatus;

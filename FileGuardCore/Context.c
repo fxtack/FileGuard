@@ -363,3 +363,29 @@ FgCleanupFileContext(
         FltReleaseFileNameInformation(InterlockedExchangePointer(&fileContext->FileNameInfo, NULL));
     }
 }
+
+/*-------------------------------------------------------------
+    Callback context structure and routines
+-------------------------------------------------------------*/
+
+_Check_return_
+NTSTATUS
+FgAllocateCompletionContext(
+    _In_ UCHAR MajorFunction,
+    _Inout_ PFG_COMPLETION_CONTEXT* CompletionContext
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PFG_COMPLETION_CONTEXT completionContext = NULL;
+
+    status = FgAllocateBufferEx(&completionContext, 
+                                POOL_FLAG_PAGED, 
+                                sizeof(FG_COMPLETION_CONTEXT), 
+                                FG_COMPLETION_CONTEXT_PAGED_TAG);
+    if (NT_SUCCESS(status)) {
+        completionContext->MajorFunction = MajorFunction;
+        *CompletionContext = completionContext;
+    }
+
+    return status;
+}
