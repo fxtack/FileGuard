@@ -182,8 +182,7 @@ FgFindAndRemoveRule(
         ruleEntry = CONTAINING_RECORD(entry, FG_RULE_ENTRY, List);
 
         if (0 == RtlCompareUnicodeString(&pathExpression, ruleEntry->PathExpression, TRUE) &&
-            Rule->RulePolicy == ruleEntry->RulePolicy &&
-            Rule->RuleMatch == ruleEntry->RuleMatch) {
+            Rule->RuleCode == ruleEntry->RuleCode) {
 
             RemoveEntryList(entry);
             FgFreeRuleEntry(ruleEntry);

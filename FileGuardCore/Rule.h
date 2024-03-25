@@ -53,12 +53,7 @@ typedef struct _FG_RULE_ENTRY {
     //
     // The policy of the rule.
     //
-    USHORT RulePolicy;
-
-    //
-    // The method of the rule matches to.
-    //
-    USHORT RuleMatch;
+    ULONG RuleCode;
 
 } FG_RULE_ENTRY, *PFG_RULE_ENTRY;
 

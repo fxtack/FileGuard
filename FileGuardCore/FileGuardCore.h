@@ -79,6 +79,56 @@ Environment:
 #define FG_MONITOR_CONTEXT_PAGED_MEM_TAG  'FGmc'
 #define FG_RULE_ENTRY_NPAGED_MEM_TAG      'FGre'
 
+NTSTATUS
+FgUnload(
+    _In_ FLT_FILTER_UNLOAD_FLAGS Flags
+);
+
+NTSTATUS
+FgInstanceSetup(
+    _In_ PCFLT_RELATED_OBJECTS FltObjects,
+    _In_ FLT_INSTANCE_SETUP_FLAGS Flags,
+    _In_ DEVICE_TYPE VolumeDeviceType,
+    _In_ FLT_FILESYSTEM_TYPE VolumeFilesystemType
+);
+
+VOID
+FgInstanceTeardownStart(
+    _In_ PCFLT_RELATED_OBJECTS FltObjects,
+    _In_ FLT_INSTANCE_TEARDOWN_FLAGS Flags
+);
+
+VOID
+FgInstanceTeardownComplete(
+    _In_ PCFLT_RELATED_OBJECTS FltObjects,
+    _In_ FLT_INSTANCE_TEARDOWN_FLAGS Flags
+);
+
+NTSTATUS
+FgInstanceQueryTeardown(
+    _In_ PCFLT_RELATED_OBJECTS FltObjects,
+    _In_ FLT_INSTANCE_QUERY_TEARDOWN_FLAGS Flags
+);
+
+_Check_return_
+NTSTATUS
+FgSetConfiguration(
+    _In_ PUNICODE_STRING RegistryPath
+);
+
+EXTERN_C_END
+
+
+// Assign text sections for each routine.
+#ifdef ALLOC_PRAGMA
+#pragma alloc_text(PAGE, FgUnload)
+#pragma alloc_text(PAGE, FgInstanceQueryTeardown)
+#pragma alloc_text(PAGE, FgInstanceSetup)
+#pragma alloc_text(PAGE, FgInstanceTeardownStart)
+#pragma alloc_text(PAGE, FgInstanceTeardownComplete)
+#pragma alloc_text(PAGE, FgSetConfiguration)
+#endif
+
 //
 // Global variables.
 //

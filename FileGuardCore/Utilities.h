@@ -129,7 +129,6 @@ FgCreatePushLock(
     _Inout_ PEX_PUSH_LOCK *Lock
 );
 
-_Check_return_
 FORCEINLINE
 VOID
 FgReleasePushLock(

@@ -33,17 +33,17 @@ typedef struct _FG_CORE_VERSION {
     ULONG Build;
 } FG_CORE_VERSION, * PFG_CORE_VERSION;
 
-#define RULE_POLICY_UNKNOWN       ((USHORT)0x0000)
-#define RULE_POLICY_ACCESS_DENIED ((USHORT)0x0001)
-#define RULE_POLICY_READONLY      ((USHORT)0x0002)
-#define RULE_POLICY_HIDE          ((USHORT)0x0003)
+#define RULE_POLICY_UNKNOWN       ((ULONG)0x00000000)
+#define RULE_POLICY_ACCESS_DENIED ((ULONG)0x00000001)
+#define RULE_POLICY_READONLY      ((ULONG)0x00000002)
+#define RULE_POLICY_HIDE          ((ULONG)0x00000003)
 
-#define RULE_MATCH_PATH ((USHORT)0x0001)
-#define RULE_MATCH_NAME ((USHORT)0x0002)
+#define RULE_MATCH_UNKNOWN ((ULONG)0x00000000)
+#define RULE_MATCH_PATH    ((ULONG)0x00010000)
+#define RULE_MATCH_NAME    ((ULONG)0x00020000)
 
 typedef struct _FG_RULE {
-    USHORT RulePolicy;
-    USHORT RuleMatch;
+    ULONG RuleCode;
     USHORT PathExpressionSize; // The bytes size of `FilePathName`, contain null wide char.
     WCHAR PathExpression[];    // End of null.
 } FG_RULE, *PFG_RULE;

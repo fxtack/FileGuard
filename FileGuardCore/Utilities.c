@@ -169,10 +169,10 @@ Return value:
     //
     // Allocate resource by non-paged memory.
     //
-    status = (PEX_PUSH_LOCK)FgAllocateBufferEx(&lock,
-                                               POOL_FLAG_NON_PAGED,
-                                               sizeof(EX_PUSH_LOCK),
-                                               FG_PUSHLOCK_NON_PAGED_TAG);
+    status = FgAllocateBufferEx(&lock,
+                                POOL_FLAG_NON_PAGED,
+                                sizeof(EX_PUSH_LOCK),
+                                FG_PUSHLOCK_NON_PAGED_TAG);
     if (!NT_SUCCESS(status)) return status;
 
     //

@@ -42,7 +42,6 @@
     <ClCompile Include="Rule.c" />
     <ClCompile Include="Utilities.c" />
     <ResourceCompile Include="FileGuardCore.rc" />
-    <ClCompile Include="Driver.c" />
     <ClCompile Include="FileGuardCore.c" />
     <Inf Include="FileGuardCore.inf" />
   </ItemGroup>

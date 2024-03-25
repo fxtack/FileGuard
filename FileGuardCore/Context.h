@@ -125,12 +125,7 @@ typedef struct _FG_FILE_CONTEXT {
     //
     // The policy of the rule.
     //
-    ULONG RuleCode;
-
-    //
-    // The method of the rule matches to.
-    //
-    USHORT RuleMatch;
+    volatile ULONG RuleCode;
 
 } FG_FILE_CONTEXT, *PFG_FILE_CONTEXT;
 
@@ -167,6 +162,10 @@ typedef struct _FG_COMPLETION_CONTEXT {
             PFLT_FILE_NAME_INFORMATION FileNameInfo;
             ULONG RuleCode;
         } Create;
+
+        struct {
+            PFG_FILE_CONTEXT FileContext;
+        } SetInformation;
 
     } DUMMYUNIONNAME;
 

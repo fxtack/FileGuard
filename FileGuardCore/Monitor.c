@@ -72,9 +72,7 @@ Return Value:
     if (NULL == Rule) return STATUS_INVALID_PARAMETER_1;
     if (NULL == MonitorRecordEntry) return STATUS_INVALID_PARAMETER_2;
 
-    return FgAllocateBuffer(MonitorRecordEntry, 
-                            POOL_FLAG_PAGED, 
-                            sizeof(PFG_MONITOR_RECORD_ENTRY) + Rule->FilePathNameSize);
+    return FgAllocateBuffer(MonitorRecordEntry, sizeof(PFG_MONITOR_RECORD_ENTRY) + Rule->FilePathNameSize);
 }
 
 #pragma warning(pop)
@@ -159,9 +157,7 @@ Return Value:
     //
     // Allocate monitor records buffer as message body.
     //
-    status = FgAllocateBuffer(&context->MessageBody,
-                              POOL_FLAG_NON_PAGED,
-                              sizeof(FG_RECORDS_MESSAGE_BODY));
+    status = FgAllocateBuffer(&context->MessageBody, sizeof(FG_RECORDS_MESSAGE_BODY));
     if (!NT_SUCCESS(status)) {
         goto Cleanup;
     }
