@@ -73,10 +73,11 @@ Return Value:
     NTSTATUS status = STATUS_SUCCESS;
     FLT_PREOP_CALLBACK_STATUS callbackStatus = FLT_PREOP_SUCCESS_WITH_CALLBACK;
     PFLT_FILE_NAME_INFORMATION nameInfo = NULL;
-    PFG_INSTANCE_CONTEXT instanceContext = NULL;
     PFG_COMPLETION_CONTEXT completionContext = NULL;
 
     PAGED_CODE();
+
+    UNREFERENCED_PARAMETER(FltObjects);
 
     FLT_ASSERT(NULL != Data);
     FLT_ASSERT(NULL != Data->Iopb);
@@ -106,12 +107,6 @@ Return Value:
     // Ignore volume root directory operations.
     if (0 == nameInfo->FinalComponent.Length) {
         callbackStatus = FLT_PREOP_SUCCESS_NO_CALLBACK;
-        goto Cleanup;
-    }
-
-    status = FltGetInstanceContext(FltObjects->Instance, &instanceContext);
-    if (!NT_SUCCESS(status)) {
-        DBG_ERROR("NTSTATUS: '0x%08x', get instance context failed", status);
         goto Cleanup;
     }
     
@@ -174,10 +169,6 @@ Cleanup:
 
     if (NULL != nameInfo) {
         FltReleaseFileNameInformation(nameInfo);
-    }
-
-    if (NULL != instanceContext) {
-        FltReleaseContext(instanceContext);
     }
 
     return callbackStatus;

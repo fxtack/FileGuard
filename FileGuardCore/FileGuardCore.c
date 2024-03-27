@@ -391,12 +391,13 @@ Return Value:
 --*/
 {
     NTSTATUS status = STATUS_SUCCESS;
-    PFG_INSTANCE_CONTEXT instanceContext = NULL;
+    ULONG volumeNameSize = 0ul;
+    PUNICODE_STRING volumeName = NULL;
+
+    PAGED_CODE();
 
     UNREFERENCED_PARAMETER(Flags);
     UNREFERENCED_PARAMETER(VolumeDeviceType);
-
-    PAGED_CODE();
 
     LOG_INFO("Start setup a instance for the volume");
 
@@ -406,36 +407,30 @@ Return Value:
         goto Cleanup;
     }
 
-    //
-    // Allocate instance context.
-    //
-    status = FgCreateInstanceContext(FltObjects->Filter,
-                                     FltObjects->Volume,
-                                     FltObjects->Instance,
-                                     &instanceContext);
+    status = FltGetVolumeName(FltObjects->Volume, NULL, &volumeNameSize);
+    if (!NT_SUCCESS(status) && STATUS_BUFFER_TOO_SMALL != status) {
+        LOG_ERROR("NTSTATUS: 0x%08x, get volume name suze failed", status);
+        goto Cleanup;
+    }
+    
+    status = FgAllocateUnicodeString((USHORT)volumeNameSize, &volumeName);
     if (!NT_SUCCESS(status)) {
-        DBG_ERROR("NTSTATUS: '0x%08x', allocate instance context failed", status);
+        LOG_ERROR("NTSTATUS: 0x%08x, allocate volume name string failed", status);
+        goto Cleanup;
+    }
+    
+    status = FltGetVolumeName(FltObjects->Volume, volumeName, NULL);
+    if (!NT_SUCCESS(status)) {
+        LOG_ERROR("NTSTATUS: 0x%08x, get volume name failed", status);
         goto Cleanup;
     }
 
-    //
-    // Set instance context to volume instance.
-    //
-    status = FgSetInstanceContext(FltObjects->Instance,
-                                  FLT_SET_CONTEXT_KEEP_IF_EXISTS,
-                                  instanceContext,
-                                  NULL);
-    if (!NT_SUCCESS(status)) {
-        DBG_ERROR("NTSTATUS: '0x%08x', set instance context failed", status);
-        goto Cleanup;
-    }
-
-    LOG_INFO("Instance setup for volume '%wZ' finish", instanceContext->VolumeName);
+    LOG_INFO("Setup instance for volume: '%wZ'", volumeName);
 
 Cleanup:
 
-    if (NULL != instanceContext) {
-        FltReleaseContext(instanceContext);
+    if (NULL != volumeName) {
+        FgFreeUnicodeString(volumeName);
     }
 
     return status;
