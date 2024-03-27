@@ -100,13 +100,14 @@ FgFreeRuleEntry(
 }
 
 FORCEINLINE
-VOID
+ULONG
 FgCleanupRuleEntriesList(
     _In_ PEX_PUSH_LOCK Lock,
     _In_ PLIST_ENTRY RuleEntriesList
 ) {
     PLIST_ENTRY entry = NULL;
     PFG_RULE_ENTRY ruleEntry = NULL;
+    ULONG clean = 0ul;
 
     FltAcquirePushLockExclusive(Lock);
 
@@ -114,9 +115,12 @@ FgCleanupRuleEntriesList(
         entry = RemoveHeadList(RuleEntriesList);
         ruleEntry = CONTAINING_RECORD(entry, FG_RULE_ENTRY, List);
         FgFreeRuleEntry(ruleEntry);
+        clean++;
     }
 
     FltReleaseContext(Lock);
+
+    return clean;
 }
 
 #endif

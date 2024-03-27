@@ -140,9 +140,6 @@ FgCoreControlMessageNotifyCallback(
     FG_MESSAGE_TYPE commandType = 0;
     PFG_MESSAGE message = NULL;
     PFG_MESSAGE_RESULT result = NULL;
-    UNICODE_STRING volumeName = { 0 };
-    ULONG removedRules;
-    PFG_INSTANCE_CONTEXT instanceContext = NULL;
 
     UNREFERENCED_PARAMETER(ConnectionCookie);
 
@@ -176,37 +173,7 @@ FgCoreControlMessageNotifyCallback(
         // Add or remove a rule.
         //
 
-        if (NULL == Input) return STATUS_INVALID_PARAMETER_2;
-        if (InputSize <= sizeof(FG_MESSAGE)) return STATUS_INVALID_PARAMETER_3;
-
-        volumeName.Buffer = message->SingleRule.FilePathName;
-        volumeName.Length = message->SingleRule.VolumeNameSize;
-        volumeName.MaximumLength = message->SingleRule.VolumeNameSize;
-
-        status = FgGetInstanceContextFromVolumeName(&volumeName, &instanceContext);
-        if (!NT_SUCCESS(status)) {
-            LOG_ERROR("NTSTATUS: '0x%08x', get instance context from volume name", status);
-            break;
-        }
-
-        if (commandType == AddRule) {
-
-            status = FgAddRule(&instanceContext->RulesTable,
-                                      instanceContext->RulesTableLock,
-                                      &message->SingleRule);
-            if (!NT_SUCCESS(status)) {
-                LOG_ERROR("NTSTATUS: '0x%08x', add rule failed", status);
-            }
-
-        } else {
-
-            status = FgRemoveRule(&instanceContext->RulesTable,
-                                           instanceContext->RulesTableLock,
-                                           &message->SingleRule);
-            if (!NT_SUCCESS(status)) {
-                LOG_ERROR("NTSTATUS: '0x%08x', remove rule failed", status);
-            }
-        }
+        status = STATUS_NOT_IMPLEMENTED;
         break;
 
     case CleanupVolumeRules:
@@ -220,25 +187,7 @@ FgCoreControlMessageNotifyCallback(
         if (NULL == Output) return STATUS_INVALID_PARAMETER_4;
         if (OutputSize < sizeof(FG_MESSAGE_RESULT)) return STATUS_INVALID_PARAMETER_5;
         
-        if (0 == message->Volume.VolumeNameSize || NULL == message->Volume.VolumeName) {
-
-            DBG_TRACE("Volume name required for cleanup rules");
-            return STATUS_INVALID_PARAMETER;
-
-        } else {
-
-            //
-            // Cleanr all rules in an isntance rule table.
-            //
-            volumeName.Buffer = message->Volume.VolumeName;
-            volumeName.MaximumLength = message->Volume.VolumeNameSize;
-            volumeName.Length = message->Volume.VolumeNameSize;
-
-            status = FgProcessingCleanupRulesMessage(&volumeName, &removedRules);
-            if (!NT_SUCCESS(status)) {
-                LOG_ERROR("NTSTATUS: '0x%08x', cleanup rules for volume '%wZ' instance failed", status, &volumeName);
-            }
-        }
+        result->RulesRemoved = FgCleanupRuleEntriesList(Globals.RulesListLock, &Globals.RulesList);
         break;
 
     default:
@@ -251,46 +200,6 @@ FgCoreControlMessageNotifyCallback(
     *ReturnSize = sizeof(FG_MESSAGE_RESULT) + variableSize;
 
     return STATUS_SUCCESS;
-}
-
-NTSTATUS
-FgProcessingCleanupRulesMessage(
-    _In_ PUNICODE_STRING VolumeName,
-    _Outptr_ ULONG *RulesRemoved
-    )
-{
-    NTSTATUS status = STATUS_SUCCESS;
-    PFG_INSTANCE_CONTEXT instanceContext = NULL;
-    ULONG rulesRemoved = 0ul;
-
-    if (NULL == VolumeName) return STATUS_INVALID_PARAMETER_1;
-    if (NULL == RulesRemoved) return STATUS_INVALID_PARAMETER_2;
-
-    *RulesRemoved = 0ul;
-
-    status = FgGetInstanceContextFromVolumeName(VolumeName, &instanceContext);
-    if (!NT_SUCCESS(status)) {
-        LOG_ERROR("NTSTATUS: '0x%08x', get instance context from '%wZ' failed", status, VolumeName);
-        goto Cleanup;
-    }
-
-    status = FgCleanupRules(&instanceContext->RulesTable, 
-                            instanceContext->RulesTableLock, 
-                            &rulesRemoved);
-    if (!NT_SUCCESS(status)) {
-        LOG_ERROR("NTSTATUS: '0x%08x', cleanup rules from '%wZ' volume instance failed", status, VolumeName);
-        goto Cleanup;
-    }
-
-    *RulesRemoved = rulesRemoved;
-
-Cleanup:
-
-    if (NULL != instanceContext) {
-        FltReleaseContext(instanceContext);
-    }
-
-    return status;
 }
 
 /*-------------------------------------------------------------

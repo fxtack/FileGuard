@@ -54,11 +54,11 @@ typedef struct _FG_RULE {
 typedef struct _FG_MESSAGE {
     FG_MESSAGE_TYPE Type;
     union {
-        FG_RULE SingleRule;
         struct {
-            USHORT VolumeNameSize;
-            WCHAR VolumeName[];
-        } Volume;
+            USHORT RulesNumber;
+            USHORT RulesSize;
+            UCHAR Rules[];
+        } DUMMYSTRUCTNAME;
     } DUMMYUNIONNAME;
 } FG_MESSAGE, *PFG_MESSAGE;
 
@@ -69,7 +69,7 @@ typedef struct _FG_MESSAGE_RESULT {
     NTSTATUS Status;
     union {
         FG_CORE_VERSION CoreVersion;
-        ULONG RemovedRules;
+        ULONG RulesRemoved;
     } DUMMYUNIONNAME;
 } FG_MESSAGE_RESULT, *PFG_MESSAGE_RESULT;
 

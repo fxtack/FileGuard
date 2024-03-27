@@ -63,7 +63,16 @@ CONST FLT_OPERATION_REGISTRATION FgOperationCallbacks[] = {
     { IRP_MJ_OPERATION_END }
 };
 
-extern const FLT_CONTEXT_REGISTRATION FgContextRegistration[];
+const FLT_CONTEXT_REGISTRATION FgContextRegistration[] = {
+
+    { FLT_FILE_CONTEXT,
+      0,
+      FgCleanupFileContext,
+      sizeof(FG_FILE_CONTEXT),
+      FG_FILE_CONTEXT_PAGED_MEM_TAG },
+
+    { FLT_CONTEXT_END }
+};
 
 //
 //  This defines what we want to filter with FltMgr
@@ -133,8 +142,9 @@ DriverEntry(
         //
         // Intialize instance context list and lock.
         //
-        InitializeListHead(&Globals.InstanceContextList);
-        ExInitializeFastMutex(&Globals.InstanceContextListMutex);
+
+        InitializeListHead(&Globals.RulesList);
+        FgCreatePushLock(&Globals.RulesListLock);
 
         InitializeListHead(&Globals.MonitorRecordsQueue);
         KeInitializeSpinLock(&Globals.MonitorRecordsQueueLock);
@@ -312,6 +322,10 @@ FgUnload(
     if (NULL != Globals.MonitorClientPort) {
         FltCloseClientPort(Globals.Filter, &Globals.MonitorClientPort);
         Globals.MonitorClientPort = NULL;
+    }
+
+    if (NULL != Globals.RulesListLock) {
+        FgFreePushLock(Globals.RulesListLock);
     }
 
     DBG_TRACE("Communication port closed");

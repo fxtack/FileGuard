@@ -134,28 +134,26 @@ EXTERN_C_END
 //
 typedef struct _FG_CORE_GLOBALS {
 
-    PFLT_FILTER Filter;            // Filter instances.
-
-    PFLT_PORT   ControlCorePort;   // Communication port exported for CannotAdmin.
-    PFLT_PORT   ControlClientPort; // Communication port that CannotAdmin connecting to.
-
-    PFLT_PORT   MonitorClientPort; // Monitor client port.
-    PFLT_PORT   MonitorCorePort;   // Monitor core port.
-
-    PFG_MONITOR_CONTEXT MonitorContext;
-    PETHREAD            MonitorThreadObject;
-
     ULONG LogLevel;
 
+    PFLT_FILTER Filter;            // Filter instances.
+
+    LIST_ENTRY RulesList;
+    PEX_PUSH_LOCK RulesListLock;
+
+    PFLT_PORT ControlCorePort;   // Communication port exported for CannotAdmin.
+    PFLT_PORT ControlClientPort; // Communication port that CannotAdmin connecting to.
+
+    PFLT_PORT MonitorClientPort; // Monitor client port.
+    PFLT_PORT MonitorCorePort;   // Monitor core port.
+    PFG_MONITOR_CONTEXT MonitorContext;
+    PETHREAD MonitorThreadObject;
     LIST_ENTRY MonitorRecordsQueue;
     KSPIN_LOCK MonitorRecordsQueueLock;
 
     ULONG MaxRuleEntriesAllocated;             // Maximum of rule entries that can be allocated.
     __volatile ULONG RuleEntriesAllocated;     // Amount of rule entries allocated.
     NPAGED_LOOKASIDE_LIST RuleEntryMemoryPool; // Memory pool of rule entry.
-    
-    LIST_ENTRY InstanceContextList;            // Instance context list.
-    FAST_MUTEX InstanceContextListMutex;       // Instance context list lock.
 
 } FG_CORE_GLOBALS, *PFG_CORE_GLOBALS;
 

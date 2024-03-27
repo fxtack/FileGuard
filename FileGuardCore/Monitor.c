@@ -72,7 +72,7 @@ Return Value:
     if (NULL == Rule) return STATUS_INVALID_PARAMETER_1;
     if (NULL == MonitorRecordEntry) return STATUS_INVALID_PARAMETER_2;
 
-    return FgAllocateBuffer(MonitorRecordEntry, sizeof(PFG_MONITOR_RECORD_ENTRY) + Rule->FilePathNameSize);
+    return FgAllocateBuffer(MonitorRecordEntry, sizeof(PFG_MONITOR_RECORD_ENTRY) + Rule->PathExpressionSize);
 }
 
 #pragma warning(pop)
@@ -337,7 +337,7 @@ FgGetRecords(
 
         listEntry = RemoveHeadList(List);
         recordEntry = CONTAINING_RECORD(listEntry, FG_MONITOR_RECORD_ENTRY, List);
-        writeSize = sizeof(FG_MONITOR_RECORD) + recordEntry->Record.Rule.FilePathNameSize;
+        writeSize = sizeof(FG_MONITOR_RECORD) + recordEntry->Record.Rule.PathExpressionSize;
 
         if (OutputBufferSize < writeSize) {
             InsertHeadList(List, listEntry);

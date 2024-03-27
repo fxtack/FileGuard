@@ -39,20 +39,6 @@ Environment:
 #include "FileGuardCore.h"
 #include "Context.h"
 
-//
-// Context registrations.
-//
-const FLT_CONTEXT_REGISTRATION FgCoreContextRegistration[] = {
-
-    { FLT_FILE_CONTEXT,
-      0,
-      FgCleanupFileContext,
-      sizeof(FG_FILE_CONTEXT),
-      FG_FILE_CONTEXT_PAGED_MEM_TAG },
-
-    { FLT_CONTEXT_END }
-};
-
 /*-------------------------------------------------------------
     File context structure and routines.
 -------------------------------------------------------------*/

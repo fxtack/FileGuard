@@ -131,7 +131,7 @@ FgCreatePushLock(
 
 FORCEINLINE
 VOID
-FgReleasePushLock(
+FgFreePushLock(
     _Inout_ PEX_PUSH_LOCK Lock
     )
 {
