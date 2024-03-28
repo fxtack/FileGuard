@@ -39,11 +39,6 @@ Environment:
 #ifndef __FG_CORE_H__
 #define __FG_CORE_H__
 
-//
-// Configure the generic table routines to use AVL trees.
-//
-#define RTL_USE_AVL_TABLES 0 
-
 #include <fltKernel.h>
 #include <ntddk.h>
 #include <dontuse.h>

@@ -79,8 +79,12 @@ Return Value:
     if (NULL == Buffer) return STATUS_INVALID_PARAMETER_1;
     if (0 == Size) return STATUS_INVALID_PARAMETER_2;
 
+    *Buffer = NULL;
+
     buffer = ExAllocatePool2(Flags, Size, Tag);
     if (NULL == buffer) status = STATUS_INSUFFICIENT_RESOURCES;
+
+    *Buffer = buffer;
 
     return status;
 }

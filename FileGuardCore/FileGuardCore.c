@@ -124,7 +124,7 @@ DriverEntry(
     GLobals.LogLevel = LOG_LEVEL_DEFAULT;
 #endif
 
-    LOG_INFO("Start to load FileGuardCore driver, version: v%d.%d.%d.%d ",
+    LOG_INFO("Start to load FileGuardCore driver, version: v%d.%d.%d.%d",
         FG_CORE_VERSION_MAJOR, FG_CORE_VERSION_MINOR, FG_CORE_VERSION_PATCH, FG_CORE_VERSION_BUILD);
 
     // Register with FltMgr to tell it our callback routines
@@ -223,8 +223,8 @@ DriverEntry(
         //
 
         status = FgCreateMonitorStartContext(Globals.Filter,
-            &Globals.MonitorRecordsQueue,
-            &monitorContext);
+                                             &Globals.MonitorRecordsQueue,
+                                             &monitorContext);
         if (!NT_SUCCESS(status) || NULL == monitorContext) {
             DBG_ERROR("NTSTATUS: '0x%08x', create monitor start context failed", status);
             leave;
@@ -259,9 +259,6 @@ DriverEntry(
 
     } finally {
 
-        if (NULL != securityDescriptor)
-            FltFreeSecurityDescriptor(securityDescriptor);
-
         if (!NT_SUCCESS(status)) {
 
             LOG_ERROR("NTSTATUS: '0x%08x', driver loading failed", status);
@@ -287,10 +284,11 @@ DriverEntry(
 
             ExDeleteNPagedLookasideList(&Globals.RuleEntryMemoryPool);
 
-        } else {
+        } 
 
-            LOG_INFO("Driver loaded successfully");
-        }
+        if (NULL != securityDescriptor) FltFreeSecurityDescriptor(securityDescriptor);
+
+        LOG_INFO("Driver loaded successfully");
     }
 
     return status;
@@ -311,24 +309,19 @@ FgUnload(
 
     if (NULL != Globals.ControlCorePort) {
         FltCloseCommunicationPort(Globals.ControlCorePort);
-        Globals.ControlCorePort = NULL;
     }
 
     if (NULL != Globals.MonitorCorePort) {
         FltCloseCommunicationPort(Globals.MonitorCorePort);
-        Globals.MonitorCorePort = NULL;
     }
 
     if (NULL != Globals.MonitorClientPort) {
         FltCloseClientPort(Globals.Filter, &Globals.MonitorClientPort);
-        Globals.MonitorClientPort = NULL;
     }
 
     if (NULL != Globals.RulesListLock) {
         FgFreePushLock(Globals.RulesListLock);
     }
-
-    DBG_TRACE("Communication port closed");
 
     if (NULL != Globals.Filter) {
         FltUnregisterFilter(Globals.Filter);
@@ -351,24 +344,23 @@ FgUnload(
         monitorTerminateTimeout.QuadPart = -1000000;
 
         status = KeWaitForSingleObject(Globals.MonitorThreadObject,
-            Executive,
-            KernelMode,
-            FALSE,
-            &monitorTerminateTimeout);
+                                       Executive,
+                                       KernelMode,
+                                       FALSE,
+                                       &monitorTerminateTimeout);
         if (STATUS_TIMEOUT == status) {
             LOG_WARNING("Wait monitor thread terminate timeout");
             status = STATUS_SUCCESS;
         }
 
         ObDereferenceObject(Globals.MonitorThreadObject);
-        Globals.MonitorThreadObject = NULL;
     }
 
     FgFreeMonitorStartContext(Globals.MonitorContext);
 
     ExDeleteNPagedLookasideList(&Globals.RuleEntryMemoryPool);
 
-    LOG_INFO("Unload driver finish");
+    LOG_INFO("Unload driver successfully");
 
     return status;
 }
