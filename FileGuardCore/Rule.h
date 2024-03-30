@@ -78,11 +78,11 @@ FgFindAndRemoveRule(
 );
 
 _Check_return_
-BOOLEAN
+ULONG
 FgMatchRule(
     _In_ PLIST_ENTRY RuleList,
     _In_ PEX_PUSH_LOCK ListLock,
-    _In_ PFLT_FILE_NAME_INFORMATION FileNameInfo
+    _In_ PUNICODE_STRING FileDevicePathName
 );
 
 FORCEINLINE
@@ -93,10 +93,12 @@ FgFreeRuleEntry(
     FLT_ASSERT(NULL != RuleEntry);
 
     if (NULL != RuleEntry->PathExpression) {
-        FgFreeUnicodeString(RuleEntry->PathExpression);
+        FgFreeUnicodeString(InterlockedExchangePointer(&RuleEntry->PathExpression, NULL));
     }
 
-    FgFreeBuffer(RuleEntry);
+    if (NULL != RuleEntry) {
+        FgFreeBuffer(RuleEntry);
+    }
 }
 
 FORCEINLINE

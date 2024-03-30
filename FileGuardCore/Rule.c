@@ -195,20 +195,21 @@ FgFindAndRemoveRule(
 }
 
 _Check_return_
-BOOLEAN
+ULONG
 FgMatchRule(
     _In_ PLIST_ENTRY RuleList,
     _In_ PEX_PUSH_LOCK ListLock,
-    _In_ PFLT_FILE_NAME_INFORMATION FileNameInfo
+    _In_ PUNICODE_STRING FileDevicePathName
     )
 {
     BOOLEAN matched = FALSE;
     PLIST_ENTRY entry = NULL, next = NULL;
     PFG_RULE_ENTRY ruleEntry = NULL;
+    ULONG ruleCode = 0ul;
 
     FLT_ASSERT(NULL != RuleList);
     FLT_ASSERT(NULL != ListLock);
-    FLT_ASSERT(NULL != FileNameInfo);
+    FLT_ASSERT(NULL != FileDevicePathName);
 
     PAGED_CODE();
 
@@ -218,13 +219,16 @@ FgMatchRule(
 
         ruleEntry = CONTAINING_RECORD(entry, FG_RULE_ENTRY, List);
         matched = FsRtlIsNameInExpression(ruleEntry->PathExpression, 
-                                          &FileNameInfo->Name, 
-                                          FALSE, 
+                                          FileDevicePathName,
+                                          TRUE,
                                           NULL);
-        if (matched) break;
+        if (matched) {
+            ruleCode = ruleEntry->RuleCode;
+            break;
+        }
     }
 
     FltReleasePushLock(ListLock);
 
-    return matched;
+    return ruleCode;
 }

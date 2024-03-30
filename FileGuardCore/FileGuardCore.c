@@ -58,7 +58,7 @@ CONST FLT_OPERATION_REGISTRATION FgOperationCallbacks[] = {
     { IRP_MJ_SET_INFORMATION,
       0,
       FgPreSetInformationCallback,
-      FgPostSetInformationCallback },
+      NULL },
 
     { IRP_MJ_OPERATION_END }
 };
