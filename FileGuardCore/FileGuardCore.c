@@ -60,6 +60,11 @@ CONST FLT_OPERATION_REGISTRATION FgOperationCallbacks[] = {
       FgPreSetInformationCallback,
       NULL },
 
+    { IRP_MJ_FILE_SYSTEM_CONTROL,
+      0,
+      FgPreFileSystemControlCallback,
+      NULL },
+
     { IRP_MJ_OPERATION_END }
 };
 

@@ -513,3 +513,88 @@ Cleanup:
 
     return callbackStatus;
 }
+
+FLT_PREOP_CALLBACK_STATUS
+FgPreFileSystemControlCallback(
+    _Inout_ PFLT_CALLBACK_DATA Data,
+    _In_ PCFLT_RELATED_OBJECTS FltObjects,
+    _Flt_CompletionContext_Outptr_ PVOID* CompletionContext
+)
+/*++
+
+Routine Description:
+
+    This routine is a pre-operation dispatch routine for 'IRP_MJ_FILE_SYSTEM_CONTROL'.
+
+    This is non-pageable because it could be called on the paging path
+
+Arguments:
+
+    Data              - Pointer to the filter callbackData that is passed to us.
+
+    FltObjects        - Pointer to the FLT_RELATED_OBJECTS data structure containing
+                        opaque handles to this filter, instance, its associated volume and
+                        file object.
+
+    CompletionContext - The context for the completion routine for this
+                        operation.
+
+Return Value:
+
+    The return value is the status of the operation.
+
+--*/
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    FLT_PREOP_CALLBACK_STATUS callbackStatus = FLT_PREOP_SUCCESS_NO_CALLBACK;
+    PFG_FILE_CONTEXT fileContext = NULL;
+    ULONG fsctlCode = 0ul;
+
+    UNREFERENCED_PARAMETER(CompletionContext);
+
+    FLT_ASSERT(NULL != Data);
+    FLT_ASSERT(NULL != Data->Iopb);
+    FLT_ASSERT(IRP_MJ_FILE_SYSTEM_CONTROL == Data->Iopb->MajorFunction);
+
+    //
+    // Get stream context.
+    //
+    status = FltGetFileContext(FltObjects->Instance, FltObjects->FileObject, &fileContext);
+    if (!NT_SUCCESS(status)) {
+        LOG_ERROR("NTSTATUS: 0x%08x, get file context failed", status);
+        goto Cleanup;
+    }
+
+    fsctlCode = Data->Iopb->Parameters.FileSystemControl.Common.FsControlCode;
+    switch (fsctlCode) {
+    case FSCTL_SET_SPARSE:
+    case FSCTL_SET_REPARSE_POINT:
+    case FSCTL_SET_REPARSE_POINT_EX:
+    case FSCTL_DELETE_REPARSE_POINT:
+
+        switch (fileContext->RuleCode) {
+        case RULE_ACCESS_DENIED:
+            SET_CALLBACK_DATA_STATUS(Data, STATUS_ACCESS_DENIED);
+            callbackStatus = FLT_PREOP_COMPLETE;
+            break;
+
+        case RULE_READONLY:
+            SET_CALLBACK_DATA_STATUS(Data, STATUS_MEDIA_WRITE_PROTECTED);
+            callbackStatus = FLT_PREOP_COMPLETE;
+            break;
+        }
+    }
+
+Cleanup:
+
+    if (!NT_SUCCESS(status)) {
+        SET_CALLBACK_DATA_STATUS(Data, status);
+        callbackStatus = FLT_PREOP_COMPLETE;
+    }
+
+    if (NULL != fileContext) {
+        FltReleaseContext(fileContext);
+    }
+
+    return callbackStatus;
+}
