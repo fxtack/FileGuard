@@ -344,8 +344,12 @@ Return Value:
     // Get file context.
     //
     status = FltGetFileContext(Data->Iopb->TargetInstance, Data->Iopb->TargetFileObject, &fileContext);
-    if (!NT_SUCCESS(status)) {
+    if (!NT_SUCCESS(status) && STATUS_NOT_FOUND != status) {
         LOG_ERROR("NTSTATUS: '0x%08x', get file context", status);
+        goto Cleanup;
+
+    } else if (STATUS_NOT_FOUND == status) {
+        status = STATUS_SUCCESS;
         goto Cleanup;
     }
 
@@ -423,10 +427,14 @@ Return Value:
     // Get stream context.
     //
     status = FltGetFileContext(FltObjects->Instance, FltObjects->FileObject, &fileContext);
-    if (!NT_SUCCESS(status)) {
+    if (!NT_SUCCESS(status) && STATUS_NOT_FOUND != status) {
         LOG_ERROR("NTSTATUS: 0x%08x, get file context failed", status);
         goto Cleanup;
-    } 
+
+    } else if (STATUS_NOT_FOUND != status) {
+        status = STATUS_SUCCESS;
+        goto Cleanup;
+    }
 
     switch (Data->Iopb->Parameters.SetFileInformation.FileInformationClass) {
     case FileRenameInformation:
@@ -560,8 +568,12 @@ Return Value:
     // Get stream context.
     //
     status = FltGetFileContext(FltObjects->Instance, FltObjects->FileObject, &fileContext);
-    if (!NT_SUCCESS(status)) {
+    if (!NT_SUCCESS(status) && STATUS_NOT_FOUND != status) {
         LOG_ERROR("NTSTATUS: 0x%08x, get file context failed", status);
+        goto Cleanup;
+
+    } else if (STATUS_NOT_FOUND == status) {
+        status = STATUS_SUCCESS;
         goto Cleanup;
     }
 
