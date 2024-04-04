@@ -187,7 +187,7 @@ FgCoreControlMessageNotifyCallback(
         if (NULL == Output) return STATUS_INVALID_PARAMETER_4;
         if (OutputSize < sizeof(FG_MESSAGE_RESULT)) return STATUS_INVALID_PARAMETER_5;
         
-        result->RulesRemoved = FgCleanupRuleEntriesList(Globals.RulesListLock, &Globals.RulesList);
+        result->RulesAmount = FgCleanupRuleEntriesList(Globals.RulesListLock, &Globals.RulesList);
         break;
 
     default:

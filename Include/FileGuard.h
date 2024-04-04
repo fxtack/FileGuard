@@ -53,7 +53,7 @@ typedef struct _FG_MESSAGE {
     union {
         struct {
             USHORT RulesNumber;
-            USHORT RulesSize;
+            ULONG RulesSize;
             UCHAR Rules[];
         } DUMMYSTRUCTNAME;
     } DUMMYUNIONNAME;
@@ -66,7 +66,7 @@ typedef struct _FG_MESSAGE_RESULT {
     NTSTATUS Status;
     union {
         FG_CORE_VERSION CoreVersion;
-        ULONG RulesRemoved;
+        ULONG RulesAmount;
     } DUMMYUNIONNAME;
 } FG_MESSAGE_RESULT, *PFG_MESSAGE_RESULT;
 

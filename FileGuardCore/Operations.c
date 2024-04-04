@@ -118,9 +118,7 @@ Return Value:
             callbackStatus = FLT_PREOP_COMPLETE;
             goto Cleanup;
         }
-
     } except(EXCEPTION_EXECUTE_HANDLER) {
-
         status = GetExceptionCode();
         LOG_ERROR("NTSTATUS: 0x%08x, an exception occurred while matching the rules", status);
         goto Cleanup;
@@ -135,11 +133,9 @@ Return Value:
         goto Cleanup;
 
     } else {
-
         FltReferenceFileNameInformation(nameInfo);
         completionContext->Create.FileNameInfo = nameInfo;
         completionContext->Create.RuleCode = ruleCode;
-
         *CompletionContext = completionContext;
     }
     
@@ -219,6 +215,9 @@ Return Value:
         goto Cleanup;
     }
 
+    //
+    // Get or setup file context for file.
+    //
     status = FltGetFileContext(Data->Iopb->TargetInstance, Data->Iopb->TargetFileObject, &fileContext);
     if (!NT_SUCCESS(status) && STATUS_NOT_FOUND != status) {
         DBG_ERROR("NTSTATUS: '0x%08x', get file context failed", status);
@@ -441,13 +440,13 @@ Return Value:
     case FileRenameInformationEx:
 
         switch (fileContext->RuleCode) {
-        case RULE_READONLY:
-            SET_CALLBACK_DATA_STATUS(Data, STATUS_MEDIA_WRITE_PROTECTED);
+        case RULE_ACCESS_DENIED:
+            SET_CALLBACK_DATA_STATUS(Data, STATUS_ACCESS_DENIED);
             callbackStatus = FLT_PREOP_COMPLETE;
             break;
 
-        case RULE_ACCESS_DENIED:
-            SET_CALLBACK_DATA_STATUS(Data, STATUS_ACCESS_DENIED);
+        case RULE_READONLY:
+            SET_CALLBACK_DATA_STATUS(Data, STATUS_MEDIA_WRITE_PROTECTED);
             callbackStatus = FLT_PREOP_COMPLETE;
             break;
         }
@@ -468,19 +467,17 @@ Return Value:
         try {
             ruleCode = FgMatchRule(&Globals.RulesList, Globals.RulesListLock, &renameNameInfo->Name);
             switch (ruleCode) {
-            case RULE_READONLY:
-                SET_CALLBACK_DATA_STATUS(Data, STATUS_MEDIA_WRITE_PROTECTED);
-                callbackStatus = FLT_PREOP_COMPLETE;
-                break;
-
             case RULE_ACCESS_DENIED:
                 SET_CALLBACK_DATA_STATUS(Data, STATUS_ACCESS_DENIED);
                 callbackStatus = FLT_PREOP_COMPLETE;
                 break;
+
+            case RULE_READONLY:
+                SET_CALLBACK_DATA_STATUS(Data, STATUS_MEDIA_WRITE_PROTECTED);
+                callbackStatus = FLT_PREOP_COMPLETE;
+                break;
             }
-
         } except(EXCEPTION_EXECUTE_HANDLER) {
-
             status = GetExceptionCode();
             LOG_ERROR("NTSTATUS: 0x%08x, an exception occurred while matching the rules", status);
             goto Cleanup;
@@ -488,19 +485,20 @@ Return Value:
 
     case FileDispositionInformation:
     case FileDispositionInformationEx:
+    case FileEndOfFileInformation:
+    case FileAllocationInformation:
 
         switch (fileContext->RuleCode) {
-        case RULE_READONLY:
-            SET_CALLBACK_DATA_STATUS(Data, STATUS_MEDIA_WRITE_PROTECTED);
-            callbackStatus = FLT_PREOP_COMPLETE;
-            break;
-
         case RULE_ACCESS_DENIED:
             SET_CALLBACK_DATA_STATUS(Data, STATUS_ACCESS_DENIED);
             callbackStatus = FLT_PREOP_COMPLETE;
             break;
+
+        case RULE_READONLY:
+            SET_CALLBACK_DATA_STATUS(Data, STATUS_MEDIA_WRITE_PROTECTED);
+            callbackStatus = FLT_PREOP_COMPLETE;
+            break;
         }
-        
         break;
     }
 

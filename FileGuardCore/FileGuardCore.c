@@ -74,7 +74,7 @@ const FLT_CONTEXT_REGISTRATION FgContextRegistration[] = {
       0,
       FgCleanupFileContext,
       sizeof(FG_FILE_CONTEXT),
-      FG_FILE_CONTEXT_PAGED_MEM_TAG },
+      FG_FILE_CONTEXT_PAGED_TAG },
 
     { FLT_CONTEXT_END }
 };
@@ -90,10 +90,9 @@ CONST FLT_REGISTRATION FilterRegistration = {
     0,                              // Flags
 
     FgContextRegistration,      // Context
-    FgOperationCallbacks,             // Operation callbacks
+    FgOperationCallbacks,       // Operation callbacks
 
     FgUnload,                   // MiniFilterUnload
-
     FgInstanceSetup,            // InstanceSetup
     FgInstanceQueryTeardown,    // InstanceQueryTeardown
     FgInstanceTeardownStart,    // InstanceTeardownStart
