@@ -140,6 +140,7 @@ FgCoreControlMessageNotifyCallback(
     FG_MESSAGE_TYPE commandType = 0;
     PFG_MESSAGE message = NULL;
     PFG_MESSAGE_RESULT result = NULL;
+    USHORT ruleAmount = 0;
 
     UNREFERENCED_PARAMETER(ConnectionCookie);
 
@@ -166,28 +167,54 @@ FgCoreControlMessageNotifyCallback(
         result->CoreVersion.Build = FG_CORE_VERSION_BUILD;
         break;
 
-    case AddRule:
-    case RemoveRule:
+    case AddRules:
+    case RemoveRules:
+        
+        if (NULL == Input) return STATUS_INVALID_PARAMETER_2;
+        if (InputSize <= sizeof(FG_MESSAGE)) return STATUS_INVALID_PARAMETER_3;
+        if (NULL == Output) return STATUS_INVALID_PARAMETER_4;
+        if (OutputSize < sizeof(FG_MESSAGE_RESULT)) return STATUS_INVALID_PARAMETER_5;
 
-        //
-        // Add or remove a rule.
-        //
+        try {
+            if (AddRules == commandType) {
+                status = FgAddRules(&Globals.RulesList,
+                                    Globals.RulesListLock,
+                                    message->RulesNumber,
+                                    (FG_RULE*)message->Rules,
+                                    &ruleAmount);
+                if (!NT_SUCCESS(status)) {
+                    LOG_ERROR("NTSTATUS: 0x%08x, add rules failed", status);
+                    break;
+                }
+            } else {
+                status = FgFindAndRemoveRule(&Globals.RulesList,
+                                             Globals.RulesListLock,
+                                             message->RulesNumber,
+                                             (FG_RULE*)message->Rules,
+                                             &ruleAmount);
+                if (!NT_SUCCESS(status)) {
+                    LOG_ERROR("NTSTATUS: 0x%08x, remove rules failed", status);
+                    break;
+                }
+            }
+        } except(EXCEPTION_EXECUTE_HANDLER) {
+            status = GetExceptionCode();
+            LOG_ERROR("NTSTATUS: 0x%08x, add rules failed", status);
+            break;
+        }
 
-        status = STATUS_NOT_IMPLEMENTED;
         break;
 
-    case CleanupVolumeRules:
+    case CleanupRules:
 
         //
         // Clear all rules in all instance rule tables or all rules in an instance rule table.
         //
 
-        if (NULL == Input) return STATUS_INVALID_PARAMETER_2;
-        if (InputSize < sizeof(FG_MESSAGE)) return STATUS_INVALID_PARAMETER_3;
         if (NULL == Output) return STATUS_INVALID_PARAMETER_4;
         if (OutputSize < sizeof(FG_MESSAGE_RESULT)) return STATUS_INVALID_PARAMETER_5;
         
-        result->RulesAmount = FgCleanupRuleEntriesList(Globals.RulesListLock, &Globals.RulesList);
+        result->RulesAmount = (USHORT)FgCleanupRuleEntriesList(Globals.RulesListLock, &Globals.RulesList);
         break;
 
     default:

@@ -130,26 +130,57 @@ Cleanup:
 
 _Check_return_
 NTSTATUS
-FgAddRule(
+FgAddRules(
     _In_ PLIST_ENTRY RuleList,
     _In_ PEX_PUSH_LOCK ListLock,
-    _In_ PFG_RULE Rule
+    _In_ USHORT RulesAmount,
+    _In_ FG_RULE *Rules,
+    _Inout_opt_ USHORT *AddedAmount
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
+    USHORT ruleIdx = 0;
+    FG_RULE* rulePtr = NULL;
     PFG_RULE_ENTRY ruleEntry = NULL;
+    PLIST_ENTRY entry = NULL, next = NULL;
+    UNICODE_STRING pathExpression = { 0 };
 
     if (NULL == RuleList) return STATUS_INVALID_PARAMETER_1;
     if (NULL == ListLock) return STATUS_INVALID_PARAMETER_2;
-    if (NULL == Rule) return STATUS_INVALID_PARAMETER_3;
+    if (0 == RulesAmount) return STATUS_INVALID_PARAMETER_3;
+    if (NULL == Rules) return STATUS_INVALID_PARAMETER_4;
 
-    status = FgCreateRuleEntry(Rule, &ruleEntry);
-    if (NT_SUCCESS(status)) {
+    if (NULL != AddedAmount) *AddedAmount = 0;
+    rulePtr = Rules;
 
-        FltAcquirePushLockExclusive(ListLock);
+    FltAcquirePushLockExclusive(ListLock);
+    for (; ruleIdx < RulesAmount; ruleIdx++) {
+
+        LIST_FOR_EACH_SAFE(entry, next, RuleList) {
+
+            ruleEntry = CONTAINING_RECORD(entry, FG_RULE_ENTRY, List);
+            if (rulePtr->RuleCode == ruleEntry->RuleCode) {
+
+                pathExpression.Buffer = rulePtr->PathExpression;
+                pathExpression.Length = rulePtr->PathExpressionSize;
+                pathExpression.MaximumLength = rulePtr->PathExpressionSize;
+
+                if (0 == RtlCompareUnicodeString(&pathExpression, ruleEntry->PathExpression, TRUE)) break;
+            }
+        }
+
+        status = FgCreateRuleEntry(rulePtr, &ruleEntry);
+        if (!NT_SUCCESS(status)) {
+            LOG_ERROR("NTSTATUS: 0x%08x, create rule entry failed", status);
+            break;
+        }
+
         InsertHeadList(RuleList, &ruleEntry->List);
-        FltReleasePushLock(ListLock);
+        if (NULL != AddedAmount) *AddedAmount++;
+
+        Add2Ptr(rulePtr, rulePtr->PathExpressionSize + sizeof(FG_RULE));
     }
+    FltReleasePushLock(ListLock);
 
     return status;
 }
@@ -159,36 +190,48 @@ NTSTATUS
 FgFindAndRemoveRule(
     _In_ PLIST_ENTRY RuleList,
     _In_ PEX_PUSH_LOCK ListLock,
-    _In_ PFG_RULE Rule
+    _In_ USHORT RulesAmount,
+    _In_ FG_RULE* Rules,
+    _Inout_opt_ USHORT* RemovedAmount
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
+    USHORT ruleIdx = 0;
+    FG_RULE* rulePtr = NULL;
+    PFG_RULE_ENTRY ruleEntry = NULL;
     PLIST_ENTRY entry = NULL, next = NULL;
     UNICODE_STRING pathExpression = { 0 };
-    PFG_RULE_ENTRY ruleEntry = NULL;
 
     if (NULL == RuleList) return STATUS_INVALID_PARAMETER_1;
     if (NULL == ListLock) return STATUS_INVALID_PARAMETER_2;
-    if (NULL == Rule) return STATUS_INVALID_PARAMETER_3;
+    if (0 == RulesAmount) return STATUS_INVALID_PARAMETER_3;
+    if (NULL == Rules) return STATUS_INVALID_PARAMETER_4;
+
+    if (NULL != RemovedAmount) *RemovedAmount = 0;
+    rulePtr = Rules;
 
     FltAcquirePushLockExclusive(ListLock);
-
-    LIST_FOR_EACH_SAFE(entry, next, RuleList) {
+    for (; ruleIdx < RulesAmount; ruleIdx++) {
         
-        pathExpression.Buffer = Rule->PathExpression;
-        pathExpression.Length = Rule->PathExpressionSize - sizeof(L'\0');
-        pathExpression.MaximumLength = Rule->PathExpressionSize - sizeof(L'\0');
+        LIST_FOR_EACH_SAFE(entry, next, RuleList) {
 
-        ruleEntry = CONTAINING_RECORD(entry, FG_RULE_ENTRY, List);
+            ruleEntry = CONTAINING_RECORD(entry, FG_RULE_ENTRY, List);
+            if (rulePtr->RuleCode == ruleEntry->RuleCode) {
 
-        if (0 == RtlCompareUnicodeString(&pathExpression, ruleEntry->PathExpression, TRUE) &&
-            Rule->RuleCode == ruleEntry->RuleCode) {
+                pathExpression.Buffer = rulePtr->PathExpression;
+                pathExpression.Length = rulePtr->PathExpressionSize;
+                pathExpression.MaximumLength = rulePtr->PathExpressionSize;
 
-            RemoveEntryList(entry);
-            FgFreeRuleEntry(ruleEntry);
+                if (0 == RtlCompareUnicodeString(&pathExpression, ruleEntry->PathExpression, TRUE)) {
+                    RemoveEntryList(entry);
+                    FgFreeRuleEntry(ruleEntry);
+                    if (NULL != RemovedAmount) *RemovedAmount++;
+                }
+            }
         }
-    }
 
+        Add2Ptr(rulePtr, rulePtr->PathExpressionSize + sizeof(FG_RULE));
+    }
     FltReleasePushLock(ListLock);
 
     return status;

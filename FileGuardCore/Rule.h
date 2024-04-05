@@ -63,18 +63,22 @@ typedef struct _FG_RULE_ENTRY {
 
 _Check_return_
 NTSTATUS
-FgAddRule(
-    _In_ PLIST_ENTRY List,
-    _In_ PEX_PUSH_LOCK Lock,
-    _In_ PFG_RULE Rule
+FgAddRules(
+    _In_ PLIST_ENTRY RuleList,
+    _In_ PEX_PUSH_LOCK ListLock,
+    _In_ USHORT RulesAmount,
+    _In_ FG_RULE* Rules,
+    _Inout_opt_ USHORT* AddedAmount
 );
 
 _Check_return_
 NTSTATUS
 FgFindAndRemoveRule(
-    _In_ PLIST_ENTRY List,
-    _In_ PEX_PUSH_LOCK Lock,
-    _In_ PFG_RULE Rule
+    _In_ PLIST_ENTRY RuleList,
+    _In_ PEX_PUSH_LOCK ListLock,
+    _In_ USHORT RulesAmount,
+    _In_ FG_RULE* Rules,
+    _Inout_opt_ USHORT* RemovedAmount
 );
 
 _Check_return_

@@ -21,9 +21,9 @@
 
 typedef enum _FG_MESSAGE_TYPE {
     GetCoreVersion,
-    AddRule,
-    RemoveRule,
-    CleanupVolumeRules
+    AddRules,
+    RemoveRules,
+    CleanupRules
 } FG_MESSAGE_TYPE;
 
 typedef struct _FG_CORE_VERSION {
@@ -66,7 +66,7 @@ typedef struct _FG_MESSAGE_RESULT {
     NTSTATUS Status;
     union {
         FG_CORE_VERSION CoreVersion;
-        ULONG RulesAmount;
+        USHORT RulesAmount;
     } DUMMYUNIONNAME;
 } FG_MESSAGE_RESULT, *PFG_MESSAGE_RESULT;
 
