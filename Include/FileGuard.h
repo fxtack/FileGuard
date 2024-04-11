@@ -63,7 +63,7 @@ typedef struct _FG_MESSAGE {
 // Message result of core returned.
 //
 typedef struct _FG_MESSAGE_RESULT {
-    NTSTATUS Status;
+    ULONG ResultCode;
     union {
         FG_CORE_VERSION CoreVersion;
         USHORT RulesAmount;

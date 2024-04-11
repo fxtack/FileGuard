@@ -135,7 +135,7 @@ FgCoreControlMessageNotifyCallback(
     _In_ ULONG OutputSize,
     _Out_ PULONG ReturnSize
 ) {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_SUCCESS, resultStatus = STATUS_SUCCESS;
     ULONG variableSize = 0ul;
     FG_MESSAGE_TYPE commandType = 0;
     PFG_MESSAGE message = NULL;
@@ -177,28 +177,28 @@ FgCoreControlMessageNotifyCallback(
 
         try {
             if (AddRules == commandType) {
-                status = FgAddRules(&Globals.RulesList,
-                                    Globals.RulesListLock,
-                                    message->RulesNumber,
-                                    (FG_RULE*)message->Rules,
-                                    &ruleAmount);
+                resultStatus = FgAddRules(&Globals.RulesList,
+                                          Globals.RulesListLock,
+                                          message->RulesNumber,
+                                          (FG_RULE*)message->Rules,
+                                          &ruleAmount);
                 if (!NT_SUCCESS(status)) {
                     LOG_ERROR("NTSTATUS: 0x%08x, add rules failed", status);
                     break;
                 }
             } else {
-                status = FgFindAndRemoveRule(&Globals.RulesList,
-                                             Globals.RulesListLock,
-                                             message->RulesNumber,
-                                             (FG_RULE*)message->Rules,
-                                             &ruleAmount);
+                resultStatus = FgFindAndRemoveRule(&Globals.RulesList,
+                                                   Globals.RulesListLock,
+                                                   message->RulesNumber,
+                                                   (FG_RULE*)message->Rules,
+                                                   &ruleAmount);
                 if (!NT_SUCCESS(status)) {
                     LOG_ERROR("NTSTATUS: 0x%08x, remove rules failed", status);
                     break;
                 }
             }
         } except(EXCEPTION_EXECUTE_HANDLER) {
-            status = GetExceptionCode();
+            resultStatus = GetExceptionCode();
             LOG_ERROR("NTSTATUS: 0x%08x, add rules failed", status);
             break;
         }
@@ -222,11 +222,11 @@ FgCoreControlMessageNotifyCallback(
         DBG_WARNING("Unknown command type: '%d'", commandType);
         status = STATUS_NOT_SUPPORTED;
     }
-
-    result->Status = status;
+    
+    result->ResultCode = RtlNtStatusToDosError(resultStatus);
     *ReturnSize = sizeof(FG_MESSAGE_RESULT) + variableSize;
 
-    return STATUS_SUCCESS;
+    return status;
 }
 
 /*-------------------------------------------------------------

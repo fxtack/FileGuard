@@ -43,7 +43,7 @@ HRESULT FGAPI FglGetCoreVersion(
                            &result,
                            sizeof(FG_MESSAGE_RESULT), 
                            &returned);
-    if (!IS_ERROR(hr)) {
+    if (!IS_ERROR(hr) && !IS_ERROR(HRESULT_FROM_WIN32(result.ResultCode))) {
         Version->Major = result.CoreVersion.Major;
         Version->Minor = result.CoreVersion.Minor;
         Version->Patch = result.CoreVersion.Patch;
@@ -121,7 +121,9 @@ HRESULT FGAPI FglAddBulkRules(
                            &result,
                            sizeof(FG_MESSAGE_RESULT),
                            &returned);
-    if (!IS_ERROR(hr) && NULL != AddedRulesAmount)
+    if (!IS_ERROR(hr) && 
+        !IS_ERROR(HRESULT_FROM_WIN32(result.ResultCode))
+        && NULL != AddedRulesAmount)
         *AddedRulesAmount = result.RulesAmount;
 
     if (NULL != message) FglFreeRulesMessage(message);
@@ -168,7 +170,9 @@ HRESULT FGAPI FglRemoveBulkRules(
                            &result, 
                            sizeof(FG_MESSAGE_RESULT), 
                            &returned);
-    if (!IS_ERROR(hr) && NULL != RemovedRulesAmount) 
+    if (!IS_ERROR(hr) &&
+        !IS_ERROR(HRESULT_FROM_WIN32(result.ResultCode)) &&
+        NULL != RemovedRulesAmount)
         *RemovedRulesAmount = result.RulesAmount;
 
     if (NULL != message) FglFreeRulesMessage(message);
@@ -213,7 +217,9 @@ HRESULT FGAPI FglCleanupRules(
                            &result, 
                            sizeof(FG_MESSAGE_RESULT), 
                            &returned);
-    if (!IS_ERROR(hr) && NULL != CleanedRulesAmount)
+    if (!IS_ERROR(hr) && 
+        !IS_ERROR(HRESULT_FROM_WIN32(result.ResultCode)) &&
+        NULL != CleanedRulesAmount)
         *CleanedRulesAmount = result.RulesAmount;
 
     return E_NOTIMPL;
