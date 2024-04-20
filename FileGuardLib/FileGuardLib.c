@@ -6,7 +6,7 @@
 #include "FileGuard.h"
 #include "FileGuardLib.h"
 
-HRESULT FGAPI FglConnectCore(
+HRESULT FglConnectCore(
     _Outptr_ HANDLE* Port
     )
 {
@@ -18,14 +18,14 @@ HRESULT FGAPI FglConnectCore(
                                           Port);
 }
 
-VOID FGAPI FglDisconnectCore(
+VOID FglDisconnectCore(
     _In_ _Post_ptr_invalid_ HANDLE Port
     )
 {
     CloseHandle(Port);
 }
 
-HRESULT FGAPI FglGetCoreVersion(
+HRESULT FglGetCoreVersion(
     _In_ CONST HANDLE Port,
     _Inout_ FG_CORE_VERSION* Version
     )
@@ -96,7 +96,7 @@ HRESULT FglCreateRulesMessage(
 
 #define FglFreeRulesMessage(_message_) free((_message_));
 
-HRESULT FGAPI FglAddBulkRules(
+HRESULT FglAddBulkRules(
     _In_ CONST HANDLE Port,
     _In_ USHORT RulesAmount,
     _In_ CONST FGL_RULE Rules[],
@@ -131,7 +131,7 @@ HRESULT FGAPI FglAddBulkRules(
     return hr;
 }
 
-HRESULT FGAPI FglAddSingleRule(
+HRESULT FglAddSingleRule(
     _In_ CONST HANDLE Port,
     _In_ CONST FGL_RULE* Rule,
     _Inout_ BOOLEAN *Added
@@ -146,7 +146,7 @@ HRESULT FGAPI FglAddSingleRule(
     return hr;
 }
 
-HRESULT FGAPI FglRemoveBulkRules(
+HRESULT FglRemoveBulkRules(
     _In_ CONST HANDLE Port,
     _In_ USHORT RulesAmount,
     _In_ CONST FGL_RULE Rules[],
@@ -180,7 +180,7 @@ HRESULT FGAPI FglRemoveBulkRules(
     return hr;
 }
 
-HRESULT FGAPI FglRemoveSingleRule(
+HRESULT FglRemoveSingleRule(
     _In_ CONST HANDLE Port,
     _In_ CONST FGL_RULE* Rule,
     _Inout_ BOOLEAN* Removed
@@ -195,11 +195,11 @@ HRESULT FGAPI FglRemoveSingleRule(
     return hr;
 }
 
-HRESULT FGAPI FglQueryRules() {
+HRESULT FglQueryRules() {
     return E_NOTIMPL;
 }
 
-HRESULT FGAPI FglCleanupRules(
+HRESULT FglCleanupRules(
     _In_ CONST HANDLE Port,
     _Inout_opt_ USHORT* CleanedRulesAmount
 ) {
