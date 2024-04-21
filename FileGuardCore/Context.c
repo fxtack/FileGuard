@@ -50,8 +50,8 @@ FgCleanupFileContext(
     )
 {
     PFG_FILE_CONTEXT fileContext = (PFG_FILE_CONTEXT)Context;
-
-    FLT_ASSERT(FLT_FILE_CONTEXT == ContextType);
+    
+    UNREFERENCED_PARAMETER(ContextType);
 
     DBG_TRACE("Cleanup file context, address: '%p'", Context);
 

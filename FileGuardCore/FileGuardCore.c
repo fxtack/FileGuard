@@ -125,7 +125,7 @@ DriverEntry(
 #ifdef DBG
     Globals.LogLevel = LOG_LEVEL_INFO | LOG_LEVEL_WARNING | LOG_LEVEL_ERROR;
 #else
-    GLobals.LogLevel = LOG_LEVEL_DEFAULT;
+    Globals.LogLevel = LOG_LEVEL_DEFAULT;
 #endif
 
     LOG_INFO("Start to load FileGuardCore driver, version: v%d.%d.%d.%d",
