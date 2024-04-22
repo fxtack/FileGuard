@@ -144,10 +144,12 @@ FgCoreControlMessageNotifyCallback(
 
     UNREFERENCED_PARAMETER(ConnectionCookie);
 
+    if (NULL == Input) return STATUS_INVALID_PARAMETER_2;
     if (NULL == ReturnSize) return STATUS_INVALID_PARAMETER_6;
 
     message = (PFG_MESSAGE)Input;
     result = (PFG_MESSAGE_RESULT)Output;
+    commandType = message->Type;
 
     *ReturnSize = 0;
 

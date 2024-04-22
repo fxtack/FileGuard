@@ -27,10 +27,10 @@ typedef enum _FG_MESSAGE_TYPE {
 } FG_MESSAGE_TYPE;
 
 typedef struct _FG_CORE_VERSION {
-    ULONG Major;
-    ULONG Minor;
-    ULONG Patch;
-    ULONG Build;
+    USHORT Major;
+    USHORT Minor;
+    USHORT Patch;
+    USHORT Build;
 } FG_CORE_VERSION, * PFG_CORE_VERSION;
 
 #define RULE_UNKNOWN       ((ULONG)0x00000000)
