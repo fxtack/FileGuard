@@ -50,9 +50,10 @@ typedef struct _FG_RULE {
 //
 typedef struct _FG_MESSAGE {
     FG_MESSAGE_TYPE Type;
+    ULONG MessageSize;
     union {
         struct {
-            USHORT RulesNumber;
+            USHORT RulesAmount;
             ULONG RulesSize;
             UCHAR Rules[];
         } DUMMYSTRUCTNAME;

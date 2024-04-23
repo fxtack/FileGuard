@@ -172,32 +172,40 @@ FgCoreControlMessageNotifyCallback(
     case AddRules:
     case RemoveRules:
         
-        if (NULL == Input) return STATUS_INVALID_PARAMETER_2;
-        if (InputSize <= sizeof(FG_MESSAGE)) return STATUS_INVALID_PARAMETER_3;
-        if (NULL == Output) return STATUS_INVALID_PARAMETER_4;
-        if (OutputSize < sizeof(FG_MESSAGE_RESULT)) return STATUS_INVALID_PARAMETER_5;
+        if (NULL == Input) status = STATUS_INVALID_PARAMETER_2;
+        if (InputSize <= sizeof(FG_MESSAGE)) status = STATUS_INVALID_PARAMETER_3;
+        if (NULL == Output) status = STATUS_INVALID_PARAMETER_4;
+        if (OutputSize < sizeof(FG_MESSAGE_RESULT)) status = STATUS_INVALID_PARAMETER_5;
+
+        if (!NT_SUCCESS(status)) {
+            LOG_ERROR("NTSTATUS: 0x%08x, message invalid parameter", status);
+            break;
+        }
 
         try {
             if (AddRules == commandType) {
                 resultStatus = FgAddRules(&Globals.RulesList,
                                           Globals.RulesListLock,
-                                          message->RulesNumber,
+                                          message->RulesAmount,
                                           (FG_RULE*)message->Rules,
                                           &ruleAmount);
                 if (!NT_SUCCESS(status)) {
                     LOG_ERROR("NTSTATUS: 0x%08x, add rules failed", status);
                     break;
                 }
+                LOG_INFO("%hu rules added", ruleAmount);
+
             } else {
                 resultStatus = FgFindAndRemoveRule(&Globals.RulesList,
                                                    Globals.RulesListLock,
-                                                   message->RulesNumber,
+                                                   message->RulesAmount,
                                                    (FG_RULE*)message->Rules,
                                                    &ruleAmount);
                 if (!NT_SUCCESS(status)) {
                     LOG_ERROR("NTSTATUS: 0x%08x, remove rules failed", status);
                     break;
                 }
+                LOG_INFO("%hu rules removed", ruleAmount);
             }
         } except(EXCEPTION_EXECUTE_HANDLER) {
             resultStatus = GetExceptionCode();
@@ -225,7 +233,7 @@ FgCoreControlMessageNotifyCallback(
         status = STATUS_NOT_SUPPORTED;
     }
     
-    result->ResultCode = RtlNtStatusToDosError(resultStatus);
+    if(NULL != result) result->ResultCode = RtlNtStatusToDosError(resultStatus);
     *ReturnSize = sizeof(FG_MESSAGE_RESULT) + variableSize;
 
     return status;

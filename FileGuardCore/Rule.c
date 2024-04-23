@@ -80,29 +80,30 @@ Return Value:
     
     status = FgAllocateUnicodeString(Rule->PathExpressionSize, &pathExpression);
     if (!NT_SUCCESS(status)) {
+        LOG_ERROR("NTSTATUS: 0x%08x, allocate path expression string failed", status);
         goto Cleanup;
     }
 
     originalPathExpression.Buffer = Rule->PathExpression;
-    originalPathExpression.Length = Rule->PathExpressionSize - sizeof(L'\0');
-    originalPathExpression.MaximumLength = Rule->PathExpressionSize - sizeof(L'\0');
+    originalPathExpression.Length = Rule->PathExpressionSize;
+    originalPathExpression.MaximumLength = Rule->PathExpressionSize;
 
     status = RtlUpcaseUnicodeString(pathExpression, &originalPathExpression, FALSE);
     if (!NT_SUCCESS(status)) {
+        LOG_ERROR("NTSTATUS: 0x%08x, upcase path expression string failed", status);
         goto Cleanup;
     }
 
-    status = FgAllocateBufferEx(&newRuleEntry, 
-                                POOL_FLAG_PAGED, 
-                                sizeof(FG_RULE_ENTRY),
-                                FG_RULE_ENTRY_PAGED_TAG);
+    status = FgAllocateBufferEx(&newRuleEntry, POOL_FLAG_PAGED, sizeof(FG_RULE_ENTRY), FG_RULE_ENTRY_PAGED_TAG);
     if (!NT_SUCCESS(status)) {
+        LOG_ERROR("NTSTATUS: 0x%08x, allocate new rule entry failed", status);
         goto Cleanup;
     }
 
     FLT_ASSERT(NULL != pathExpression);
     FLT_ASSERT(NULL != newRuleEntry);
 
+    newRuleEntry->RuleCode = Rule->RuleCode;
     newRuleEntry->PathExpression = pathExpression;
     *RuleEntry = newRuleEntry;
 
@@ -150,7 +151,7 @@ FgAddRules(
     if (0 == RulesAmount) return STATUS_INVALID_PARAMETER_3;
     if (NULL == Rules) return STATUS_INVALID_PARAMETER_4;
 
-    if (NULL != AddedAmount) *AddedAmount = 0;
+    if (NULL != AddedAmount) (*AddedAmount) = 0;
     rulePtr = Rules;
 
     FltAcquirePushLockExclusive(ListLock);
@@ -176,7 +177,12 @@ FgAddRules(
         }
 
         InsertHeadList(RuleList, &ruleEntry->List);
-        if (NULL != AddedAmount) *AddedAmount++;
+        if (NULL != AddedAmount) (*AddedAmount)++;
+
+        DBG_INFO("Rule %p added, rule code: 0x%08x, path expression: '%wZ'", 
+                 ruleEntry, 
+                 ruleEntry->RuleCode, 
+                 ruleEntry->PathExpression);
 
         Add2Ptr(rulePtr, rulePtr->PathExpressionSize + sizeof(FG_RULE));
     }
@@ -207,7 +213,7 @@ FgFindAndRemoveRule(
     if (0 == RulesAmount) return STATUS_INVALID_PARAMETER_3;
     if (NULL == Rules) return STATUS_INVALID_PARAMETER_4;
 
-    if (NULL != RemovedAmount) *RemovedAmount = 0;
+    if (NULL != RemovedAmount) (*RemovedAmount) = 0;
     rulePtr = Rules;
 
     FltAcquirePushLockExclusive(ListLock);
@@ -223,9 +229,15 @@ FgFindAndRemoveRule(
                 pathExpression.MaximumLength = rulePtr->PathExpressionSize;
 
                 if (0 == RtlCompareUnicodeString(&pathExpression, ruleEntry->PathExpression, TRUE)) {
+
+                    LOG_INFO("Rule %p removed, rule code: 0x%08x, path expression: '%wZ'",
+                             ruleEntry,
+                             ruleEntry->RuleCode,
+                             ruleEntry->PathExpression);
+
                     RemoveEntryList(entry);
                     FgFreeRuleEntry(ruleEntry);
-                    if (NULL != RemovedAmount) *RemovedAmount++;
+                    if (NULL != RemovedAmount) (*RemovedAmount)++;
                 }
             }
         }

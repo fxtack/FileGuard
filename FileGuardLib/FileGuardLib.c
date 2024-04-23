@@ -2,6 +2,7 @@
 
 #include <windows.h>
 #include <fltuser.h>
+#include <stdio.h>
 
 #include "FileGuard.h"
 #include "FileGuardLib.h"
@@ -43,7 +44,7 @@ HRESULT FglGetCoreVersion(
                            &result,
                            sizeof(FG_MESSAGE_RESULT), 
                            &returned);
-    if (!IS_ERROR(hr) && !IS_ERROR(HRESULT_FROM_WIN32(result.ResultCode))) {
+    if (SUCCEEDED(hr) && SUCCEEDED(HRESULT_FROM_WIN32(result.ResultCode))) {
         Version->Major = result.CoreVersion.Major;
         Version->Minor = result.CoreVersion.Minor;
         Version->Patch = result.CoreVersion.Patch;
@@ -61,7 +62,7 @@ HRESULT FglCreateRulesMessage(
 {
     HRESULT hr = S_OK;
     INT i = 0;
-    SIZE_T rulesSize = 0;
+    SIZE_T rulesSize = 0, messageSize = 0;
     FG_MESSAGE* message = NULL;
     FG_RULE* rulePtr = NULL;
     USHORT pathExpressionSize = 0;
@@ -69,22 +70,25 @@ HRESULT FglCreateRulesMessage(
     if (0 == RulesAmount || NULL == Rules || NULL == Message) return E_INVALIDARG;
 
     for (; i < RulesAmount; i ++) {
-        rulesSize += (wcslen(Rules[i].RulePathName) * sizeof(WCHAR) + sizeof(FG_RULE));
+        rulesSize += (wcslen(Rules[i].RulePathExpression) * sizeof(WCHAR) + sizeof(FG_RULE));
     }
 
-    message = (FG_MESSAGE*)malloc(rulesSize + sizeof(FG_MESSAGE));
+    messageSize = rulesSize + sizeof(FG_MESSAGE);
+    message = (FG_MESSAGE*)malloc(messageSize);
     if (NULL == message) return E_OUTOFMEMORY;
+    else RtlZeroMemory(message, rulesSize + sizeof(FG_MESSAGE));
 
     rulePtr = (FG_RULE*)message->Rules;
 
-    message->RulesNumber = RulesAmount;
-    message->RulesSize;
-    for (; i < RulesAmount; i++) {
-        pathExpressionSize = (USHORT)wcslen(Rules[i].RulePathName) * sizeof(WCHAR);
+    message->MessageSize = (ULONG)messageSize;
+    message->RulesAmount = RulesAmount;
+    message->RulesSize = (ULONG)rulesSize;
+    for (i = 0; i < RulesAmount; i++) {
+        pathExpressionSize = (USHORT)wcslen(Rules[i].RulePathExpression) * sizeof(WCHAR);
 
         rulePtr->RuleCode = Rules[i].RuleCode;
         rulePtr->PathExpressionSize = pathExpressionSize;
-        RtlCopyMemory(rulePtr->PathExpression, Rules[i].RulePathName, pathExpressionSize);
+        RtlCopyMemory(rulePtr->PathExpression, Rules[i].RulePathExpression, pathExpressionSize);
 
         (UCHAR*)rulePtr += (sizeof(FG_RULE) + pathExpressionSize);
     }
@@ -112,19 +116,20 @@ HRESULT FglAddBulkRules(
         return E_INVALIDARG;
 
     hr = FglCreateRulesMessage(RulesAmount, Rules, &message);
-    if (IS_ERROR(hr)) return hr;
+    if (FAILED(hr)) return hr;
 
     message->Type = AddRules;
     hr = FilterSendMessage(Port,
                            message,
-                           sizeof(FG_MESSAGE),
+                           message->MessageSize,
                            &result,
                            sizeof(FG_MESSAGE_RESULT),
                            &returned);
-    if (!IS_ERROR(hr) && 
-        !IS_ERROR(HRESULT_FROM_WIN32(result.ResultCode))
-        && NULL != AddedRulesAmount)
+    if (SUCCEEDED(hr) &&
+        SUCCEEDED(HRESULT_FROM_WIN32(result.ResultCode)) &&
+        NULL != AddedRulesAmount) {
         *AddedRulesAmount = result.RulesAmount;
+    }
 
     if (NULL != message) FglFreeRulesMessage(message);
 
@@ -140,7 +145,7 @@ HRESULT FglAddSingleRule(
     USHORT addedAmount = 0;
     
     hr = FglAddBulkRules(Port, 1, Rule, &addedAmount);
-    if (!IS_ERROR(hr) && addedAmount == 1) *Added = TRUE;
+    if (SUCCEEDED(hr) && addedAmount == 1) *Added = TRUE;
     else *Added = FALSE;
 
     return hr;
@@ -161,17 +166,17 @@ HRESULT FglRemoveBulkRules(
         return E_INVALIDARG;
 
     hr = FglCreateRulesMessage(RulesAmount, Rules, &message);
-    if (IS_ERROR(hr)) return hr;
+    if (FAILED(hr)) return hr;
 
     message->Type = RemoveRules;
     hr = FilterSendMessage(Port, 
                            message, 
-                           sizeof(FG_MESSAGE), 
+                           message->MessageSize, 
                            &result, 
                            sizeof(FG_MESSAGE_RESULT), 
                            &returned);
-    if (!IS_ERROR(hr) &&
-        !IS_ERROR(HRESULT_FROM_WIN32(result.ResultCode)) &&
+    if (SUCCEEDED(hr) &&
+        SUCCEEDED(HRESULT_FROM_WIN32(result.ResultCode)) &&
         NULL != RemovedRulesAmount)
         *RemovedRulesAmount = result.RulesAmount;
 
@@ -189,7 +194,7 @@ HRESULT FglRemoveSingleRule(
     USHORT addedAmount = 0;
 
     hr = FglRemoveBulkRules(Port, 1, Rule, &addedAmount);
-    if (!IS_ERROR(hr) && addedAmount == 1) *Removed = TRUE;
+    if (SUCCEEDED(hr) && addedAmount == 1) *Removed = TRUE;
     else *Removed = FALSE;
 
     return hr;
@@ -217,8 +222,8 @@ HRESULT FglCleanupRules(
                            &result, 
                            sizeof(FG_MESSAGE_RESULT), 
                            &returned);
-    if (!IS_ERROR(hr) && 
-        !IS_ERROR(HRESULT_FROM_WIN32(result.ResultCode)) &&
+    if (SUCCEEDED(hr) && 
+        SUCCEEDED(HRESULT_FROM_WIN32(result.ResultCode)) &&
         NULL != CleanedRulesAmount)
         *CleanedRulesAmount = result.RulesAmount;
 

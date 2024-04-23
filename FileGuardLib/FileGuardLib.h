@@ -7,7 +7,7 @@
 
 typedef struct _FGL_RULE {
     ULONG RuleCode;
-    WCHAR *RulePathName;
+    WCHAR *RulePathExpression;
 } FGL_RULE, *PFGL_RULE;
 
 extern HRESULT FglConnectCore(
