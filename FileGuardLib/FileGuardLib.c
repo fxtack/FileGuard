@@ -44,7 +44,8 @@ HRESULT FglGetCoreVersion(
                            &result,
                            sizeof(FG_MESSAGE_RESULT), 
                            &returned);
-    if (SUCCEEDED(hr) && SUCCEEDED(HRESULT_FROM_WIN32(result.ResultCode))) {
+    if (SUCCEEDED(hr)) hr = HRESULT_FROM_WIN32(result.ResultCode);
+    if (SUCCEEDED(hr)) {
         Version->Major = result.CoreVersion.Major;
         Version->Minor = result.CoreVersion.Minor;
         Version->Patch = result.CoreVersion.Patch;
@@ -55,8 +56,8 @@ HRESULT FglGetCoreVersion(
 }
 
 HRESULT FglCreateRulesMessage(
-    _In_ USHORT RulesAmount,
     _In_ CONST FGL_RULE Rules[],
+    _In_ USHORT RulesAmount,
     _Outptr_ PFG_MESSAGE* Message
     )
 {
@@ -102,8 +103,8 @@ HRESULT FglCreateRulesMessage(
 
 HRESULT FglAddBulkRules(
     _In_ CONST HANDLE Port,
-    _In_ USHORT RulesAmount,
     _In_ CONST FGL_RULE Rules[],
+    _In_ USHORT RulesAmount,
     _Inout_opt_ USHORT* AddedRulesAmount
     )
 {
@@ -115,7 +116,7 @@ HRESULT FglAddBulkRules(
     if (NULL == Port || 0 == RulesAmount || NULL == Rules) 
         return E_INVALIDARG;
 
-    hr = FglCreateRulesMessage(RulesAmount, Rules, &message);
+    hr = FglCreateRulesMessage(Rules, RulesAmount, &message);
     if (FAILED(hr)) return hr;
 
     message->Type = AddRules;
@@ -125,11 +126,9 @@ HRESULT FglAddBulkRules(
                            &result,
                            sizeof(FG_MESSAGE_RESULT),
                            &returned);
-    if (SUCCEEDED(hr) &&
-        SUCCEEDED(HRESULT_FROM_WIN32(result.ResultCode)) &&
-        NULL != AddedRulesAmount) {
-        *AddedRulesAmount = result.RulesAmount;
-    }
+    if (SUCCEEDED(hr)) hr = HRESULT_FROM_WIN32(result.ResultCode);
+    if (SUCCEEDED(hr) && NULL != AddedRulesAmount)
+        *AddedRulesAmount = (USHORT)result.RulesAmount;
 
     if (NULL != message) FglFreeRulesMessage(message);
 
@@ -144,7 +143,7 @@ HRESULT FglAddSingleRule(
     HRESULT hr = S_OK;
     USHORT addedAmount = 0;
     
-    hr = FglAddBulkRules(Port, 1, Rule, &addedAmount);
+    hr = FglAddBulkRules(Port, Rule, 1, &addedAmount);
     if (SUCCEEDED(hr) && addedAmount == 1) *Added = TRUE;
     else *Added = FALSE;
 
@@ -153,8 +152,8 @@ HRESULT FglAddSingleRule(
 
 HRESULT FglRemoveBulkRules(
     _In_ CONST HANDLE Port,
-    _In_ USHORT RulesAmount,
     _In_ CONST FGL_RULE Rules[],
+    _In_ USHORT RulesAmount,
     _Inout_opt_ USHORT* RemovedRulesAmount
 ) {
     HRESULT hr = S_OK;
@@ -165,7 +164,7 @@ HRESULT FglRemoveBulkRules(
     if (NULL == Port || 0 == RulesAmount || NULL == Rules)
         return E_INVALIDARG;
 
-    hr = FglCreateRulesMessage(RulesAmount, Rules, &message);
+    hr = FglCreateRulesMessage(Rules, RulesAmount, &message);
     if (FAILED(hr)) return hr;
 
     message->Type = RemoveRules;
@@ -175,10 +174,9 @@ HRESULT FglRemoveBulkRules(
                            &result, 
                            sizeof(FG_MESSAGE_RESULT), 
                            &returned);
-    if (SUCCEEDED(hr) &&
-        SUCCEEDED(HRESULT_FROM_WIN32(result.ResultCode)) &&
-        NULL != RemovedRulesAmount)
-        *RemovedRulesAmount = result.RulesAmount;
+    if (SUCCEEDED(hr)) hr = HRESULT_FROM_WIN32(result.ResultCode);
+    if (SUCCEEDED(hr) && NULL != RemovedRulesAmount)
+        *RemovedRulesAmount = (USHORT)result.RulesAmount;
 
     if (NULL != message) FglFreeRulesMessage(message);
 
@@ -193,7 +191,7 @@ HRESULT FglRemoveSingleRule(
     HRESULT hr = S_OK;
     USHORT addedAmount = 0;
 
-    hr = FglRemoveBulkRules(Port, 1, Rule, &addedAmount);
+    hr = FglRemoveBulkRules(Port, Rule, 1, &addedAmount);
     if (SUCCEEDED(hr) && addedAmount == 1) *Removed = TRUE;
     else *Removed = FALSE;
 
@@ -206,7 +204,7 @@ HRESULT FglQueryRules() {
 
 HRESULT FglCleanupRules(
     _In_ CONST HANDLE Port,
-    _Inout_opt_ USHORT* CleanedRulesAmount
+    _Inout_opt_ ULONG* CleanedRulesAmount
 ) {
     HRESULT hr = S_OK;
     FG_MESSAGE message = { 0 };
@@ -222,10 +220,9 @@ HRESULT FglCleanupRules(
                            &result, 
                            sizeof(FG_MESSAGE_RESULT), 
                            &returned);
-    if (SUCCEEDED(hr) && 
-        SUCCEEDED(HRESULT_FROM_WIN32(result.ResultCode)) &&
-        NULL != CleanedRulesAmount)
+    if (SUCCEEDED(hr)) hr = HRESULT_FROM_WIN32(result.ResultCode);
+    if (SUCCEEDED(hr) && NULL != CleanedRulesAmount) 
         *CleanedRulesAmount = result.RulesAmount;
 
-    return E_NOTIMPL;
+    return hr;
 }

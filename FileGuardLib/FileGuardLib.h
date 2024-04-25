@@ -25,8 +25,8 @@ extern HRESULT FglGetCoreVersion(
 
 extern HRESULT FglAddBulkRules(
     _In_ CONST HANDLE Port,
-    _In_ USHORT RulesAmount,
     _In_ CONST FGL_RULE Rules[],
+    _In_ USHORT RulesAmount,
     _Inout_opt_ USHORT *AddedRulesAmount
 );
 
@@ -38,8 +38,8 @@ extern HRESULT FglAddSingleRule(
 
 extern HRESULT FglRemoveBulkRules(
     _In_ CONST HANDLE Port,
-    _In_ USHORT RulesAmount,
     _In_ CONST FGL_RULE Rules[],
+    _In_ USHORT RulesAmount,
     _Inout_opt_ USHORT *RemovedRulesAmount
 );
 
@@ -55,7 +55,7 @@ extern HRESULT FglQueryRules(
 
 extern HRESULT FglCleanupRules(
     _In_ CONST HANDLE Port,
-    _Inout_opt_ USHORT *CleanedRulesAmount
+    _Inout_opt_ ULONG* CleanedRulesAmount
 );
 
 #endif

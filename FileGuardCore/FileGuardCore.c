@@ -153,14 +153,6 @@ DriverEntry(
         InitializeListHead(&Globals.MonitorRecordsQueue);
         KeInitializeSpinLock(&Globals.MonitorRecordsQueueLock);
 
-        ExInitializeNPagedLookasideList(&Globals.RuleEntryMemoryPool,
-                                        NULL,
-                                        NULL,
-                                        POOL_NX_ALLOCATION,
-                                        sizeof(FG_RULE_ENTRY) + sizeof(RTL_BALANCED_LINKS),
-                                        FG_RULE_ENTRY_NPAGED_MEM_TAG,
-                                        0);
-
         //
         // Register filter driver.
         //
@@ -286,8 +278,6 @@ DriverEntry(
             if (NULL != Globals.MonitorThreadObject)
                 ObReferenceObject(Globals.MonitorThreadObject);
 
-            ExDeleteNPagedLookasideList(&Globals.RuleEntryMemoryPool);
-
         } 
 
         if (NULL != securityDescriptor) FltFreeSecurityDescriptor(securityDescriptor);
@@ -323,15 +313,11 @@ FgUnload(
         FltCloseClientPort(Globals.Filter, &Globals.MonitorClientPort);
     }
 
-    if (NULL != Globals.RulesListLock) {
-        FgFreePushLock(Globals.RulesListLock);
-    }
-
     if (NULL != Globals.Filter) {
         FltUnregisterFilter(Globals.Filter);
     }
 
-    DBG_TRACE("Unregister filter successfully");
+    DBG_INFO("Unregister filter successfully");
 
     //
     // Stop the monitor thread.
@@ -362,7 +348,10 @@ FgUnload(
 
     FgFreeMonitorStartContext(Globals.MonitorContext);
 
-    ExDeleteNPagedLookasideList(&Globals.RuleEntryMemoryPool);
+    FgCleanupRuleEntriesList(Globals.RulesListLock, &Globals.RulesList);
+    if (NULL != Globals.RulesListLock) {
+        FgFreePushLock(Globals.RulesListLock);
+    }
 
     LOG_INFO("Unload driver successfully");
 

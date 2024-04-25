@@ -24,6 +24,8 @@ int wmain(int argc, wchar_t* argv[]) {
     };
     FGL_RULE rule = { 0 };
     BOOLEAN added = FALSE, removed = FALSE;
+    USHORT addedAmount = 0, removedAmount = 0;
+    ULONG cleanRules = 0;
     PFG_MESSAGE message = NULL;
 
     // Output
@@ -61,6 +63,26 @@ int wmain(int argc, wchar_t* argv[]) {
     if (FAILED(hr)) {
         fprintf(stderr, "remove single rule failed: 0x%08x", hr);
         goto Cleanup;
+    }
+
+    hr = FglAddBulkRules(port, rules, 3, &addedAmount);
+    if (FAILED(hr)) {
+        fprintf(stderr, "add rules failed: 0x%08x", hr);
+        goto Cleanup;
+    }
+
+    hr = FglRemoveBulkRules(port, rules, 2, &removedAmount);
+    if (FAILED(hr)) {
+        fprintf(stderr, "remove rules failed: 0x%08x", hr);
+        goto Cleanup;
+    }
+
+    hr = FglCleanupRules(port, &cleanRules);
+    if (FAILED(hr)) {
+        fprintf(stderr, "clean rules failed: 0x%08x", hr);
+        goto Cleanup;
+    } else {
+        printf("Cleanup %lu rules\n", cleanRules);
     }
 
 Cleanup:

@@ -67,7 +67,7 @@ typedef struct _FG_MESSAGE_RESULT {
     ULONG ResultCode;
     union {
         FG_CORE_VERSION CoreVersion;
-        USHORT RulesAmount;
+        ULONG RulesAmount;
     } DUMMYUNIONNAME;
 } FG_MESSAGE_RESULT, *PFG_MESSAGE_RESULT;
 

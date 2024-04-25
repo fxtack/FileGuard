@@ -147,9 +147,8 @@ typedef struct _FG_CORE_GLOBALS {
     LIST_ENTRY MonitorRecordsQueue;
     KSPIN_LOCK MonitorRecordsQueueLock;
 
-    ULONG MaxRuleEntriesAllocated;             // Maximum of rule entries that can be allocated.
-    __volatile ULONG RuleEntriesAllocated;     // Amount of rule entries allocated.
-    NPAGED_LOOKASIDE_LIST RuleEntryMemoryPool; // Memory pool of rule entry.
+    ULONG MaxRuleEntriesAllocated;         // Maximum of rule entries that can be allocated.
+    __volatile ULONG RuleEntriesAllocated; // Amount of rule entries allocated.
 
 } FG_CORE_GLOBALS, *PFG_CORE_GLOBALS;
 

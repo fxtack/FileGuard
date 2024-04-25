@@ -155,6 +155,7 @@ FgAddRules(
     rulePtr = Rules;
 
     FltAcquirePushLockExclusive(ListLock);
+
     for (; ruleIdx < RulesAmount; ruleIdx++) {
 
         LIST_FOR_EACH_SAFE(entry, next, RuleList) {
@@ -166,7 +167,8 @@ FgAddRules(
                 pathExpression.Length = rulePtr->PathExpressionSize;
                 pathExpression.MaximumLength = rulePtr->PathExpressionSize;
 
-                if (0 == RtlCompareUnicodeString(&pathExpression, ruleEntry->PathExpression, TRUE)) break;
+                if (0 == RtlCompareUnicodeString(&pathExpression, ruleEntry->PathExpression, TRUE)) 
+                    goto NextNewRule;
             }
         }
 
@@ -184,7 +186,9 @@ FgAddRules(
                  ruleEntry->RuleCode, 
                  ruleEntry->PathExpression);
 
-        Add2Ptr(rulePtr, rulePtr->PathExpressionSize + sizeof(FG_RULE));
+    NextNewRule:
+
+        rulePtr = Add2Ptr(rulePtr, rulePtr->PathExpressionSize + sizeof(FG_RULE));
     }
     FltReleasePushLock(ListLock);
 
@@ -242,7 +246,7 @@ FgFindAndRemoveRule(
             }
         }
 
-        Add2Ptr(rulePtr, rulePtr->PathExpressionSize + sizeof(FG_RULE));
+        rulePtr = Add2Ptr(rulePtr, rulePtr->PathExpressionSize + sizeof(FG_RULE));
     }
     FltReleasePushLock(ListLock);
 
@@ -286,4 +290,36 @@ FgMatchRule(
     FltReleasePushLock(ListLock);
 
     return ruleCode;
+}
+
+ULONG
+FgCleanupRuleEntriesList(
+    _In_ PEX_PUSH_LOCK Lock,
+    _In_ PLIST_ENTRY RuleEntriesList
+    )
+{
+    PLIST_ENTRY entry = NULL;
+    PFG_RULE_ENTRY ruleEntry = NULL;
+    ULONG clean = 0ul;
+
+    FltAcquirePushLockExclusive(Lock);
+
+    while (!IsListEmpty(RuleEntriesList)) {
+        entry = RemoveHeadList(RuleEntriesList);
+        ruleEntry = CONTAINING_RECORD(entry, FG_RULE_ENTRY, List);
+
+        DBG_TRACE("Rule: %p removed, rule code: 0x%08x, rule path expression: '%wZ'",
+                  ruleEntry,
+                  ruleEntry->RuleCode,
+                  ruleEntry->PathExpression);
+
+        FgFreeRuleEntry(ruleEntry);
+        clean++;
+    }
+
+    FltReleasePushLock(Lock);
+
+    DBG_INFO("Cleanup %lu rules", clean);
+
+    return clean;
 }
