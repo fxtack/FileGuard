@@ -198,7 +198,13 @@ HRESULT FglRemoveSingleRule(
     return hr;
 }
 
-HRESULT FglQueryRules() {
+HRESULT FglQueryRules(
+    _In_ CONST HANDLE Port,
+    _Inout_opt_ FGL_RULE* Rule,
+    _Inout_opt_ USHORT* RulessAmount,
+    _Inout_ ULONG* RulesSize
+    )
+{
     return E_NOTIMPL;
 }
 
