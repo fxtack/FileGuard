@@ -136,7 +136,7 @@ FgCoreControlMessageNotifyCallback(
     _Out_ PULONG ReturnSize
 ) {
     NTSTATUS status = STATUS_SUCCESS, resultStatus = STATUS_SUCCESS;
-    ULONG variableSize = 0ul;
+    ULONG variableSize = 0ul, resultSize = sizeof(FG_MESSAGE_RESULT);
     FG_MESSAGE_TYPE commandType = 0;
     PFG_MESSAGE message = NULL;
     PFG_MESSAGE_RESULT result = NULL;
@@ -233,7 +233,10 @@ FgCoreControlMessageNotifyCallback(
         status = STATUS_NOT_SUPPORTED;
     }
     
-    if(NULL != result) result->ResultCode = RtlNtStatusToDosError(resultStatus);
+    if(NULL != result) {
+        result->ResultCode = RtlNtStatusToDosError(resultStatus);
+        result->ResultSize = resultSize;
+    }
     *ReturnSize = sizeof(FG_MESSAGE_RESULT) + variableSize;
 
     return status;
