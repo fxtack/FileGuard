@@ -196,6 +196,7 @@ FgCoreControlMessageNotifyCallback(
                 LOG_INFO("Attempt to add %hu rule(s), %hu rules added successfully", message->RulesAmount, ruleAmount);
 
             } else {
+
                 resultStatus = FgFindAndRemoveRule(&Globals.RulesList,
                                                    Globals.RulesListLock,
                                                    message->RulesAmount,
@@ -207,12 +208,24 @@ FgCoreControlMessageNotifyCallback(
                 }
                 LOG_INFO("Attempt to remove %hu rule(s), %hu rules removed successfully", message->RulesAmount, ruleAmount);
             }
+
+            result->AffectedRulesAmount = ruleAmount;
+
         } except(EXCEPTION_EXECUTE_HANDLER) {
+
             resultStatus = GetExceptionCode();
             LOG_ERROR("NTSTATUS: 0x%08x, add rules failed", status);
             break;
         }
 
+        break;
+
+    case QueryRules:
+        status = STATUS_NOT_IMPLEMENTED;
+        break;
+
+    case CheckMatchedRule:
+        status = STATUS_NOT_IMPLEMENTED;
         break;
 
     case CleanupRules:
@@ -224,7 +237,7 @@ FgCoreControlMessageNotifyCallback(
         if (NULL == Output) return STATUS_INVALID_PARAMETER_4;
         if (OutputSize < sizeof(FG_MESSAGE_RESULT)) return STATUS_INVALID_PARAMETER_5;
         
-        result->RulesAmount = FgCleanupRuleEntriesList(Globals.RulesListLock, &Globals.RulesList);
+        result->AffectedRulesAmount = FgCleanupRuleEntriesList(Globals.RulesListLock, &Globals.RulesList);
         break;
 
     default:

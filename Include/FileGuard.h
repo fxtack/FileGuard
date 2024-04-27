@@ -23,6 +23,8 @@ typedef enum _FG_MESSAGE_TYPE {
     GetCoreVersion,
     AddRules,
     RemoveRules,
+    QueryRules,
+    CheckMatchedRule,
     CleanupRules
 } FG_MESSAGE_TYPE;
 
@@ -57,6 +59,10 @@ typedef struct _FG_MESSAGE {
             ULONG RulesSize;
             UCHAR Rules[];
         } DUMMYSTRUCTNAME;
+        struct {
+            ULONG PathNameSize;
+            WCHAR PathName[];
+        } DUMMYSTRUCTNAME;
     } DUMMYUNIONNAME;
 } FG_MESSAGE, *PFG_MESSAGE;
 
@@ -68,12 +74,13 @@ typedef struct _FG_MESSAGE_RESULT {
     ULONG ResultSize;
     union {
         FG_CORE_VERSION CoreVersion;
-        ULONG RulesAmount;
+        ULONG AffectedRulesAmount;
         struct {
             USHORT RulesAmount;
             ULONG RulesSize;
             UCHAR Rules[];
         } Rules;
+        FG_RULE MatchedRule;
     } DUMMYUNIONNAME;
 } FG_MESSAGE_RESULT, *PFG_MESSAGE_RESULT;
 

@@ -128,7 +128,7 @@ HRESULT FglAddBulkRules(
                            &returned);
     if (SUCCEEDED(hr)) hr = HRESULT_FROM_WIN32(result.ResultCode);
     if (SUCCEEDED(hr) && NULL != AddedRulesAmount)
-        *AddedRulesAmount = (USHORT)result.RulesAmount;
+        *AddedRulesAmount = (USHORT)result.AffectedRulesAmount;
 
     if (NULL != message) FglFreeRulesMessage(message);
 
@@ -176,7 +176,7 @@ HRESULT FglRemoveBulkRules(
                            &returned);
     if (SUCCEEDED(hr)) hr = HRESULT_FROM_WIN32(result.ResultCode);
     if (SUCCEEDED(hr) && NULL != RemovedRulesAmount)
-        *RemovedRulesAmount = (USHORT)result.RulesAmount;
+        *RemovedRulesAmount = (USHORT)result.AffectedRulesAmount;
 
     if (NULL != message) FglFreeRulesMessage(message);
 
@@ -196,6 +196,15 @@ HRESULT FglRemoveSingleRule(
     else *Removed = FALSE;
 
     return hr;
+}
+
+HRESULT FglCheckMatchedRule(
+    _In_ CONST HANDLE Port,
+    _In_ PCWSTR PathName,
+    _Inout_ FGL_RULE* RuleBuffer,
+    _Inout_ ULONG* RuleSize
+) {
+    return E_NOTIMPL;
 }
 
 HRESULT FglQueryRules(
@@ -228,7 +237,7 @@ HRESULT FglCleanupRules(
                            &returned);
     if (SUCCEEDED(hr)) hr = HRESULT_FROM_WIN32(result.ResultCode);
     if (SUCCEEDED(hr) && NULL != CleanedRulesAmount) 
-        *CleanedRulesAmount = result.RulesAmount;
+        *CleanedRulesAmount = result.AffectedRulesAmount;
 
     return hr;
 }
