@@ -283,6 +283,11 @@ FgMatchRule(
                                           NULL);
         if (matched) {
             ruleCode = ruleEntry->RuleCode;
+            DBG_INFO("File '%wZ' matched rule: %p, path expression: '%wZ', rule code: 0x%08x",
+                     FileDevicePathName, 
+                     ruleEntry, 
+                     ruleEntry->PathExpression, 
+                     ruleEntry->RuleCode);
             break;
         }
     }
