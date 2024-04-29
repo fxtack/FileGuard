@@ -190,6 +190,7 @@ Return Value:
     FLT_POSTOP_CALLBACK_STATUS callbackStatus = FLT_POSTOP_FINISHED_PROCESSING;
     PFG_COMPLETION_CONTEXT completionContext = CompletionContext;
     PFLT_FILE_NAME_INFORMATION nameInfo = NULL;
+    ULONG ruleCode = 0;
     PFG_FILE_CONTEXT fileContext = NULL, oldFileContext = NULL;
 
     UNREFERENCED_PARAMETER(FltObjects);
@@ -204,6 +205,7 @@ Return Value:
     FLT_ASSERT(NULL != completionContext->Create.FileNameInfo);
 
     nameInfo = completionContext->Create.FileNameInfo;
+    ruleCode = completionContext->Create.RuleCode;
 
     if (FlagOn(Flags, FLTFL_POST_OPERATION_DRAINING)) {
         status = STATUS_DEVICE_REMOVED;
@@ -270,6 +272,8 @@ Return Value:
             InterlockedExchangePointer(&fileContext->FileNameInfo, nameInfo);
         }
     }
+
+    InterlockedExchange(&fileContext->RuleCode, ruleCode);
 
 Cleanup:
 
@@ -430,7 +434,7 @@ Return Value:
         LOG_ERROR("NTSTATUS: 0x%08x, get file context failed", status);
         goto Cleanup;
 
-    } else if (STATUS_NOT_FOUND != status) {
+    } else if (STATUS_NOT_FOUND == status) {
         status = STATUS_SUCCESS;
         goto Cleanup;
     }
@@ -482,6 +486,7 @@ Return Value:
             LOG_ERROR("NTSTATUS: 0x%08x, an exception occurred while matching the rules", status);
             goto Cleanup;
         }
+        break;
 
     case FileDispositionInformation:
     case FileDispositionInformationEx:

@@ -18,9 +18,9 @@ int wmain(int argc, wchar_t* argv[]) {
     HANDLE port = INVALID_HANDLE_VALUE;
     FG_CORE_VERSION coreVersion = { 0 };
     FGL_RULE rules[] = {
-        { .RuleCode = RULE_ACCESS_DENIED, .RulePathExpression = L"test_path_1"},
-        { .RuleCode = RULE_ACCESS_DENIED, .RulePathExpression = L"test_path_2"},
-        { .RuleCode = RULE_ACCESS_DENIED, .RulePathExpression = L"test_path_3"}
+        { .RuleCode = RULE_READONLY, .RulePathExpression = L"*\\baned1.txt"},
+        { .RuleCode = RULE_READONLY, .RulePathExpression = L"*\\baned2.txt"},
+        { .RuleCode = RULE_READONLY, .RulePathExpression = L"*\\baned.txt"}
     };
     FGL_RULE rule = { 0 };
     BOOLEAN added = FALSE, removed = FALSE;
@@ -51,7 +51,7 @@ int wmain(int argc, wchar_t* argv[]) {
            FGA_MAJOR_VERSION, FGA_MINOR_VERSION, FGA_PATCH_VERSION, FGA_BUILD_VERSION,
            coreVersion.Major, coreVersion.Minor, coreVersion.Patch, coreVersion.Build);
 
-    rule.RuleCode = RULE_ACCESS_DENIED;
+    rule.RuleCode = RULE_READONLY;
     rule.RulePathExpression = L"\\Device\\HarddiskVolume\\*";
     hr = FglAddSingleRule(port, &rule, &added);
     if (FAILED(hr)) {
@@ -77,13 +77,13 @@ int wmain(int argc, wchar_t* argv[]) {
         goto Cleanup;
     }
 
-    hr = FglCleanupRules(port, &cleanRules);
-    if (FAILED(hr)) {
-        fprintf(stderr, "clean rules failed: 0x%08x", hr);
-        goto Cleanup;
-    } else {
-        printf("Cleanup %lu rules\n", cleanRules);
-    }
+    //hr = FglCleanupRules(port, &cleanRules);
+    //if (FAILED(hr)) {
+    //    fprintf(stderr, "clean rules failed: 0x%08x", hr);
+    //    goto Cleanup;
+    //} else {
+    //    printf("Cleanup %lu rules\n", cleanRules);
+    //}
 
 Cleanup:
 
