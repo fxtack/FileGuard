@@ -46,14 +46,14 @@ typedef struct _FG_RULE_ENTRY {
     LIST_ENTRY List;
     
     //
-    // File path
-    //
-    PUNICODE_STRING PathExpression;
-
-    //
     // The policy of the rule.
     //
     ULONG RuleCode;
+
+    //
+    // File path
+    //
+    PUNICODE_STRING PathExpression;
 
 } FG_RULE_ENTRY, *PFG_RULE_ENTRY;
 
@@ -104,6 +104,16 @@ FgFreeRuleEntry(
         FgFreeBuffer(RuleEntry);
     }
 }
+
+NTSTATUS
+FgGetRules(
+    _In_ PLIST_ENTRY RuleEntriesList,
+    _In_ PEX_PUSH_LOCK Lock,
+    _In_opt_  FG_RULE* RulesBuffer,
+    _In_opt_ ULONG RulesBufferSize,
+    _Inout_opt_ USHORT* RulesAmount,
+    _Inout_ ULONG* RulesSize
+);
 
 ULONG
 FgCleanupRuleEntriesList(

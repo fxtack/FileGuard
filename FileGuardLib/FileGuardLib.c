@@ -1,6 +1,7 @@
 ﻿#define BUILD_LIB
 
 #include <windows.h>
+#include <warning.h>
 #include <fltuser.h>
 #include <stdio.h>
 
@@ -8,7 +9,7 @@
 #include "FileGuardLib.h"
 
 HRESULT FglConnectCore(
-    _Outptr_ HANDLE* Port
+    _Outptr_ HANDLE *Port
     )
 {
     return FilterConnectCommunicationPort(FG_CORE_CONTROL_PORT_NAME,
@@ -28,7 +29,7 @@ VOID FglDisconnectCore(
 
 HRESULT FglGetCoreVersion(
     _In_ CONST HANDLE Port,
-    _Inout_ FG_CORE_VERSION* Version
+    _Inout_ FG_CORE_VERSION *Version
     )
 {
     HRESULT hr = S_OK;
@@ -36,7 +37,7 @@ HRESULT FglGetCoreVersion(
     FG_MESSAGE_RESULT result = { 0 };
     DWORD returned = 0ul;
 
-    if (NULL == Port || NULL == Version) return E_INVALIDARG;
+    if (NULL == Version) return E_INVALIDARG;
 
     hr = FilterSendMessage(Port, 
                            &msg, 
@@ -58,7 +59,7 @@ HRESULT FglGetCoreVersion(
 HRESULT FglCreateRulesMessage(
     _In_ CONST FGL_RULE Rules[],
     _In_ USHORT RulesAmount,
-    _Outptr_ PFG_MESSAGE* Message
+    _Outptr_ PFG_MESSAGE *Message
     )
 {
     HRESULT hr = S_OK;
@@ -105,7 +106,7 @@ HRESULT FglAddBulkRules(
     _In_ CONST HANDLE Port,
     _In_ CONST FGL_RULE Rules[],
     _In_ USHORT RulesAmount,
-    _Inout_opt_ USHORT* AddedRulesAmount
+    _Inout_opt_ USHORT *AddedRulesAmount
     )
 {
     HRESULT hr = S_OK;
@@ -113,7 +114,7 @@ HRESULT FglAddBulkRules(
     FG_MESSAGE_RESULT result = { 0 };
     DWORD returned = 0ul;
 
-    if (NULL == Port || 0 == RulesAmount || NULL == Rules) 
+    if (0 == RulesAmount || NULL == Rules) 
         return E_INVALIDARG;
 
     hr = FglCreateRulesMessage(Rules, RulesAmount, &message);
@@ -137,7 +138,7 @@ HRESULT FglAddBulkRules(
 
 HRESULT FglAddSingleRule(
     _In_ CONST HANDLE Port,
-    _In_ CONST FGL_RULE* Rule,
+    _In_ CONST FGL_RULE *Rule,
     _Inout_ BOOLEAN *Added
 ) {
     HRESULT hr = S_OK;
@@ -154,14 +155,14 @@ HRESULT FglRemoveBulkRules(
     _In_ CONST HANDLE Port,
     _In_ CONST FGL_RULE Rules[],
     _In_ USHORT RulesAmount,
-    _Inout_opt_ USHORT* RemovedRulesAmount
+    _Inout_opt_ USHORT *RemovedRulesAmount
 ) {
     HRESULT hr = S_OK;
     FG_MESSAGE* message = NULL;
     FG_MESSAGE_RESULT result = { 0 };
     DWORD returned = 0ul;
 
-    if (NULL == Port || 0 == RulesAmount || NULL == Rules)
+    if (0 == RulesAmount || NULL == Rules)
         return E_INVALIDARG;
 
     hr = FglCreateRulesMessage(Rules, RulesAmount, &message);
@@ -185,8 +186,8 @@ HRESULT FglRemoveBulkRules(
 
 HRESULT FglRemoveSingleRule(
     _In_ CONST HANDLE Port,
-    _In_ CONST FGL_RULE* Rule,
-    _Inout_ BOOLEAN* Removed
+    _In_ CONST FGL_RULE *Rule,
+    _Inout_ BOOLEAN *Removed
 ) {
     HRESULT hr = S_OK;
     USHORT addedAmount = 0;
@@ -201,33 +202,62 @@ HRESULT FglRemoveSingleRule(
 HRESULT FglCheckMatchedRule(
     _In_ CONST HANDLE Port,
     _In_ PCWSTR PathName,
-    _Inout_ FGL_RULE* RuleBuffer,
-    _Inout_ ULONG* RuleSize
+    _In_ ULONG *RuleBufferSize,
+    _Inout_ FGL_RULE *RuleBuffer,
+    _Inout_ ULONG *RuleSize
 ) {
     return E_NOTIMPL;
 }
 
 HRESULT FglQueryRules(
     _In_ CONST HANDLE Port,
-    _Inout_opt_ FGL_RULE* Rule,
-    _Inout_opt_ USHORT* RulessAmount,
-    _Inout_ ULONG* RulesSize
+    _Inout_opt_ FG_RULE *RulesBuffer,
+    _In_opt_ ULONG RulesBufferSize,
+    _Inout_opt_ USHORT *RulesAmount,
+    _Inout_ ULONG *RulesSize
     )
 {
-    return E_NOTIMPL;
+    HRESULT hr = S_OK;
+    FG_MESSAGE message = { 0 };
+    ULONG resultSize = 0ul;
+    PFG_MESSAGE_RESULT result = NULL;
+    DWORD returned = 0ul;
+
+    if (NULL == RulesSize) return E_INVALIDARG;
+
+    resultSize = sizeof(FG_MESSAGE_RESULT) + RulesBufferSize;
+    result = malloc(resultSize);
+    if (NULL == result) return E_OUTOFMEMORY;
+    else memset(result, 0, resultSize);
+    
+    message.Type = QueryRules;
+    hr = FilterSendMessage(Port, 
+                           &message, 
+                           sizeof(FG_MESSAGE),
+                           result,
+                           resultSize,
+                           &returned);
+    if (!SUCCEEDED(hr)) return hr;
+
+    if (NULL != RulesAmount) *RulesAmount = result->Rules.RulesAmount;
+    *RulesSize = result->Rules.RulesSize;
+
+    hr = HRESULT_FROM_WIN32(result->ResultCode);
+    if (SUCCEEDED(hr) && NULL != RulesBuffer)
+        RtlCopyMemory(RulesBuffer, result->Rules.RulesBuffer, result->Rules.RulesSize);
+
+    return hr;
 }
 
 HRESULT FglCleanupRules(
     _In_ CONST HANDLE Port,
-    _Inout_opt_ ULONG* CleanedRulesAmount
+    _Inout_opt_ ULONG *CleanedRulesAmount
 ) {
     HRESULT hr = S_OK;
     FG_MESSAGE message = { 0 };
     FG_MESSAGE_RESULT result = { 0 };
     DWORD returned = 0ul;
-
-    if (NULL == Port) return E_INVALIDARG;
-
+    
     message.Type = CleanupRules;
     hr = FilterSendMessage(Port, 
                            &message, 

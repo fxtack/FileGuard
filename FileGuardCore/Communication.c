@@ -136,7 +136,7 @@ FgCoreControlMessageNotifyCallback(
     _Out_ PULONG ReturnSize
 ) {
     NTSTATUS status = STATUS_SUCCESS, resultStatus = STATUS_SUCCESS;
-    ULONG variableSize = 0ul, resultSize = sizeof(FG_MESSAGE_RESULT);
+    ULONG resultVariableSize = 0ul;
     FG_MESSAGE_TYPE commandType = 0;
     PFG_MESSAGE message = NULL;
     PFG_MESSAGE_RESULT result = NULL;
@@ -145,6 +145,7 @@ FgCoreControlMessageNotifyCallback(
     UNREFERENCED_PARAMETER(ConnectionCookie);
 
     if (NULL == Input) return STATUS_INVALID_PARAMETER_2;
+    if (InputSize < sizeof(FG_MESSAGE)) status = STATUS_INVALID_PARAMETER_3;
     if (NULL == ReturnSize) return STATUS_INVALID_PARAMETER_6;
 
     message = (PFG_MESSAGE)Input;
@@ -160,8 +161,12 @@ FgCoreControlMessageNotifyCallback(
         // Get core version information.
         //
 
-        if (NULL == Output) return STATUS_INVALID_PARAMETER_4;
-        if (OutputSize < sizeof(FG_MESSAGE_RESULT)) return STATUS_INVALID_PARAMETER_5;
+        if (NULL == Output) status = STATUS_INVALID_PARAMETER_4;
+        if (OutputSize < sizeof(FG_MESSAGE_RESULT)) status = STATUS_INVALID_PARAMETER_5;
+        if (!NT_SUCCESS(status)) {
+            LOG_ERROR("NTSTATUS: 0x%08x, message invalid parameter", status);
+            break;
+        }
 
         result->CoreVersion.Major = FG_CORE_VERSION_MAJOR;
         result->CoreVersion.Minor = FG_CORE_VERSION_MINOR;
@@ -172,11 +177,8 @@ FgCoreControlMessageNotifyCallback(
     case AddRules:
     case RemoveRules:
         
-        if (NULL == Input) status = STATUS_INVALID_PARAMETER_2;
-        if (InputSize <= sizeof(FG_MESSAGE)) status = STATUS_INVALID_PARAMETER_3;
         if (NULL == Output) status = STATUS_INVALID_PARAMETER_4;
         if (OutputSize < sizeof(FG_MESSAGE_RESULT)) status = STATUS_INVALID_PARAMETER_5;
-
         if (!NT_SUCCESS(status)) {
             LOG_ERROR("NTSTATUS: 0x%08x, message invalid parameter", status);
             break;
@@ -212,7 +214,6 @@ FgCoreControlMessageNotifyCallback(
             result->AffectedRulesAmount = ruleAmount;
 
         } except(EXCEPTION_EXECUTE_HANDLER) {
-
             resultStatus = GetExceptionCode();
             LOG_ERROR("NTSTATUS: 0x%08x, add rules failed", status);
             break;
@@ -221,7 +222,29 @@ FgCoreControlMessageNotifyCallback(
         break;
 
     case QueryRules:
-        status = STATUS_NOT_IMPLEMENTED;
+
+        if (NULL == Output) status = STATUS_INVALID_PARAMETER_4;
+        if (OutputSize < sizeof(FG_MESSAGE_RESULT)) status = STATUS_INVALID_PARAMETER_5;
+        if (!NT_SUCCESS(status)) {
+            LOG_ERROR("NTSTATUS: 0x%08x, message invalid parameter", status);
+            break;
+        }
+
+        resultStatus = FgGetRules(&Globals.RulesList, 
+                                  Globals.RulesListLock,
+                                  (FG_RULE*)result->Rules.RulesBuffer, 
+                                  OutputSize - sizeof(FG_MESSAGE_RESULT),
+                                  &result->Rules.RulesAmount, 
+                                  &result->Rules.RulesSize);
+        if (STATUS_BUFFER_TOO_SMALL != resultStatus) {
+            if (!NT_SUCCESS(resultStatus)) {
+                LOG_ERROR("NTSTATUS: 0x%08x, get rules failed", resultStatus);
+                break;
+            } else {
+                resultVariableSize = result->Rules.RulesSize;
+            }
+        }
+
         break;
 
     case CheckMatchedRule:
@@ -234,8 +257,12 @@ FgCoreControlMessageNotifyCallback(
         // Clear all rules in all instance rule tables or all rules in an instance rule table.
         //
 
-        if (NULL == Output) return STATUS_INVALID_PARAMETER_4;
-        if (OutputSize < sizeof(FG_MESSAGE_RESULT)) return STATUS_INVALID_PARAMETER_5;
+        if (NULL == Output) status = STATUS_INVALID_PARAMETER_4;
+        if (OutputSize < sizeof(FG_MESSAGE_RESULT)) status = STATUS_INVALID_PARAMETER_5;
+        if (!NT_SUCCESS(status)) {
+            LOG_ERROR("NTSTATUS: 0x%08x, message invalid parameter", status);
+            break;
+        }
         
         result->AffectedRulesAmount = FgCleanupRuleEntriesList(Globals.RulesListLock, &Globals.RulesList);
         break;
@@ -248,9 +275,11 @@ FgCoreControlMessageNotifyCallback(
     
     if(NULL != result) {
         result->ResultCode = RtlNtStatusToDosError(resultStatus);
-        result->ResultSize = resultSize;
+        result->ResultSize = sizeof(FG_MESSAGE_RESULT) + resultVariableSize;
+        *ReturnSize = sizeof(FG_MESSAGE_RESULT) + resultVariableSize;
+    } else {
+        *ReturnSize = 0;
     }
-    *ReturnSize = sizeof(FG_MESSAGE_RESULT) + variableSize;
 
     return status;
 }

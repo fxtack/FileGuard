@@ -297,6 +297,84 @@ FgMatchRule(
     return ruleCode;
 }
 
+NTSTATUS
+FgGetRules(
+    _In_ PLIST_ENTRY RuleEntriesList,
+    _In_ PEX_PUSH_LOCK Lock,
+    _In_opt_  FG_RULE *RulesBuffer,
+    _In_opt_ ULONG RulesBufferSize,
+    _Inout_opt_ USHORT *RulesAmount,
+    _Inout_ ULONG *RulesSize
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PLIST_ENTRY entry = NULL, next = NULL;
+    PFG_RULE_ENTRY ruleEntry = NULL;
+    USHORT rulesAmount = 0;
+    FG_RULE *rulePtr = RulesBuffer;
+    ULONG thisRuleSize = 0ul;
+
+    if (NULL == RuleEntriesList) return STATUS_INVALID_PARAMETER_1;
+    if (NULL == Lock) return STATUS_INVALID_PARAMETER_2;
+    if (NULL == RulesBuffer) return STATUS_INVALID_PARAMETER_3;
+    if (NULL == RulesSize) return STATUS_INVALID_PARAMETER_6;
+
+    FltAcquirePushLockExclusive(Lock);
+
+    LIST_FOR_EACH_SAFE(entry, next, RuleEntriesList) {
+        ruleEntry = CONTAINING_RECORD(entry, FG_RULE_ENTRY, List);
+        *RulesSize += sizeof(FG_RULE) + ruleEntry->PathExpression->Length;
+        rulesAmount++;
+    }
+
+    if (*RulesSize > RulesBufferSize) {
+        LOG_WARNING("Get rules buffer too small, buffer size: %lu, must not be less than: %lu",
+                    RulesBufferSize,
+                    *RulesSize);
+
+        status = STATUS_BUFFER_TOO_SMALL;
+        goto Cleanup;
+    }
+
+    if (NULL == RulesBuffer || 0 == RulesBufferSize) {
+        goto Cleanup;
+    }
+
+    LIST_FOR_EACH_SAFE(entry, next, RuleEntriesList) {
+        
+        ruleEntry = CONTAINING_RECORD(entry, FG_RULE_ENTRY, List);
+        try {
+            RtlCopyMemory(rulePtr->PathExpression,
+                          ruleEntry->PathExpression->Buffer,
+                          ruleEntry->PathExpression->Length);
+            rulePtr->RuleCode = ruleEntry->RuleCode;
+            rulePtr->PathExpressionSize = ruleEntry->PathExpression->Length;
+        } except(EXCEPTION_EXECUTE_HANDLER) {
+            status = GetExceptionCode();
+            LOG_ERROR("NTSTATUS: 0x%08x, get rule failed", status);
+            break;
+        }
+
+        thisRuleSize = sizeof(FG_RULE) + rulePtr->PathExpressionSize;
+        RulesBufferSize -= thisRuleSize;
+        if ((LONG)RulesBufferSize > 0) {
+            rulePtr = Add2Ptr(rulePtr, thisRuleSize);
+        } else {
+            break;
+        }
+    }
+
+Cleanup:
+
+    FltReleasePushLock(Lock);
+
+    if (NULL != RulesAmount) *RulesAmount = rulesAmount;
+
+    DBG_INFO("Query rule(s) amount: %hu, size: %lu", rulesAmount, *RulesSize);
+
+    return status;
+}
+
 ULONG
 FgCleanupRuleEntriesList(
     _In_ PEX_PUSH_LOCK Lock,

@@ -33,7 +33,7 @@ typedef struct _FG_CORE_VERSION {
     USHORT Minor;
     USHORT Patch;
     USHORT Build;
-} FG_CORE_VERSION, * PFG_CORE_VERSION;
+} FG_CORE_VERSION, *PFG_CORE_VERSION;
 
 #define RULE_UNKNOWN       ((ULONG)0x00000000)
 #define RULE_ACCESS_DENIED ((ULONG)0x00000001)
@@ -78,7 +78,7 @@ typedef struct _FG_MESSAGE_RESULT {
         struct {
             USHORT RulesAmount;
             ULONG RulesSize;
-            UCHAR Rules[];
+            UCHAR RulesBuffer[];
         } Rules;
         FG_RULE MatchedRule;
     } DUMMYUNIONNAME;

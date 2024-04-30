@@ -7,11 +7,11 @@
 
 typedef struct _FGL_RULE {
     ULONG RuleCode;
-    WCHAR* RulePathExpression;
+    PCWSTR RulePathExpression;
 } FGL_RULE, *PFGL_RULE;
 
 extern HRESULT FglConnectCore(
-    _Outptr_ HANDLE* Port
+    _Outptr_ HANDLE *Port
 );
 
 extern VOID FglDisconnectCore(
@@ -32,40 +32,42 @@ extern HRESULT FglAddBulkRules(
 
 extern HRESULT FglAddSingleRule(
     _In_ CONST HANDLE Port,
-    _In_ CONST FGL_RULE* Rule,
-    _Inout_ BOOLEAN* Added
+    _In_ CONST FGL_RULE *Rule,
+    _Inout_ BOOLEAN *Added
 );
 
 extern HRESULT FglRemoveBulkRules(
     _In_ CONST HANDLE Port,
     _In_ CONST FGL_RULE Rules[],
     _In_ USHORT RulesAmount,
-    _Inout_opt_ USHORT* RemovedRulesAmount
+    _Inout_opt_ USHORT *RemovedRulesAmount
 );
 
 extern HRESULT FglRemoveSingleRule(
     _In_ CONST HANDLE Port,
-    _In_ CONST FGL_RULE* Rule,
-    _Inout_ BOOLEAN* Removed
+    _In_ CONST FGL_RULE *Rule,
+    _Inout_ BOOLEAN *Removed
 );
 
 extern HRESULT FglCheckMatchedRule(
     _In_ CONST HANDLE Port,
     _In_ PCWSTR PathName,
-    _Inout_ FGL_RULE* RuleBuffer,
-    _Inout_ ULONG* RuleSize
+    _In_ ULONG *RuleBufferSize,
+    _Inout_ FGL_RULE *RuleBuffer,
+    _Inout_ ULONG *RuleSize
 );
 
 extern HRESULT FglQueryRules(
     _In_ CONST HANDLE Port,
-    _Inout_opt_ FGL_RULE* Rule,
-    _Inout_opt_ USHORT* RulessAmount,
+    _Inout_opt_ FG_RULE* RulesBuffer,
+    _In_opt_ ULONG RulesBufferSize,
+    _Inout_opt_ USHORT* RulesAmount,
     _Inout_ ULONG* RulesSize
 );
 
 extern HRESULT FglCleanupRules(
     _In_ CONST HANDLE Port,
-    _Inout_opt_ ULONG* CleanedRulesAmount
+    _Inout_opt_ ULONG *CleanedRulesAmount
 );
 
 #endif
