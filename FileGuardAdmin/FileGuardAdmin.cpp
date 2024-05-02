@@ -5,8 +5,12 @@
 #include <windows.h>
 #include <fltUser.h>
 
+EXTERN_C_START
+
 #include "FileGuard.h"
 #include "FileGuardLib.h"
+
+EXTERN_C_END
 
 #define FGA_MAJOR_VERSION ((USHORT)0)
 #define FGA_MINOR_VERSION ((USHORT)1)
@@ -56,48 +60,48 @@ int wmain(int argc, wchar_t* argv[]) {
            FGA_MAJOR_VERSION, FGA_MINOR_VERSION, FGA_PATCH_VERSION, FGA_BUILD_VERSION,
            coreVersion.Major, coreVersion.Minor, coreVersion.Patch, coreVersion.Build);
 
-    rule.RuleCode = RULE_READONLY;
-    rule.RulePathExpression = L"\\Device\\HarddiskVolume\\*";
-    hr = FglAddSingleRule(port, &rule, &added);
-    if (FAILED(hr)) {
-        fprintf(stderr, "add single rule failed: 0x%08x", hr);
-        goto Cleanup;
-    }
-
-    //hr = FglRemoveSingleRule(port, &rule, &removed);
+    //rule.RuleCode = RULE_READONLY;
+    //rule.RulePathExpression = L"\\Device\\HarddiskVolume\\*";
+    //hr = FglAddSingleRule(port, &rule, &added);
     //if (FAILED(hr)) {
-    //    fprintf(stderr, "remove single rule failed: 0x%08x", hr);
+    //    fprintf(stderr, "add single rule failed: 0x%08x", hr);
     //    goto Cleanup;
     //}
 
-    hr = FglAddBulkRules(port, rules, 3, &addedAmount);
-    if (FAILED(hr)) {
-        fprintf(stderr, "add rules failed: 0x%08x", hr);
-        goto Cleanup;
-    }
+    ////hr = FglRemoveSingleRule(port, &rule, &removed);
+    ////if (FAILED(hr)) {
+    ////    fprintf(stderr, "remove single rule failed: 0x%08x", hr);
+    ////    goto Cleanup;
+    ////}
 
-    hr = FglQueryRules(port, NULL, 0, &queryAmount, &querySize);
-    printf("0x%08x, query result amount: %hu, size: %lu\n", hr, queryAmount, querySize);
+    //hr = FglAddBulkRules(port, rules, 3, &addedAmount);
+    //if (FAILED(hr)) {
+    //    fprintf(stderr, "add rules failed: 0x%08x", hr);
+    //    goto Cleanup;
+    //}
 
-    buffer = malloc(querySize);
-    if (NULL == buffer) goto Cleanup;
-    hr = FglQueryRules(port, (FG_RULE*)buffer, querySize, &queryAmount, &querySize);
-    if (FAILED(hr)) {
-        fprintf(stderr, "Query rules failed: 0x%08x", hr);
-        goto Cleanup;
-    }
+    //hr = FglQueryRules(port, NULL, 0, &queryAmount, &querySize);
+    //printf("0x%08x, query result amount: %hu, size: %lu\n", hr, queryAmount, querySize);
 
-    rulePtr = buffer;
-    while (querySize > 0) {
-        printf("remain size: %lu, rule code: %lu, path expression: %.*ls, size: %lu\n", 
-               querySize,
-               rulePtr->RuleCode, 
-               rulePtr->PathExpressionSize/sizeof(WCHAR),
-               rulePtr->PathExpression,
-               rulePtr->PathExpressionSize);
-        rulePtr = ((UCHAR*)rulePtr) + (sizeof(FG_RULE) + rulePtr->PathExpressionSize);
-        querySize -= ((sizeof(FG_RULE) + rulePtr->PathExpressionSize));
-    }
+    //buffer = malloc(querySize);
+    //if (NULL == buffer) goto Cleanup;
+    //hr = FglQueryRules(port, (FG_RULE*)buffer, querySize, &queryAmount, &querySize);
+    //if (FAILED(hr)) {
+    //    fprintf(stderr, "Query rules failed: 0x%08x", hr);
+    //    goto Cleanup;
+    //}
+
+    //rulePtr = buffer;
+    //while (querySize > 0) {
+    //    printf("remain size: %lu, rule code: %lu, path expression: %.*ls, size: %lu\n", 
+    //           querySize,
+    //           rulePtr->RuleCode, 
+    //           rulePtr->PathExpressionSize/sizeof(WCHAR),
+    //           rulePtr->PathExpression,
+    //           rulePtr->PathExpressionSize);
+    //    rulePtr = ((UCHAR*)rulePtr) + (sizeof(FG_RULE) + rulePtr->PathExpressionSize);
+    //    querySize -= ((sizeof(FG_RULE) + rulePtr->PathExpressionSize));
+    //}
     
 
     //hr = FglRemoveBulkRules(port, rules, 2, &removedAmount);
