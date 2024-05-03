@@ -12,6 +12,8 @@ EXTERN_C_START
 
 EXTERN_C_END
 
+#define Add2Ptr(P,I) ((PVOID)((PUCHAR)(P) + (I)))
+
 #define FGA_MAJOR_VERSION ((USHORT)0)
 #define FGA_MINOR_VERSION ((USHORT)1)
 #define FGA_PATCH_VERSION ((USHORT)0)
@@ -22,8 +24,8 @@ int wmain(int argc, wchar_t* argv[]) {
     HANDLE port = INVALID_HANDLE_VALUE;
     FG_CORE_VERSION coreVersion = { 0 };
     FGL_RULE rules[] = {
-        { RULE_READONLY, L"*\\baned1.txt" },
-        { RULE_READONLY, L"*\\baned2.txt" },
+        { RULE_READONLY, L"*\\baned.txt" },
+        { RULE_READONLY, L"*baned.txt" },
         { RULE_READONLY, L"*\\baned.txt" }
     };
     FGL_RULE rule = { 0 };
@@ -36,6 +38,8 @@ int wmain(int argc, wchar_t* argv[]) {
     USHORT queryAmount = 0;
     ULONG querySize = 0ul;
     FG_RULE *rulePtr = NULL;
+    ULONG thisRuleSize = 0ul;
+    INT i = 0;
 
     // Output
     WCHAR* filename = wcsrchr(argv[0], L'\\');
@@ -60,13 +64,13 @@ int wmain(int argc, wchar_t* argv[]) {
            FGA_MAJOR_VERSION, FGA_MINOR_VERSION, FGA_PATCH_VERSION, FGA_BUILD_VERSION,
            coreVersion.Major, coreVersion.Minor, coreVersion.Patch, coreVersion.Build);
 
-    //rule.RuleCode = RULE_READONLY;
-    //rule.RulePathExpression = L"\\Device\\HarddiskVolume\\*";
-    //hr = FglAddSingleRule(port, &rule, &added);
-    //if (FAILED(hr)) {
-    //    fprintf(stderr, "add single rule failed: 0x%08x", hr);
-    //    goto Cleanup;
-    //}
+    rule.RuleCode = RULE_READONLY;
+    rule.RulePathExpression = L"\\Device\\HarddiskVolume\\*";
+    hr = FglAddSingleRule(port, &rule, &added);
+    if (FAILED(hr)) {
+        fprintf(stderr, "add single rule failed: 0x%08x", hr);
+        goto Cleanup;
+    }
 
     ////hr = FglRemoveSingleRule(port, &rule, &removed);
     ////if (FAILED(hr)) {
@@ -74,11 +78,11 @@ int wmain(int argc, wchar_t* argv[]) {
     ////    goto Cleanup;
     ////}
 
-    //hr = FglAddBulkRules(port, rules, 3, &addedAmount);
-    //if (FAILED(hr)) {
-    //    fprintf(stderr, "add rules failed: 0x%08x", hr);
-    //    goto Cleanup;
-    //}
+    hr = FglAddBulkRules(port, rules, 3, &addedAmount);
+    if (FAILED(hr)) {
+        fprintf(stderr, "add rules failed: 0x%08x", hr);
+        goto Cleanup;
+    }
 
     //hr = FglQueryRules(port, NULL, 0, &queryAmount, &querySize);
     //printf("0x%08x, query result amount: %hu, size: %lu\n", hr, queryAmount, querySize);
@@ -117,6 +121,39 @@ int wmain(int argc, wchar_t* argv[]) {
     //} else {
     //    printf("Cleanup %lu rules\n", cleanRules);
     //}
+    
+    hr = FglCheckMatchedRules(port,
+                              L"\\Device\\HarddiskVolume6\\baned.txt",
+                              NULL, 
+                              0,
+                              &queryAmount,
+                              &querySize);
+    printf("hresult: 0x%08x, matched amount: %hu, size: %lu\n", hr, queryAmount, querySize);
+
+    buffer = (UCHAR*)malloc(querySize);
+    if (NULL == buffer) goto Cleanup;
+    else RtlZeroMemory(buffer, querySize);
+    hr = FglCheckMatchedRules(port,
+                             L"\\Device\\HarddiskVolume6\\baned.txt",
+                             (FG_RULE*)buffer, 
+                             querySize,
+                             &queryAmount, 
+                             &querySize);
+    printf("hresult: 0x%08x, matched amount: %hu, size: %lu\n", hr, queryAmount, querySize);
+    rulePtr = (FG_RULE*)buffer;
+    while (querySize > 0) {
+        printf("remain size: %lu, rule code: %lu, path expression: %.*ls, size: %lu\n", 
+               querySize,
+               rulePtr->RuleCode, 
+               rulePtr->PathExpressionSize/sizeof(WCHAR),
+               rulePtr->PathExpression,
+               rulePtr->PathExpressionSize);
+
+        thisRuleSize = sizeof(FG_RULE) + rulePtr->PathExpressionSize;
+        printf("This rule size: %lu\n", thisRuleSize);
+        rulePtr = (FG_RULE*)Add2Ptr(rulePtr, thisRuleSize);
+        querySize -= thisRuleSize;
+    }
 
 Cleanup:
 

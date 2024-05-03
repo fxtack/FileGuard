@@ -112,7 +112,7 @@ Return Value:
     }
     
     try {
-        ruleCode = FgMatchRule(&Globals.RulesList, Globals.RulesListLock, &nameInfo->Name);
+        ruleCode = FgMatchRules(&Globals.RulesList, Globals.RulesListLock, &nameInfo->Name);
         if (RULE_ACCESS_DENIED == ruleCode) {
             SET_CALLBACK_DATA_STATUS(Data, STATUS_ACCESS_DENIED);
             callbackStatus = FLT_PREOP_COMPLETE;
@@ -469,7 +469,7 @@ Return Value:
         }
 
         try {
-            ruleCode = FgMatchRule(&Globals.RulesList, Globals.RulesListLock, &renameNameInfo->Name);
+            ruleCode = FgMatchRules(&Globals.RulesList, Globals.RulesListLock, &renameNameInfo->Name);
             switch (ruleCode) {
             case RULE_ACCESS_DENIED:
                 SET_CALLBACK_DATA_STATUS(Data, STATUS_ACCESS_DENIED);

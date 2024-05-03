@@ -38,6 +38,7 @@ Environment:
 
 #include "FileGuardCore.h"
 #include "Rule.h"
+#include "FileGuard.h"
 
 /*-------------------------------------------------------------
     Rule entry basic routines
@@ -255,7 +256,7 @@ FgFindAndRemoveRule(
 
 _Check_return_
 ULONG
-FgMatchRule(
+FgMatchRules(
     _In_ PLIST_ENTRY RuleList,
     _In_ PEX_PUSH_LOCK ListLock,
     _In_ PUNICODE_STRING FileDevicePathName
@@ -264,7 +265,7 @@ FgMatchRule(
     BOOLEAN matched = FALSE;
     PLIST_ENTRY entry = NULL, next = NULL;
     PFG_RULE_ENTRY ruleEntry = NULL;
-    ULONG ruleCode = 0ul;
+    ULONG ruleCode = RULE_NONE;
 
     FLT_ASSERT(NULL != RuleList);
     FLT_ASSERT(NULL != ListLock);
@@ -295,6 +296,87 @@ FgMatchRule(
     FltReleasePushLock(ListLock);
 
     return ruleCode;
+}
+
+_Check_return_
+NTSTATUS
+FgMatchRulesEx(
+    _In_ PLIST_ENTRY RuleEntriesList,
+    _In_ PEX_PUSH_LOCK Lock,
+    _In_ PUNICODE_STRING FileDevicePathName,
+    _In_opt_ FG_RULE* RulesBuffer,
+    _In_opt_ ULONG RulesBufferSize,
+    _Inout_opt_ USHORT* RulesAmount,
+    _Inout_ ULONG* RulesSize
+) {
+    NTSTATUS status = STATUS_SUCCESS;
+    PLIST_ENTRY entry = NULL, next = NULL;
+    PFG_RULE_ENTRY ruleEntry = NULL;
+    BOOLEAN matched = FALSE;
+    USHORT rulesAmount = 0;
+    FG_RULE* rulePtr = RulesBuffer;
+    ULONG bufferRemainSize = RulesBufferSize, thisRuleSize = 0ul;
+
+    *RulesSize = 0ul;
+    
+    FltAcquirePushLockExclusive(Lock);
+
+    LIST_FOR_EACH_SAFE(entry, next, RuleEntriesList) {
+        ruleEntry = CONTAINING_RECORD(entry, FG_RULE_ENTRY, List);
+        matched = FsRtlIsNameInExpression(ruleEntry->PathExpression,
+                                          FileDevicePathName,
+                                          TRUE,
+                                          NULL);
+        if (matched) {
+
+            DBG_TRACE("Path '%wZ' matched rule code: %lu, path expression: '%wZ'",
+                      FileDevicePathName, 
+                      ruleEntry->RuleCode, 
+                      ruleEntry->PathExpression);
+
+            thisRuleSize = sizeof(FG_RULE) + ruleEntry->PathExpression->Length;
+            *RulesSize += thisRuleSize;
+            rulesAmount++;
+
+            DBG_TRACE("%lu, %lu", thisRuleSize, bufferRemainSize);
+
+            if (NULL != RulesBuffer && 0 != RulesBufferSize && bufferRemainSize >= thisRuleSize) {
+                try {
+                    RtlCopyMemory(rulePtr->PathExpression,
+                                  ruleEntry->PathExpression->Buffer,
+                                  ruleEntry->PathExpression->Length);
+                    rulePtr->RuleCode = ruleEntry->RuleCode;
+                    rulePtr->PathExpressionSize = ruleEntry->PathExpression->Length;
+                    FLT_ASSERT(!"WATCH HERE");
+                } except(EXCEPTION_EXECUTE_HANDLER) {
+                    status = GetExceptionCode();
+                    LOG_ERROR("NTSTATUS: 0x%08x, get rule failed", status);
+                    FltReleasePushLock(Lock);
+                    return status;
+                }
+
+                bufferRemainSize -= thisRuleSize;
+                if ((LONG)bufferRemainSize > 0) {
+                    rulePtr = Add2Ptr(rulePtr, thisRuleSize);
+                }
+            }
+        }
+    }
+
+    FltReleasePushLock(Lock);
+
+    if (NULL != RulesAmount) *RulesAmount = rulesAmount;
+    if (0 == rulesAmount) status = STATUS_NOT_FOUND;
+
+    if (RulesBufferSize < *RulesSize && NULL != RulesBuffer) {
+        RtlZeroMemory(RulesBuffer, RulesBufferSize);
+        status = STATUS_BUFFER_TOO_SMALL;
+    }
+
+    FLT_ASSERT(!"WATCH HERE");
+    DBG_INFO("Matched rules amount: %hu, size: %lu", rulesAmount, *RulesSize);
+
+    return status;
 }
 
 NTSTATUS

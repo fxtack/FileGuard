@@ -49,12 +49,13 @@ extern HRESULT FglRemoveSingleRule(
     _Inout_ BOOLEAN *Removed
 );
 
-extern HRESULT FglCheckMatchedRule(
+extern HRESULT FglCheckMatchedRules(
     _In_ CONST HANDLE Port,
     _In_ PCWSTR PathName,
-    _In_ ULONG *RuleBufferSize,
-    _Inout_ FGL_RULE *RuleBuffer,
-    _Inout_ ULONG *RuleSize
+    _Inout_opt_ FG_RULE *RulesBuffer,
+    _In_opt_ ULONG RulesBufferSize,
+    _Inout_opt_ USHORT *RulesAmount,
+    _Inout_ ULONG *RulesSize
 );
 
 extern HRESULT FglQueryRules(

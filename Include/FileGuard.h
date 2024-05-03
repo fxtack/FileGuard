@@ -35,7 +35,7 @@ typedef struct _FG_CORE_VERSION {
     USHORT Build;
 } FG_CORE_VERSION, *PFG_CORE_VERSION;
 
-#define RULE_UNKNOWN       ((ULONG)0x00000000)
+#define RULE_NONE          ((ULONG)0x00000000)
 #define RULE_ACCESS_DENIED ((ULONG)0x00000001)
 #define RULE_READONLY      ((ULONG)0x00000002)
 #define RULE_HIDE          ((ULONG)0x00000003)
@@ -60,7 +60,7 @@ typedef struct _FG_MESSAGE {
             UCHAR Rules[];
         } DUMMYSTRUCTNAME;
         struct {
-            ULONG PathNameSize;
+            USHORT PathNameSize;
             WCHAR PathName[];
         } DUMMYSTRUCTNAME;
     } DUMMYUNIONNAME;

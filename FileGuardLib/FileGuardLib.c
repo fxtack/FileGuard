@@ -199,22 +199,65 @@ HRESULT FglRemoveSingleRule(
     return hr;
 }
 
-HRESULT FglCheckMatchedRule(
+HRESULT FglCheckMatchedRules(
     _In_ CONST HANDLE Port,
     _In_ PCWSTR PathName,
-    _In_ ULONG *RuleBufferSize,
-    _Inout_ FGL_RULE *RuleBuffer,
-    _Inout_ ULONG *RuleSize
-) {
-    return E_NOTIMPL;
-}
-
-HRESULT FglQueryRules(
-    _In_ CONST HANDLE Port,
     _Inout_opt_ FG_RULE *RulesBuffer,
     _In_opt_ ULONG RulesBufferSize,
     _Inout_opt_ USHORT *RulesAmount,
     _Inout_ ULONG *RulesSize
+) {
+    HRESULT hr = S_OK;
+    SIZE_T pathNameSize = 0;
+    FG_MESSAGE *message = NULL;
+    ULONG messageSize = 0ul;
+    ULONG resultSize = 0ul;
+    PFG_MESSAGE_RESULT result = NULL;
+    DWORD returned = 0ul;
+
+    if (NULL == RulesSize) return E_INVALIDARG;
+
+    pathNameSize = wcslen(PathName) * sizeof(WCHAR);
+
+    messageSize = sizeof(FG_MESSAGE) + pathNameSize;
+    message = malloc(messageSize);
+    if (NULL == message) return E_OUTOFMEMORY;
+    else memset(message, 0, messageSize);
+
+    message->PathNameSize = (USHORT)pathNameSize;
+    RtlCopyMemory(message->PathName, PathName, pathNameSize);
+
+    resultSize = sizeof(FG_MESSAGE_RESULT) + RulesBufferSize;
+    result = malloc(resultSize);
+    if (NULL == result) return E_OUTOFMEMORY;
+    else memset(result, 0, resultSize);
+
+    message->Type = CheckMatchedRule;
+    hr = FilterSendMessage(Port, 
+                           message, 
+                           messageSize, 
+                           result, 
+                           resultSize, 
+                           &returned);
+    if (!SUCCEEDED(hr)) return hr;
+
+    if (NULL != RulesAmount) *RulesAmount = result->Rules.RulesAmount;
+    *RulesSize = result->Rules.RulesSize;
+
+    hr = HRESULT_FROM_WIN32(result->ResultCode);
+    if (SUCCEEDED(hr) && NULL != RulesBuffer) {
+        RtlCopyMemory(RulesBuffer, result->Rules.RulesBuffer, result->Rules.RulesSize);
+    }
+        
+    return hr;
+}
+
+HRESULT FglQueryRules(
+    _In_ CONST HANDLE Port,
+    _Inout_opt_ FG_RULE* RulesBuffer,
+    _In_opt_ ULONG RulesBufferSize,
+    _Inout_opt_ USHORT* RulesAmount,
+    _Inout_ ULONG* RulesSize
     )
 {
     HRESULT hr = S_OK;

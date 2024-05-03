@@ -141,6 +141,7 @@ FgCoreControlMessageNotifyCallback(
     PFG_MESSAGE message = NULL;
     PFG_MESSAGE_RESULT result = NULL;
     USHORT ruleAmount = 0;
+    UNICODE_STRING pathName = { 0 };
 
     UNREFERENCED_PARAMETER(ConnectionCookie);
 
@@ -248,7 +249,33 @@ FgCoreControlMessageNotifyCallback(
         break;
 
     case CheckMatchedRule:
-        status = STATUS_NOT_IMPLEMENTED;
+
+        if (NULL == Output) status = STATUS_INVALID_PARAMETER_4;
+        if (OutputSize < sizeof(FG_MESSAGE_RESULT)) status = STATUS_INVALID_PARAMETER_5;
+        if (!NT_SUCCESS(status)) {
+            LOG_ERROR("NTSTATUS: 0x%08x, message invalid parameter", status);
+            break;
+        }
+
+        pathName.Length = message->PathNameSize;
+        pathName.MaximumLength = message->PathNameSize;
+        pathName.Buffer = message->PathName;
+        resultStatus = FgMatchRulesEx(&Globals.RulesList,
+                                      Globals.RulesListLock,
+                                      &pathName,
+                                      (FG_RULE*)result->Rules.RulesBuffer,
+                                      OutputSize - sizeof(FG_MESSAGE_RESULT),
+                                      &result->Rules.RulesAmount,
+                                      &result->Rules.RulesSize);
+        if (STATUS_BUFFER_TOO_SMALL != resultStatus) {
+            if (!NT_SUCCESS(resultStatus)) {
+                LOG_ERROR("NTSTATUS: 0x%08x, get matched rules failed", resultStatus);
+                break;
+            } else {
+                resultVariableSize = result->Rules.RulesSize;
+            }
+        }
+
         break;
 
     case CleanupRules:

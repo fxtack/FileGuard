@@ -83,10 +83,22 @@ FgFindAndRemoveRule(
 
 _Check_return_
 ULONG
-FgMatchRule(
+FgMatchRules(
     _In_ PLIST_ENTRY RuleList,
     _In_ PEX_PUSH_LOCK ListLock,
     _In_ PUNICODE_STRING FileDevicePathName
+);
+
+_Check_return_
+NTSTATUS
+FgMatchRulesEx(
+    _In_ PLIST_ENTRY RuleEntriesList,
+    _In_ PEX_PUSH_LOCK Lock,
+    _In_ PUNICODE_STRING FileDevicePathName,
+    _In_opt_  FG_RULE* RulesBuffer,
+    _In_opt_ ULONG RulesBufferSize,
+    _Inout_opt_ USHORT* RulesAmount,
+    _Inout_ ULONG* RulesSize
 );
 
 FORCEINLINE
