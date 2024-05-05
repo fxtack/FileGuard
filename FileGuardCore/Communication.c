@@ -293,7 +293,7 @@ FgCoreControlMessageNotifyCallback(
         
         result->AffectedRulesAmount = FgCleanupRuleEntriesList(Globals.RulesListLock, &Globals.RulesList);
         break;
-
+        
     default:
 
         DBG_WARNING("Unknown command type: '%d'", commandType);
