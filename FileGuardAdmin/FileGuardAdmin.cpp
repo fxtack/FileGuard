@@ -1,8 +1,4 @@
-﻿#include <stdio.h>
-#include <wchar.h>
-#include <locale.h>
-
-#include <windows.h>
+﻿#include <windows.h>
 #include <fltUser.h>
 
 #include <iostream>
@@ -12,6 +8,7 @@
 #include <optional>
 #include <variant>
 #include <memory>
+#include <map>
 #include <atomic>
 
 EXTERN_C_START
@@ -73,59 +70,74 @@ namespace fileguard {
 
         ~Admin() = default;
 
-        void Parse() {
-            PrintUsage();
+        HRESULT Parse() {
+            HRESULT hr = S_OK;
+            std::map<std::wstring, int> args;
+
+            if (argc_ < 2) {
+                PrintUsage();
+                return hr;
+            }
+
+            for (int i = 1; i < argc_; i++) {
+                std::wstring flag = argv_[i];
+                if (flag.find(L"--") == 0 || (flag.length() == 2 && flag[0] == L'-')) {
+                    auto result = args.emplace(flag, i);
+                    if (!result.second) {
+                        std::wcerr << L"error: invalid parameter: repeated flags '" << flag << "'\n\n";
+                        PrintUsage();
+                        return E_INVALIDARG;
+                    }
+                }
+            }
+
+            if (args.count(L"--help") || args.count(L"-h")) {
+                PrintUsage();
+                return hr;
+            }
+
+            if (args.count(L"--version") || args.count(L"-v")) {
+                std::wcout << GetVersionInfo() << std::endl;
+                return hr;
+            }
+
+            std::wstring command = argv_[1];
+            if (command == L"add") {
+                std::wcout << L"add" << std::endl;
+            } else if (command == L"remove") {
+                std::wcout << L"remove" << std::endl;
+            } else if (command == L"check-matched") {
+                std::wcout << L"check-matched" << std::endl;
+            } else if (command == L"clean") {
+                std::wcout << L"clean" << std::endl;
+            } else {
+                std::wcerr << L"error: unknown command: '" << command << L"'" << std::endl;
+                hr = E_INVALIDARG;
+            }
+
+            return hr;
         }
 
         void PrintUsage() {
-            const char* USAGE_FORMAT =
-                "%ws\n"
-                "    Admin: v%hu.%hu.%hu.%hu\n"
-                "     Core: %s\n"
-                "This tool is used to operate rules\n"
-                "\n"
-                "Command\n"
-                "    add\n"
-                "        --expr, -e <expression> \n"
-                "        --type, -t <access-denied|readonly|hide>\n"
-                "    remove\n"
-                "        --expr, -e <expression>\n"
-                "        --type, -t <access-denied|readonly|hide>\n"
-                "    query\n"
-                "        --format, -f <list|csv|json>\n"
-                "    check-matched\n"
-                "        --path, -p <path>\n"
-                "    clean\n"
-                "\n"
-                "Flags\n"
-                "    --help, -h\n"
-                "    --version, -v\n\n";
-            
-            // The core version is included in the usage information if it is successfully obtained.
-            std::string core_ver_str;
-            std::ostringstream oss;
-            if (nullptr != core_client_) {
-                auto core_ver_opt = core_client_->GetCoreVersion();
-                if (std::holds_alternative<FG_CORE_VERSION>(core_ver_opt)) {
-                    auto core_ver = std::get<FG_CORE_VERSION>(core_ver_opt);
-                    oss << "v"
-                        << core_ver.Major << "."
-                        << core_ver.Minor << "."
-                        << core_ver.Patch << "."
-                        << core_ver.Patch;
-                } else if (std::holds_alternative<HRESULT>(core_ver_opt)) {
-                    oss << "(error: 0x" << std::setfill('0') << std::setw(8)
-                        << std::hex << std::get<HRESULT>(core_ver_opt) 
-                        << ")";
-                }
-                core_ver_str = oss.str();
-            } else {
-                core_ver_str = "(core not connected)";
-            }
-
-            printf(USAGE_FORMAT, AdminImageName().c_str(),
-                   FGA_MAJOR_VERSION, FGA_MINOR_VERSION,
-                   FGA_PATCH_VERSION, FGA_BUILD_VERSION, core_ver_str.c_str());
+            std::wcout << GetAdminImageName() <<
+                L" [command] [flags]\n" << GetVersionInfo() <<
+                L"\n\nThis tool is used to operate rules\n\n"
+                L"commands:\n"
+                L"    add\n"
+                L"        --expr, -e <expression> \n"
+                L"        --type, -t <access-denied|readonly|hide>\n"
+                L"    remove\n"
+                L"        --expr, -e <expression>\n"
+                L"        --type, -t <access-denied|readonly|hide>\n"
+                L"    query\n"
+                L"        --format, -f <list|csv|json>\n"
+                L"    check-matched\n"
+                L"        --path, -p <path>\n"
+                L"    clean\n"
+                L"\n"
+                L"flags:\n"
+                L"    --help, -h\n"
+                L"    --version, -v\n\n";    
         }
 
     private:
@@ -133,7 +145,7 @@ namespace fileguard {
         wchar_t** argv_;
         std::unique_ptr<CoreClient> core_client_;
 
-        std::wstring& AdminImageName() {
+        std::wstring& GetAdminImageName() {
             static std::wstring image_name;
             if (image_name.empty()) {
                 std::wstring image_path = argv_[0];
@@ -141,6 +153,40 @@ namespace fileguard {
                 image_name = image_path.substr(pos + 1);
             }
             return image_name;
+        }
+
+        std::wstring GetVersionInfo() {
+            std::wstring core_ver_wstr;
+            std::wostringstream core_ver_wos;
+
+            if (nullptr != core_client_) {
+                auto core_ver_opt = core_client_->GetCoreVersion();
+                if (std::holds_alternative<FG_CORE_VERSION>(core_ver_opt)) {
+                    auto core_ver = std::get<FG_CORE_VERSION>(core_ver_opt);
+                    core_ver_wos << L"v"
+                                 << core_ver.Major << L"."
+                                 << core_ver.Minor << L"."
+                                 << core_ver.Patch << L"."
+                                 << core_ver.Patch;
+                } else if (std::holds_alternative<HRESULT>(core_ver_opt)) {
+                    core_ver_wos << L"(error: 0x" << std::setfill(L'0') << std::setw(8)
+                                 << std::hex << std::get<HRESULT>(core_ver_opt)
+                                 << L")";
+                }
+                core_ver_wstr = core_ver_wos.str();
+            } else {
+                core_ver_wstr = L"(core not connected)";
+            }
+
+            std::wostringstream admin_ver_wos;
+            admin_ver_wos << L"Admin: v"
+                          << FGA_MAJOR_VERSION << L"."
+                          << FGA_MINOR_VERSION << L"."
+                          << FGA_PATCH_VERSION << L"."
+                          << FGA_BUILD_VERSION << L"\n"
+                          << L"Core:  " << core_ver_wstr;
+
+            return admin_ver_wos.str();
         }
 
         Admin(int argc, wchar_t** argv, std::unique_ptr<CoreClient> core_client) {
@@ -160,7 +206,7 @@ int wmain(int argc, wchar_t* argv[]) {
         return hr;
     }
 
-    std::get<std::unique_ptr<fileguard::Admin>>(std::move(admin_opt))->Parse();
+    return std::get<std::unique_ptr<fileguard::Admin>>(std::move(admin_opt))->Parse();
 
     //HRESULT hr = S_OK;
     //HANDLE port = INVALID_HANDLE_VALUE;
