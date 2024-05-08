@@ -85,33 +85,34 @@ namespace fileguard {
                     auto result = args.emplace(flag, i);
                     if (!result.second) {
                         std::wcerr << L"error: invalid parameter: repeated flags '" << flag << "'\n\n";
-                        PrintUsage();
                         return E_INVALIDARG;
                     }
                 }
             }
 
-            if (args.count(L"--help") || args.count(L"-h")) {
+            std::wstring flag = argv_[1];
+            if (flag == L"--help" || flag == L"-h") {
                 PrintUsage();
                 return hr;
             }
-
-            if (args.count(L"--version") || args.count(L"-v")) {
+            if (flag == L"--version" || flag == L"-v") {
                 std::wcout << GetVersionInfo() << std::endl;
                 return hr;
             }
 
             std::wstring command = argv_[1];
             if (command == L"add") {
-                std::wcout << L"add" << std::endl;
+                hr = CommandAdd(args);
             } else if (command == L"remove") {
-                std::wcout << L"remove" << std::endl;
+                hr = CommandRemove(args);
+            } else if (command == L"query") {
+                hr = CommandQuery(args);
             } else if (command == L"check-matched") {
-                std::wcout << L"check-matched" << std::endl;
+                hr = CommandCheckMatched(args);
             } else if (command == L"clean") {
-                std::wcout << L"clean" << std::endl;
+                hr = CommandClean(args);
             } else {
-                std::wcerr << L"error: unknown command: '" << command << L"'" << std::endl;
+                std::wcerr << L"error: invalid flag or command: '" << command << L"'" << std::endl;
                 hr = E_INVALIDARG;
             }
 
@@ -124,15 +125,15 @@ namespace fileguard {
                 L"\n\nThis tool is used to operate rules\n\n"
                 L"commands:\n"
                 L"    add\n"
-                L"        --expr, -e <expression> \n"
-                L"        --type, -t <access-denied|readonly|hide>\n"
+                L"        --expr <expression> \n"
+                L"        --type <access-denied|readonly|hide>\n"
                 L"    remove\n"
-                L"        --expr, -e <expression>\n"
-                L"        --type, -t <access-denied|readonly|hide>\n"
+                L"        --expr <expression>\n"
+                L"        --type <access-denied|readonly|hide>\n"
                 L"    query\n"
-                L"        --format, -f <list|csv|json>\n"
+                L"        --format <list|csv|json>\n"
                 L"    check-matched\n"
-                L"        --path, -p <path>\n"
+                L"        --path <path>\n"
                 L"    clean\n"
                 L"\n"
                 L"flags:\n"
@@ -187,6 +188,104 @@ namespace fileguard {
                           << L"Core:  " << core_ver_wstr;
 
             return admin_ver_wos.str();
+        }
+
+
+        HRESULT CommandAdd(std::map<std::wstring, int>& args) {
+            auto f_expr = args.find(L"--expr");
+            auto f_type = args.find(L"--type");
+            if (f_expr == args.end()) {
+                std::wcerr << L"error: command flag `--expr` required\n";
+                return E_INVALIDARG;
+            }
+            if (f_type == args.end()) {
+                std::wcerr << L"error: command flag `--type` required\n";
+                return E_INVALIDARG;
+            }
+
+            std::wstring v_expr = argv_[f_expr->second + 1];
+            std::wstring v_type = argv_[f_type->second + 1];
+
+            if (v_expr == f_type->first) {
+                std::wcerr << L"error: command flag `" << f_expr->first << "` value invalid\n";
+                return E_INVALIDARG;
+            }
+            if (v_type == f_expr->first) {
+                std::wcerr << L"error: command flag `" << f_type->first << "` value invalid\n";
+                return E_INVALIDARG;
+            }
+
+            std::wcout << "add" << " " << f_expr->first << ": " << v_expr
+                                << " " << f_type->first << ": " << v_type
+                                << std::endl;
+            return S_OK;
+        }
+
+        HRESULT CommandRemove(std::map<std::wstring, int>& args) {
+            auto f_expr = args.find(L"--expr");
+            auto f_type = args.find(L"--type");
+            if (f_expr == args.end()) {
+                std::wcerr << L"error: command flag `--expr` required\n";
+                return E_INVALIDARG;
+            }
+            if (f_type == args.end()) {
+                std::wcerr << L"error: command flag `--type` required\n";
+                return E_INVALIDARG;
+            }
+
+            std::wstring v_expr = argv_[f_expr->second + 1];
+            std::wstring v_type = argv_[f_type->second + 1];
+
+            if (v_expr == f_type->first) {
+                std::wcerr << L"error: command flag `" << f_expr->first << "` value invalid\n";
+                return E_INVALIDARG;
+            }
+            if (v_type == f_expr->first) {
+                std::wcerr << L"error: command flag `" << f_type->first << "` value invalid\n";
+                return E_INVALIDARG;
+            }
+
+            std::wcout << "remove" << " " << f_expr->first << ": " << v_expr
+                                   << " " << f_type->first << ": " << v_type
+                                   << std::endl;
+            return S_OK;
+        }
+
+        HRESULT CommandQuery(std::map<std::wstring, int>& args) {
+            auto f_format = args.find(L"--format");
+            if (f_format == args.end()) {
+                std::wcerr << L"error: command flag `--format` required\n";
+                return E_INVALIDARG;
+            }
+
+            if (f_format->second + 1 >= argc_) {
+                std::wcerr << L"error: command flag `" << f_format->first << L"` value invalid\n";
+                return E_INVALIDARG;
+            }
+            std::wstring v_format = argv_[f_format->second + 1];
+            std::wcout << "query" << " " << f_format->first << ": " << v_format << std::endl;
+            return S_OK;
+        }
+
+        HRESULT CommandCheckMatched(std::map<std::wstring, int> args) {
+            auto f_path = args.find(L"--path");
+            if (f_path == args.end()) {
+                std::wcerr << L"error: command flag `--path` required\n";
+                return E_INVALIDARG;
+            }
+
+            if (f_path->second + 1 >= argc_) {
+                std::wcerr << L"error: command flag `" << f_path->first << L"` value invalid\n";
+                return E_INVALIDARG;
+            }
+            std::wstring v_path = argv_[f_path->second + 1];
+            std::wcout << "check-matched" << " " << f_path->first << ": " << v_path << std::endl;
+            return S_OK;
+        }
+
+        HRESULT CommandClean(std::map<std::wstring, int> args) {
+            std::wcout << L"clean" << std::endl;
+            return S_OK;
         }
 
         Admin(int argc, wchar_t** argv, std::unique_ptr<CoreClient> core_client) {
