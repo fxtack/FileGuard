@@ -10,6 +10,8 @@
 #include <memory>
 #include <map>
 #include <atomic>
+#include <vector>
+#include <algorithm>
 
 EXTERN_C_START
 #include "FileGuard.h"
@@ -24,14 +26,47 @@ EXTERN_C_END
 #define FGA_BUILD_VERSION ((USHORT)0)
 
 namespace fileguard {
+
+    typedef struct _Rule {
+        unsigned long code;
+        std::wstring_view path_expression;
+        const std::shared_ptr<char[]> buf;
+    } Rule;
+
+    ULONG RuleTypeToCode(std::wstring& rule_type) {
+        std::transform(rule_type.begin(), rule_type.end(), rule_type.begin(),
+            [](wchar_t c) { return std::toupper(c); });
+
+        if (L"ACCESS-DENIED" == rule_type) return RULE_ACCESS_DENIED;
+        else if (L"READONLY" == rule_type) return RULE_READONLY;
+        else if (L"HIDE" == rule_type) return RULE_HIDE;
+        return RULE_NONE;
+    }
+
+    std::vector<std::unique_ptr<Rule>> ResolveRulesBuffer(std::shared_ptr<char[]> buf, size_t buf_size) {
+        std::vector<std::unique_ptr<Rule>> rules;
+        char* rule_ptr = buf.get();
+        while (buf_size > 0) {
+            auto rule = reinterpret_cast<FG_RULE*>(rule_ptr);
+
+            // TODO: test
+            std::wcout << rule->RuleCode
+                       << std::wstring_view(rule->PathExpression, rule->PathExpressionSize) 
+                       << std::endl;
+
+            rule_ptr = rule_ptr + sizeof(FG_RULE) + rule->PathExpressionSize;
+            buf_size -= sizeof(FG_RULE) + rule->PathExpressionSize;
+        }
+
+        return rules;
+    }
+
     class CoreClient {
     public:
-        static std::variant<std::unique_ptr<CoreClient>, HRESULT> NewCoreClient() noexcept {
+        static std::pair<std::unique_ptr<CoreClient>, HRESULT> NewCoreClient() noexcept {
             HANDLE port = INVALID_HANDLE_VALUE;
             HRESULT hr = FglConnectCore(&port);
-            if (FAILED(hr)) return hr;
-            std::unique_ptr<CoreClient> core_client(new CoreClient(port));
-            return std::move(core_client);
+            return std::pair(std::unique_ptr<CoreClient>(new CoreClient(port)), hr);
         }
 
         ~CoreClient() {
@@ -45,26 +80,52 @@ namespace fileguard {
             if (SUCCEEDED(hr)) return core_version;
             return hr;
         }
+        
+        std::variant<bool, HRESULT> AddSingleRule(unsigned long rule_code, std::wstring rule_path_expression) {
+            FGL_RULE rule{ rule_code, rule_path_expression.c_str()};
+            BOOLEAN added = FALSE;
+            auto hr = FglAddSingleRule(port_, &rule, &added);
+            if (FAILED(hr)) return hr;
+            return bool(added);
+        }
+
+        std::variant<bool, HRESULT> RemoveSingleRule(unsigned long rule_code, std::wstring rule_path_expression) {
+            FGL_RULE rule{ rule_code, rule_path_expression.c_str() };
+            BOOLEAN removed = FALSE;
+            auto hr = FglRemoveSingleRule(port_, &rule, &removed);
+            if (FAILED(hr)) return hr;
+            return bool(removed);
+        }
+
+        std::variant<std::vector<Rule>, HRESULT> QueryRules() {
+            unsigned short amount = 0;
+            unsigned long size = 0ul;
+            auto hr = FglQueryRules(port_, NULL, 0, &amount, &size);
+            if (FAILED(hr)) return hr;
+
+            std::shared_ptr<char[]> buf(new char[size], std::default_delete<char[]>());
+            hr = FglQueryRules(port_, reinterpret_cast<FG_RULE*>(buf.get()), size, &amount, &size);
+            if (FAILED(hr)) return hr;
+        }
+
+        std::variant<unsigned long, HRESULT> CleanupRules() {
+            unsigned long cleanRules = 0ul;
+            auto hr = FglCleanupRules(port_, &cleanRules);
+            if (FAILED(hr)) return hr;
+            return cleanRules;
+        }
 
     private:
-        std::optional<FG_CORE_VERSION> core_version_;
-        std::atomic<HANDLE> port_;
+        std::atomic<HANDLE> port_ = INVALID_HANDLE_VALUE;
 
-        CoreClient(HANDLE port) {
-            port_.exchange(port);
-        }
+        CoreClient(HANDLE port) { port_.exchange(port); }
     };
 
     class Admin {
     public:
         static std::variant<std::unique_ptr<Admin>, HRESULT> NewAdmin(int argc, wchar_t** argv) noexcept {
-            auto core_client_opt = CoreClient::NewCoreClient();
-            std::unique_ptr<CoreClient> core_client = nullptr;
-            if (std::holds_alternative<std::unique_ptr<CoreClient>>(core_client_opt)) {
-                core_client = std::get<std::unique_ptr<CoreClient>>(std::move(core_client_opt));
-            }
-            
-            std::unique_ptr<Admin> admin(new Admin(argc, argv, std::move(core_client)));
+            auto result = CoreClient::NewCoreClient();
+            std::unique_ptr<Admin> admin(new Admin(argc, argv, std::move(result.first)));
             return std::move(admin);
         }
 
@@ -101,19 +162,27 @@ namespace fileguard {
             }
 
             std::wstring command = argv_[1];
-            if (command == L"add") {
-                hr = CommandAdd(args);
-            } else if (command == L"remove") {
-                hr = CommandRemove(args);
-            } else if (command == L"query") {
-                hr = CommandQuery(args);
-            } else if (command == L"check-matched") {
-                hr = CommandCheckMatched(args);
-            } else if (command == L"clean") {
-                hr = CommandClean(args);
-            } else {
+            if (command == L"add") hr = CommandAdd(args);
+            else if (command == L"remove") hr = CommandRemove(args);
+            else if (command == L"query") hr = CommandQuery(args);
+            else if (command == L"check-matched") hr = CommandCheckMatched(args);
+            else if (command == L"cleanup") hr = CommandCleanup(args);
+            else {
                 std::wcerr << L"error: invalid flag or command: '" << command << L"'" << std::endl;
-                hr = E_INVALIDARG;
+                return E_INVALIDARG;
+            }
+
+            switch (hr) {
+            case  E_HANDLE:
+                std::wcerr << L"error: cannot connect to core, hresult: " 
+                           << std::setfill(L'0') << std::setw(8) << std::hex << hr
+                           << std::endl;
+                break;
+            default:
+                if(FAILED(hr))
+                    std::wcerr << L"error: unhandle command error hresult: " 
+                               << std::setfill(L'0') << std::setw(8) << std::hex << hr 
+                               << std::endl;
             }
 
             return hr;
@@ -125,8 +194,8 @@ namespace fileguard {
                 L"\n\nThis tool is used to operate rules\n\n"
                 L"commands:\n"
                 L"    add\n"
-                L"        --expr <expression> \n"
                 L"        --type <access-denied|readonly|hide>\n"
+                L"        --expr <expression> \n"
                 L"    remove\n"
                 L"        --expr <expression>\n"
                 L"        --type <access-denied|readonly|hide>\n"
@@ -134,7 +203,7 @@ namespace fileguard {
                 L"        --format <list|csv|json>\n"
                 L"    check-matched\n"
                 L"        --path <path>\n"
-                L"    clean\n"
+                L"    cleanup\n"
                 L"\n"
                 L"flags:\n"
                 L"    --help, -h\n"
@@ -145,6 +214,12 @@ namespace fileguard {
         int argc_;
         wchar_t** argv_;
         std::unique_ptr<CoreClient> core_client_;
+
+        Admin(int argc, wchar_t** argv, std::unique_ptr<CoreClient> core_client) {
+            argc_ = argc;
+            argv_ = argv;
+            core_client_ = std::move(core_client);
+        };
 
         std::wstring& GetAdminImageName() {
             static std::wstring image_name;
@@ -192,49 +267,52 @@ namespace fileguard {
 
 
         HRESULT CommandAdd(std::map<std::wstring, int>& args) {
-            auto f_expr = args.find(L"--expr");
             auto f_type = args.find(L"--type");
-            if (f_expr == args.end()) {
-                std::wcerr << L"error: command flag `--expr` required\n";
-                return E_INVALIDARG;
-            }
+            auto f_expr = args.find(L"--expr");
             if (f_type == args.end()) {
                 std::wcerr << L"error: command flag `--type` required\n";
                 return E_INVALIDARG;
             }
-
-            std::wstring v_expr = argv_[f_expr->second + 1];
-            std::wstring v_type = argv_[f_type->second + 1];
-
-            if (v_expr == f_type->first) {
-                std::wcerr << L"error: command flag `" << f_expr->first << "` value invalid\n";
+            if (f_expr == args.end()) {
+                std::wcerr << L"error: command flag `--expr` required\n";
                 return E_INVALIDARG;
             }
+
+            std::wstring v_type = argv_[f_type->second + 1];
+            std::wstring v_expr = argv_[f_expr->second + 1];
+
             if (v_type == f_expr->first) {
                 std::wcerr << L"error: command flag `" << f_type->first << "` value invalid\n";
                 return E_INVALIDARG;
             }
+            if (v_expr == f_type->first) {
+                std::wcerr << L"error: command flag `" << f_expr->first << "` value invalid\n";
+                return E_INVALIDARG;
+            }
 
-            std::wcout << "add" << " " << f_expr->first << ": " << v_expr
-                                << " " << f_type->first << ": " << v_type
-                                << std::endl;
-            return S_OK;
+            auto result = core_client_->AddSingleRule(RuleTypeToCode(v_type), v_expr);
+            if (auto added = std::get_if<bool>(&result))
+                if (*added) std::wcout << L"Add rule successfully" << std::endl;
+                else std::wcout << L"Rule already exist" << std::endl;
+            
+            return std::get<HRESULT>(result);
         }
 
         HRESULT CommandRemove(std::map<std::wstring, int>& args) {
-            auto f_expr = args.find(L"--expr");
             auto f_type = args.find(L"--type");
-            if (f_expr == args.end()) {
-                std::wcerr << L"error: command flag `--expr` required\n";
-                return E_INVALIDARG;
-            }
+            auto f_expr = args.find(L"--expr");
+
             if (f_type == args.end()) {
                 std::wcerr << L"error: command flag `--type` required\n";
                 return E_INVALIDARG;
             }
+            if (f_expr == args.end()) {
+                std::wcerr << L"error: command flag `--expr` required\n";
+                return E_INVALIDARG;
+            }
 
-            std::wstring v_expr = argv_[f_expr->second + 1];
             std::wstring v_type = argv_[f_type->second + 1];
+            std::wstring v_expr = argv_[f_expr->second + 1];
 
             if (v_expr == f_type->first) {
                 std::wcerr << L"error: command flag `" << f_expr->first << "` value invalid\n";
@@ -245,10 +323,12 @@ namespace fileguard {
                 return E_INVALIDARG;
             }
 
-            std::wcout << "remove" << " " << f_expr->first << ": " << v_expr
-                                   << " " << f_type->first << ": " << v_type
-                                   << std::endl;
-            return S_OK;
+            auto result = core_client_->RemoveSingleRule(RuleTypeToCode(v_type), v_expr);
+            if (auto removed = std::get_if<bool>(&result))
+                if (*removed) std::wcout << L"Remove rule successfully" << std::endl;
+                else std::wcout << "Rule not found" << std::endl;
+
+            return std::get<HRESULT>(result);
         }
 
         HRESULT CommandQuery(std::map<std::wstring, int>& args) {
@@ -283,16 +363,17 @@ namespace fileguard {
             return S_OK;
         }
 
-        HRESULT CommandClean(std::map<std::wstring, int> args) {
-            std::wcout << L"clean" << std::endl;
+        HRESULT CommandCleanup(std::map<std::wstring, int> args) {
+            auto result = core_client_->CleanupRules();
+            if (auto hr = std::get_if<HRESULT>(&result)) {
+                return *hr;
+            }
+
+            std::wcout << L"Cleanup rules amount: " 
+                       << std::get<unsigned long>(result) 
+                       << std::endl;
             return S_OK;
         }
-
-        Admin(int argc, wchar_t** argv, std::unique_ptr<CoreClient> core_client) {
-            argc_ = argc;
-            argv_ = argv;
-            core_client_ = std::move(core_client);
-        };
     };
 }
 
