@@ -24,7 +24,7 @@ EXTERN_C_END
 #define FGA_BUILD_VERSION ((USHORT)0)
 
 namespace fileguard {
-
+    
     struct Rule {
         unsigned long code;
         std::wstring_view path_expression;
@@ -75,7 +75,7 @@ namespace fileguard {
 
     class CoreClient {
     public:
-        static std::pair<std::unique_ptr<CoreClient>, HRESULT> NewCoreClient() noexcept {
+        static std::pair<std::unique_ptr<CoreClient>, HRESULT> New() noexcept {
             HANDLE port = INVALID_HANDLE_VALUE;
             HRESULT hr = FglConnectCore(&port);
             return std::pair(std::unique_ptr<CoreClient>(new CoreClient(port)), hr);
@@ -136,8 +136,8 @@ namespace fileguard {
 
     class Admin {
     public:
-        static std::variant<std::unique_ptr<Admin>, HRESULT> NewAdmin(int argc, wchar_t** argv) noexcept {
-            auto result = CoreClient::NewCoreClient();
+        static std::variant<std::unique_ptr<Admin>, HRESULT> New(int argc, wchar_t** argv) noexcept {
+            auto result = CoreClient::New();
             std::unique_ptr<Admin> admin(new Admin(argc, argv, std::move(result.first)));
             return std::move(admin);
         }
@@ -208,21 +208,26 @@ namespace fileguard {
                 L" [command] [flags]\n" << GetVersionInfo() <<
                 L"\n\nThis tool is used to operate rules\n\n"
                 L"commands:\n"
-                L"    add\n"
+                L"    add: Add a rule.\n"
                 L"        --type <access-denied|readonly|hide>\n"
                 L"        --expr <expression> \n"
-                L"    remove\n"
-                L"        --expr <expression>\n"
+                L"\n"
+                L"    remove: Remove a rule.\n"
                 L"        --type <access-denied|readonly|hide>\n"
-                L"    query\n"
+                L"        --expr <expression>\n"
+                L"\n"
+                L"    query: Query all rules and output it.\n"
                 L"        --format <list|csv>\n"
-                L"    check-matched\n"
-                L"        --path <path>\n"
-                L"    cleanup\n"
+                L"\n"
+                L"    check-matched: Check which rules will matched for path.\n"
+                L"        --path   <path>\n"
+                L"        --format <list|csv>\n"
+                L"\n"
+                L"    cleanup: Cleanup all rules.\n"
                 L"\n"
                 L"flags:\n"
                 L"    --help, -h\n"
-                L"    --version, -v\n\n";    
+                L"    --version, -v\n";
         }
 
     private:
@@ -274,34 +279,43 @@ namespace fileguard {
                           << FGA_MAJOR_VERSION << L"."
                           << FGA_MINOR_VERSION << L"."
                           << FGA_PATCH_VERSION << L"."
-                          << FGA_BUILD_VERSION << L"\n"
-                          << L"Core:  " << core_ver_wstr;
+                          << FGA_BUILD_VERSION << L", "
+                          << L"Core: " << core_ver_wstr;
 
             return admin_ver_wos.str();
         }
 
-
         HRESULT CommandAdd(std::map<std::wstring, int>& args) {
-            auto f_type = args.find(L"--type");
-            auto f_expr = args.find(L"--expr");
+            const std::wstring fn_type = L"--type", fn_expr = L"--expr";
+            auto f_type = args.find(fn_type), f_expr = args.find(fn_expr);
+            std::wstring v_type, v_expr;
+
             if (f_type == args.end()) {
-                std::wcerr << L"error: command flag `--type` required\n";
+                std::wcerr << L"error: command flag `" << fn_type << "` required\n";
                 return E_INVALIDARG;
             }
             if (f_expr == args.end()) {
-                std::wcerr << L"error: command flag `--expr` required\n";
+                std::wcerr << L"error: command flag `" << fn_expr << "` required\n";
                 return E_INVALIDARG;
             }
 
-            std::wstring v_type = argv_[f_type->second + 1];
-            std::wstring v_expr = argv_[f_expr->second + 1];
-
-            if (v_type == f_expr->first) {
-                std::wcerr << L"error: command flag `" << f_type->first << "` value invalid\n";
+            if (f_type->second + 1 >= argc_) {
+                std::wcerr << L"error: command flag `" << fn_type << L"` value invalid\n";
                 return E_INVALIDARG;
             }
-            if (v_expr == f_type->first) {
-                std::wcerr << L"error: command flag `" << f_expr->first << "` value invalid\n";
+            if (f_expr->second + 1 >= argc_) {
+                std::wcerr << L"error: command flag `" << fn_expr << "` value invalid\n";
+                return E_INVALIDARG;
+            }
+
+            v_type = argv_[f_type->second + 1];
+            v_expr = argv_[f_expr->second + 1];
+
+            if (v_type == fn_expr) {
+                std::wcerr << L"error: command flag `" << fn_type << "` value empty" << std::endl;
+                return E_INVALIDARG;
+            } else if (v_expr == fn_type) {
+                std::wcerr << L"error: command flag `" << fn_expr << "` value empty" << std::endl;
                 return E_INVALIDARG;
             }
 
@@ -317,27 +331,36 @@ namespace fileguard {
         }
 
         HRESULT CommandRemove(std::map<std::wstring, int>& args) {
-            auto f_type = args.find(L"--type");
-            auto f_expr = args.find(L"--expr");
+            const std::wstring fn_type = L"--type", fn_expr = L"--expr";
+            auto f_type = args.find(fn_type), f_expr = args.find(fn_expr);
+            std::wstring v_type, v_expr;
 
             if (f_type == args.end()) {
-                std::wcerr << L"error: command flag `--type` required\n";
+                std::wcerr << L"error: command flag `" << fn_type << "` required\n";
                 return E_INVALIDARG;
             }
             if (f_expr == args.end()) {
-                std::wcerr << L"error: command flag `--expr` required\n";
+                std::wcerr << L"error: command flag `" << fn_expr << "` required\n";
                 return E_INVALIDARG;
             }
 
-            std::wstring v_expr = argv_[f_expr->second + 1];
-            std::wstring v_type = argv_[f_type->second + 1];
-
-            if (v_expr == f_type->first) {
-                std::wcerr << L"error: command flag `" << f_expr->first << "` value invalid\n";
+            if (f_type->second + 1 >= argc_) {
+                std::wcerr << L"error: command flag `" << fn_type << L"` value invalid\n";
                 return E_INVALIDARG;
             }
-            if (v_type == f_expr->first) {
-                std::wcerr << L"error: command flag `" << f_type->first << "` value invalid\n";
+            if (f_expr->second + 1 >= argc_) {
+                std::wcerr << L"error: command flag `" << fn_expr << L"` value invalid\n";
+                return E_INVALIDARG;
+            }
+
+            v_type = argv_[f_type->second + 1];
+            v_expr = argv_[f_expr->second + 1];
+
+            if (v_type == fn_expr) {
+                std::wcerr << L"error: command flag `" << fn_type << "` value empty" << std::endl;
+                return E_INVALIDARG;
+            } else if (v_expr == fn_type) {
+                std::wcerr << L"error: command flag `" << fn_expr << "` value empty" << std::endl;
                 return E_INVALIDARG;
             }
 
@@ -353,7 +376,10 @@ namespace fileguard {
         }
 
         HRESULT CommandQuery(std::map<std::wstring, int>& args) {
-            auto f_format = args.find(L"--format");
+            const std::wstring fn_format = L"--format";
+            auto f_format = args.find(fn_format);
+            std::wstring v_format;
+
             if (f_format == args.end()) {
                 std::wcerr << L"error: command flag `--format` required\n";
                 return E_INVALIDARG;
@@ -363,19 +389,21 @@ namespace fileguard {
                 std::wcerr << L"error: command flag `" << f_format->first << L"` value invalid\n";
                 return E_INVALIDARG;
             }
-            std::wstring v_format = argv_[f_format->second + 1];
 
+            v_format = argv_[f_format->second + 1];
+
+            // Query rules.
             auto result = core_client_->QueryRules();
             if (auto hr = std::get_if<HRESULT>(&result)) return *hr;
             auto rules = std::get_if<std::vector<std::unique_ptr<Rule>>>(&result);
 
+            // Output rules query result.
             if (v_format == L"csv") std::wcout << "code,expression" << std::endl;
             else if (v_format == L"list") std::wcout << "total: " << rules->size() << std::endl;
             else { 
                 std::wcerr << "error: invalid format: '" << v_format << "'" << std::endl;
                 return E_INVALIDARG;
             }
-
             std::for_each(rules->begin(), rules->end(),
                 [&v_format](const std::unique_ptr<Rule>& rule) {
                     if (v_format == L"csv") {
@@ -384,7 +412,7 @@ namespace fileguard {
                                    << std::endl;
                     } else if (v_format == L"list") {
                         std::wcout << "code: " << RuleCodeToName(rule->code)
-                                   << ",expression: " << rule->path_expression
+                                   << ", expression: " << rule->path_expression
                                    << std::endl;
                     }
                 });
@@ -393,18 +421,40 @@ namespace fileguard {
         }
 
         HRESULT CommandCheckMatched(std::map<std::wstring, int> args) {
-            auto f_path = args.find(L"--path");
+            const std::wstring fn_path = L"--path", fn_format = L"--format";
+            auto f_format = args.find(fn_format), f_path = args.find(fn_path);
+            std::wstring v_path, v_format;
+
             if (f_path == args.end()) {
-                std::wcerr << L"error: command flag `--path` required\n";
+                std::wcerr << L"error: command flag `"<< fn_path <<"` required\n";
+                return E_INVALIDARG;
+            } 
+            if (f_format == args.end()) {
+                std::wcerr << L"error: command flag `" << fn_format << "` required\n";
+                return E_INVALIDARG;
+            }
+            
+            if (f_path->second + 1 >= argc_) {
+                std::wcerr << L"error: command flag `" << fn_path << L"` value invalid\n";
+                return E_INVALIDARG;
+            }
+            if (f_format->second +1 >= argc_) {
+                std::wcerr << L"error: command flag `" << fn_format << "` value invalid\n";
                 return E_INVALIDARG;
             }
 
-            if (f_path->second + 1 >= argc_) {
-                std::wcerr << L"error: command flag `" << f_path->first << L"` value invalid\n";
+            v_path = argv_[f_path->second + 1];
+            v_format = argv_[f_format->second + 1];
+
+            if (v_path == fn_format) {
+                std::wcerr << L"error: command flag `" << fn_path << "` value empty" << std::endl;
+                return E_INVALIDARG;
+            } else if (v_format == fn_path) {
+                std::wcerr << L"error: command flag `" << fn_format << "` value empty" << std::endl;
                 return E_INVALIDARG;
             }
-            std::wstring v_path = argv_[f_path->second + 1];
-            std::wcout << "check-matched" << " " << f_path->first << ": " << v_path << std::endl;
+
+            std::wcout << v_path << ", " << v_format << std::endl;
             return S_OK;
         }
 
@@ -421,12 +471,10 @@ namespace fileguard {
 }
 
 int wmain(int argc, wchar_t* argv[]) {
-    
-    auto admin_opt = fileguard::Admin::NewAdmin(argc, argv);
+    auto admin_opt = fileguard::Admin::New(argc, argv);
     if (auto hr = std::get_if<HRESULT>(&admin_opt)) {
         std::cerr << "0x" << std::hex << std::setfill('0') << std::setw(8) << hr << std::endl;
         return *hr;
     }
-
     return std::get<std::unique_ptr<fileguard::Admin>>(std::move(admin_opt))->Parse();
 }
