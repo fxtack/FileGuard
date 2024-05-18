@@ -18,8 +18,6 @@ EXTERN_C_START
 #include "FileGuardLib.h"
 EXTERN_C_END
 
-#define Add2Ptr(P,I) ((PVOID)((PUCHAR)(P) + (I)))
-
 #define FGA_MAJOR_VERSION ((USHORT)0)
 #define FGA_MINOR_VERSION ((USHORT)1)
 #define FGA_PATCH_VERSION ((USHORT)0)
@@ -27,35 +25,49 @@ EXTERN_C_END
 
 namespace fileguard {
 
-    typedef struct _Rule {
+    struct Rule {
         unsigned long code;
         std::wstring_view path_expression;
-        const std::shared_ptr<char[]> buf;
-    } Rule;
+        const std::shared_ptr<char[]> buf; 
 
-    ULONG RuleTypeToCode(std::wstring& rule_type) {
+        Rule(unsigned long c,
+            std::wstring_view path_expression, 
+            const std::shared_ptr<char[]> buf):
+            code(c), path_expression(path_expression), buf(buf) {}
+    };
+
+    ULONG RuleNameToCode(std::wstring& rule_type) {
         std::transform(rule_type.begin(), rule_type.end(), rule_type.begin(),
-            [](wchar_t c) { return std::toupper(c); });
+            [](wchar_t c) { return std::tolower(c); });
 
-        if (L"ACCESS-DENIED" == rule_type) return RULE_ACCESS_DENIED;
-        else if (L"READONLY" == rule_type) return RULE_READONLY;
-        else if (L"HIDE" == rule_type) return RULE_HIDE;
+        if (L"access-denied" == rule_type) return RULE_ACCESS_DENIED;
+        else if (L"readonly" == rule_type) return RULE_READONLY;
+        else if (L"hide" == rule_type) return RULE_HIDE;
         return RULE_NONE;
+    }
+
+    std::wstring RuleCodeToName(unsigned long code) {
+        switch (code) {
+        case RULE_ACCESS_DENIED: return L"access-denied";
+        case RULE_READONLY: return L"readonly";
+        case RULE_HIDE: return L"hide";
+        }
+        return L"";
     }
 
     std::vector<std::unique_ptr<Rule>> ResolveRulesBuffer(std::shared_ptr<char[]> buf, size_t buf_size) {
         std::vector<std::unique_ptr<Rule>> rules;
-        char* rule_ptr = buf.get();
+        char* rule_offset_ptr = buf.get();
         while (buf_size > 0) {
-            auto rule = reinterpret_cast<FG_RULE*>(rule_ptr);
-
-            // TODO: test
-            std::wcout << rule->RuleCode
-                       << std::wstring_view(rule->PathExpression, rule->PathExpressionSize) 
-                       << std::endl;
-
-            rule_ptr = rule_ptr + sizeof(FG_RULE) + rule->PathExpressionSize;
-            buf_size -= sizeof(FG_RULE) + rule->PathExpressionSize;
+            auto rule_ptr = reinterpret_cast<FG_RULE*>(rule_offset_ptr);
+            auto rule = std::make_unique<Rule>(
+                rule_ptr->RuleCode, 
+                std::wstring_view(rule_ptr->PathExpression, rule_ptr->PathExpressionSize/sizeof(wchar_t)),
+                buf);
+            rules.push_back(std::move(rule));
+            
+            rule_offset_ptr = rule_offset_ptr + sizeof(FG_RULE) + rule_ptr->PathExpressionSize;
+            buf_size -= sizeof(FG_RULE) + rule_ptr->PathExpressionSize;
         }
 
         return rules;
@@ -97,15 +109,16 @@ namespace fileguard {
             return bool(removed);
         }
 
-        std::variant<std::vector<Rule>, HRESULT> QueryRules() {
+        std::variant<std::vector<std::unique_ptr<Rule>>, HRESULT> QueryRules() {
             unsigned short amount = 0;
             unsigned long size = 0ul;
             auto hr = FglQueryRules(port_, NULL, 0, &amount, &size);
-            if (FAILED(hr)) return hr;
-
+            if (FAILED(hr) && hr != HRESULT_FROM_WIN32(ERROR_INSUFFICIENT_BUFFER)) return hr;
+            
             std::shared_ptr<char[]> buf(new char[size], std::default_delete<char[]>());
             hr = FglQueryRules(port_, reinterpret_cast<FG_RULE*>(buf.get()), size, &amount, &size);
             if (FAILED(hr)) return hr;
+            return ResolveRulesBuffer(buf, size);;
         }
 
         std::variant<unsigned long, HRESULT> CleanupRules() {
@@ -178,6 +191,8 @@ namespace fileguard {
                            << std::setfill(L'0') << std::setw(8) << std::hex << hr
                            << std::endl;
                 break;
+            case E_INVALIDARG:
+                break;
             default:
                 if(FAILED(hr))
                     std::wcerr << L"error: unhandle command error hresult: " 
@@ -200,7 +215,7 @@ namespace fileguard {
                 L"        --expr <expression>\n"
                 L"        --type <access-denied|readonly|hide>\n"
                 L"    query\n"
-                L"        --format <list|csv|json>\n"
+                L"        --format <list|csv>\n"
                 L"    check-matched\n"
                 L"        --path <path>\n"
                 L"    cleanup\n"
@@ -290,12 +305,15 @@ namespace fileguard {
                 return E_INVALIDARG;
             }
 
-            auto result = core_client_->AddSingleRule(RuleTypeToCode(v_type), v_expr);
-            if (auto added = std::get_if<bool>(&result))
+            auto result = core_client_->AddSingleRule(RuleNameToCode(v_type), v_expr);
+            if (auto added = std::get_if<bool>(&result)) {
                 if (*added) std::wcout << L"Add rule successfully" << std::endl;
                 else std::wcout << L"Rule already exist" << std::endl;
-            
-            return std::get<HRESULT>(result);
+            } else {
+                return std::get<HRESULT>(result);
+            }
+
+            return S_OK;
         }
 
         HRESULT CommandRemove(std::map<std::wstring, int>& args) {
@@ -311,8 +329,8 @@ namespace fileguard {
                 return E_INVALIDARG;
             }
 
-            std::wstring v_type = argv_[f_type->second + 1];
             std::wstring v_expr = argv_[f_expr->second + 1];
+            std::wstring v_type = argv_[f_type->second + 1];
 
             if (v_expr == f_type->first) {
                 std::wcerr << L"error: command flag `" << f_expr->first << "` value invalid\n";
@@ -323,12 +341,15 @@ namespace fileguard {
                 return E_INVALIDARG;
             }
 
-            auto result = core_client_->RemoveSingleRule(RuleTypeToCode(v_type), v_expr);
-            if (auto removed = std::get_if<bool>(&result))
+            auto result = core_client_->RemoveSingleRule(RuleNameToCode(v_type), v_expr);
+            if (auto removed = std::get_if<bool>(&result)) {
                 if (*removed) std::wcout << L"Remove rule successfully" << std::endl;
                 else std::wcout << "Rule not found" << std::endl;
+            } else {
+                return std::get<HRESULT>(result);
+            }
 
-            return std::get<HRESULT>(result);
+            return S_OK;
         }
 
         HRESULT CommandQuery(std::map<std::wstring, int>& args) {
@@ -343,7 +364,31 @@ namespace fileguard {
                 return E_INVALIDARG;
             }
             std::wstring v_format = argv_[f_format->second + 1];
-            std::wcout << "query" << " " << f_format->first << ": " << v_format << std::endl;
+
+            auto result = core_client_->QueryRules();
+            if (auto hr = std::get_if<HRESULT>(&result)) return *hr;
+            auto rules = std::get_if<std::vector<std::unique_ptr<Rule>>>(&result);
+
+            if (v_format == L"csv") std::wcout << "code,expression" << std::endl;
+            else if (v_format == L"list") std::wcout << "total: " << rules->size() << std::endl;
+            else { 
+                std::wcerr << "error: invalid format: '" << v_format << "'" << std::endl;
+                return E_INVALIDARG;
+            }
+
+            std::for_each(rules->begin(), rules->end(),
+                [&v_format](const std::unique_ptr<Rule>& rule) {
+                    if (v_format == L"csv") {
+                        std::wcout << RuleCodeToName(rule->code) << ","
+                                   << rule->path_expression
+                                   << std::endl;
+                    } else if (v_format == L"list") {
+                        std::wcout << "code: " << RuleCodeToName(rule->code)
+                                   << ",expression: " << rule->path_expression
+                                   << std::endl;
+                    }
+                });
+
             return S_OK;
         }
 
@@ -365,9 +410,7 @@ namespace fileguard {
 
         HRESULT CommandCleanup(std::map<std::wstring, int> args) {
             auto result = core_client_->CleanupRules();
-            if (auto hr = std::get_if<HRESULT>(&result)) {
-                return *hr;
-            }
+            if (auto hr = std::get_if<HRESULT>(&result)) return *hr;
 
             std::wcout << L"Cleanup rules amount: " 
                        << std::get<unsigned long>(result) 
@@ -380,152 +423,10 @@ namespace fileguard {
 int wmain(int argc, wchar_t* argv[]) {
     
     auto admin_opt = fileguard::Admin::NewAdmin(argc, argv);
-    if (std::holds_alternative<HRESULT>(admin_opt)) {
-        auto hr = std::get<HRESULT>(admin_opt);
+    if (auto hr = std::get_if<HRESULT>(&admin_opt)) {
         std::cerr << "0x" << std::hex << std::setfill('0') << std::setw(8) << hr << std::endl;
-        return hr;
+        return *hr;
     }
 
     return std::get<std::unique_ptr<fileguard::Admin>>(std::move(admin_opt))->Parse();
-
-    //HRESULT hr = S_OK;
-    //HANDLE port = INVALID_HANDLE_VALUE;
-    //FG_CORE_VERSION coreVersion = { 0 };
-    //FGL_RULE rules[] = {
-    //    { RULE_READONLY, L"*\\baned.txt" },
-    //    { RULE_READONLY, L"*baned.txt" },
-    //    { RULE_READONLY, L"*\\baned.txt" }
-    //};
-    //FGL_RULE rule = { 0 };
-    //BOOLEAN added = FALSE, removed = FALSE;
-    //USHORT addedAmount = 0, removedAmount = 0;
-    //ULONG cleanRules = 0;
-    //PFG_MESSAGE message = NULL;
-
-    //UCHAR *buffer = NULL;
-    //USHORT queryAmount = 0;
-    //ULONG querySize = 0ul;
-    //FG_RULE *rulePtr = NULL;
-    //ULONG thisRuleSize = 0ul;
-    //INT i = 0;
-
-    //// Output
-    //WCHAR* filename = wcsrchr(argv[0], L'\\');
-    //if (NULL == filename) {
-    //    filename = argv[0];
-    //}
-
-    //hr = FglConnectCore(&port);
-    //if (FAILED(hr)) {
-    //    fprintf(stderr, "connect core failed: 0x%08x", hr);
-    //    goto Cleanup;
-    //}
-
-    //hr = FglGetCoreVersion(port, &coreVersion);
-    //if (FAILED(hr)) {
-    //    fprintf(stderr, "get core version failed: 0x%08x", hr);
-    //    goto Cleanup;
-    //}
-
-    //printf("%ws v%hu.%hu.%hu.%hu, core version: v%hu.%hu.%hu.%hu\n",
-    //       ++filename,
-    //       FGA_MAJOR_VERSION, FGA_MINOR_VERSION, FGA_PATCH_VERSION, FGA_BUILD_VERSION,
-    //       coreVersion.Major, coreVersion.Minor, coreVersion.Patch, coreVersion.Build);
-
-    //rule.RuleCode = RULE_READONLY;
-    //rule.RulePathExpression = L"\\Device\\HarddiskVolume\\*";
-    //hr = FglAddSingleRule(port, &rule, &added);
-    //if (FAILED(hr)) {
-    //    fprintf(stderr, "add single rule failed: 0x%08x", hr);
-    //    goto Cleanup;
-    //}
-
-    ////hr = FglRemoveSingleRule(port, &rule, &removed);
-    ////if (FAILED(hr)) {
-    ////    fprintf(stderr, "remove single rule failed: 0x%08x", hr);
-    ////    goto Cleanup;
-    ////}
-
-    //hr = FglAddBulkRules(port, rules, 3, &addedAmount);
-    //if (FAILED(hr)) {
-    //    fprintf(stderr, "add rules failed: 0x%08x", hr);
-    //    goto Cleanup;
-    //}
-
-    //hr = FglQueryRules(port, NULL, 0, &queryAmount, &querySize);
-    //printf("0x%08x, query result amount: %hu, size: %lu\n", hr, queryAmount, querySize);
-
-    //buffer = malloc(querySize);
-    //if (NULL == buffer) goto Cleanup;
-    //hr = FglQueryRules(port, (FG_RULE*)buffer, querySize, &queryAmount, &querySize);
-    //if (FAILED(hr)) {
-    //    fprintf(stderr, "Query rules failed: 0x%08x", hr);
-    //    goto Cleanup;
-    //}
-
-    //rulePtr = buffer;
-    //while (querySize > 0) {
-    //    printf("remain size: %lu, rule code: %lu, path expression: %.*ls, size: %lu\n", 
-    //           querySize,
-    //           rulePtr->RuleCode, 
-    //           rulePtr->PathExpressionSize/sizeof(WCHAR),
-    //           rulePtr->PathExpression,
-    //           rulePtr->PathExpressionSize);
-    //    rulePtr = ((UCHAR*)rulePtr) + (sizeof(FG_RULE) + rulePtr->PathExpressionSize);
-    //    querySize -= ((sizeof(FG_RULE) + rulePtr->PathExpressionSize));
-    //}
-    
-
-    //hr = FglRemoveBulkRules(port, rules, 2, &removedAmount);
-    //if (FAILED(hr)) {
-    //    fprintf(stderr, "remove rules failed: 0x%08x", hr);
-    //    goto Cleanup;
-    //}
-
-    //hr = FglCleanupRules(port, &cleanRules);
-    //if (FAILED(hr)) {
-    //    fprintf(stderr, "clean rules failed: 0x%08x", hr);
-    //    goto Cleanup;
-    //} else {
-    //    printf("Cleanup %lu rules\n", cleanRules);
-    //}
-    
-//    hr = FglCheckMatchedRules(port,
-//                              L"\\Device\\HarddiskVolume6\\baned.txt",
-//                              NULL, 
-//                              0,
-//                              &queryAmount,
-//                              &querySize);
-//    printf("hresult: 0x%08x, matched amount: %hu, size: %lu\n", hr, queryAmount, querySize);
-//
-//    buffer = (UCHAR*)malloc(querySize);
-//    if (NULL == buffer) goto Cleanup;
-//    else RtlZeroMemory(buffer, querySize);
-//    hr = FglCheckMatchedRules(port,
-//                             L"\\Device\\HarddiskVolume6\\baned.txt",
-//                             (FG_RULE*)buffer, 
-//                             querySize,
-//                             &queryAmount, 
-//                             &querySize);
-//    printf("hresult: 0x%08x, matched amount: %hu, size: %lu\n", hr, queryAmount, querySize);
-//    rulePtr = (FG_RULE*)buffer;
-//    while (querySize > 0) {
-//        printf("remain size: %lu, rule code: %lu, path expression: %.*ls, size: %lu\n", 
-//               querySize,
-//               rulePtr->RuleCode, 
-//               rulePtr->PathExpressionSize/sizeof(WCHAR),
-//               rulePtr->PathExpression,
-//               rulePtr->PathExpressionSize);
-//
-//        thisRuleSize = sizeof(FG_RULE) + rulePtr->PathExpressionSize;
-//        printf("This rule size: %lu\n", thisRuleSize);
-//        rulePtr = (FG_RULE*)Add2Ptr(rulePtr, thisRuleSize);
-//        querySize -= thisRuleSize;
-//    }
-//
-//Cleanup:
-//
-//    if (INVALID_HANDLE_VALUE != port) {
-//        FglDisconnectCore(port);
-//    }
 }
