@@ -267,7 +267,7 @@ FgFindAndRemoveRule(
 }
 
 _Check_return_
-ULONG
+FG_RUEL_CODE
 FgMatchRules(
     _In_ PLIST_ENTRY RuleList,
     _In_ PEX_PUSH_LOCK ListLock,
@@ -277,7 +277,7 @@ FgMatchRules(
     BOOLEAN matched = FALSE;
     PLIST_ENTRY entry = NULL, next = NULL;
     PFG_RULE_ENTRY ruleEntry = NULL;
-    ULONG ruleCode = RULE_NONE;
+    FG_RUEL_CODE ruleCode = RuleNone;
 
     FLT_ASSERT(NULL != RuleList);
     FLT_ASSERT(NULL != ListLock);

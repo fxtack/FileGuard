@@ -26,11 +26,11 @@ EXTERN_C_END
 namespace fileguard {
     
     struct Rule {
-        unsigned long code;
+        FG_RUEL_CODE code;
         std::wstring_view path_expression;
         const std::shared_ptr<char[]> buf; 
 
-        Rule(unsigned long c,
+        Rule(FG_RUEL_CODE c,
             std::wstring_view path_expression, 
             const std::shared_ptr<char[]> buf):
             code(c), path_expression(path_expression), buf(buf) {}
@@ -40,17 +40,17 @@ namespace fileguard {
         std::transform(rule_type.begin(), rule_type.end(), rule_type.begin(),
             [](wchar_t c) { return std::tolower(c); });
 
-        if (L"access-denied" == rule_type) return RULE_ACCESS_DENIED;
-        else if (L"readonly" == rule_type) return RULE_READONLY;
-        else if (L"hide" == rule_type) return RULE_HIDE;
-        return RULE_NONE;
+        if (L"access-denied" == rule_type) return RuleAccessDenined;
+        else if (L"readonly" == rule_type) return RuleReadOnly;
+        else if (L"hide" == rule_type) return RuleHide;
+        return RuleNone;
     }
 
-    std::wstring RuleCodeToName(unsigned long code) {
+    std::wstring RuleCodeToName(FG_RUEL_CODE code) {
         switch (code) {
-        case RULE_ACCESS_DENIED: return L"access-denied";
-        case RULE_READONLY: return L"readonly";
-        case RULE_HIDE: return L"hide";
+        case RuleAccessDenined: return L"access-denied";
+        case RuleReadOnly: return L"readonly";
+        case RuleHide: return L"hide";
         }
         return L"";
     }
@@ -60,10 +60,9 @@ namespace fileguard {
         char* rule_offset_ptr = buf.get();
         while (buf_size > 0) {
             auto rule_ptr = reinterpret_cast<FG_RULE*>(rule_offset_ptr);
-            auto rule = std::make_unique<Rule>(
-                rule_ptr->RuleCode, 
-                std::wstring_view(rule_ptr->PathExpression, rule_ptr->PathExpressionSize/sizeof(wchar_t)),
-                buf);
+            auto rule = std::make_unique<Rule>(rule_ptr->RuleCode, 
+                                               std::wstring_view(rule_ptr->PathExpression, rule_ptr->PathExpressionSize/sizeof(wchar_t)),
+                                               buf);
             rules.push_back(std::move(rule));
             
             rule_offset_ptr = rule_offset_ptr + sizeof(FG_RULE) + rule_ptr->PathExpressionSize;

@@ -48,7 +48,7 @@ typedef struct _FG_RULE_ENTRY {
     //
     // The policy of the rule.
     //
-    ULONG RuleCode;
+    FG_RUEL_CODE RuleCode;
 
     //
     // File path

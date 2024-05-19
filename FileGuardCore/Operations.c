@@ -74,7 +74,7 @@ Return Value:
     FLT_PREOP_CALLBACK_STATUS callbackStatus = FLT_PREOP_SUCCESS_WITH_CALLBACK;
     PFLT_FILE_NAME_INFORMATION nameInfo = NULL;
     PFG_COMPLETION_CONTEXT completionContext = NULL;
-    ULONG ruleCode = 0ul;
+    FG_RUEL_CODE ruleCode = 0ul;
 
     PAGED_CODE();
 
@@ -113,7 +113,7 @@ Return Value:
     
     try {
         ruleCode = FgMatchRules(&Globals.RulesList, Globals.RulesListLock, &nameInfo->Name);
-        if (RULE_ACCESS_DENIED == ruleCode) {
+        if (RuleAccessDenined == ruleCode) {
             SET_CALLBACK_DATA_STATUS(Data, STATUS_ACCESS_DENIED);
             callbackStatus = FLT_PREOP_COMPLETE;
             goto Cleanup;
@@ -262,7 +262,7 @@ Return Value:
             }
 #endif
 
-            InterlockedExchange(&oldFileContext->RuleCode, completionContext->Create.RuleCode); 
+            InterlockedExchange((LONG*)&oldFileContext->RuleCode, (LONG)completionContext->Create.RuleCode);
 
         } else {
 
@@ -273,7 +273,7 @@ Return Value:
         }
     }
 
-    InterlockedExchange(&fileContext->RuleCode, ruleCode);
+    InterlockedExchange((LONG*)&fileContext->RuleCode, (LONG)ruleCode);
 
 Cleanup:
 
@@ -357,12 +357,12 @@ Return Value:
     }
 
     switch (fileContext->RuleCode) {
-    case RULE_ACCESS_DENIED:
+    case RuleAccessDenined:
         SET_CALLBACK_DATA_STATUS(Data, STATUS_ACCESS_DENIED);
         callbackStatus = FLT_PREOP_COMPLETE;
         break;
 
-    case RULE_READONLY:
+    case RuleReadOnly:
         SET_CALLBACK_DATA_STATUS(Data, STATUS_MEDIA_WRITE_PROTECTED);
         callbackStatus = FLT_PREOP_COMPLETE;
         break;
@@ -418,7 +418,7 @@ Return Value:
     PFG_FILE_CONTEXT fileContext = NULL;
     PFLT_FILE_NAME_INFORMATION renameNameInfo = NULL;
     PFILE_RENAME_INFORMATION renameInfo = NULL;
-    ULONG ruleCode = 0ul;
+    FG_RUEL_CODE ruleCode = 0ul;
 
     UNREFERENCED_PARAMETER(CompletionContext);
 
@@ -444,12 +444,12 @@ Return Value:
     case FileRenameInformationEx:
 
         switch (fileContext->RuleCode) {
-        case RULE_ACCESS_DENIED:
+        case RuleAccessDenined:
             SET_CALLBACK_DATA_STATUS(Data, STATUS_ACCESS_DENIED);
             callbackStatus = FLT_PREOP_COMPLETE;
             break;
 
-        case RULE_READONLY:
+        case RuleReadOnly:
             SET_CALLBACK_DATA_STATUS(Data, STATUS_MEDIA_WRITE_PROTECTED);
             callbackStatus = FLT_PREOP_COMPLETE;
             break;
@@ -471,12 +471,12 @@ Return Value:
         try {
             ruleCode = FgMatchRules(&Globals.RulesList, Globals.RulesListLock, &renameNameInfo->Name);
             switch (ruleCode) {
-            case RULE_ACCESS_DENIED:
+            case RuleAccessDenined:
                 SET_CALLBACK_DATA_STATUS(Data, STATUS_ACCESS_DENIED);
                 callbackStatus = FLT_PREOP_COMPLETE;
                 break;
 
-            case RULE_READONLY:
+            case RuleReadOnly:
                 SET_CALLBACK_DATA_STATUS(Data, STATUS_MEDIA_WRITE_PROTECTED);
                 callbackStatus = FLT_PREOP_COMPLETE;
                 break;
@@ -494,12 +494,12 @@ Return Value:
     case FileAllocationInformation:
 
         switch (fileContext->RuleCode) {
-        case RULE_ACCESS_DENIED:
+        case RuleAccessDenined:
             SET_CALLBACK_DATA_STATUS(Data, STATUS_ACCESS_DENIED);
             callbackStatus = FLT_PREOP_COMPLETE;
             break;
 
-        case RULE_READONLY:
+        case RuleReadOnly:
             SET_CALLBACK_DATA_STATUS(Data, STATUS_MEDIA_WRITE_PROTECTED);
             callbackStatus = FLT_PREOP_COMPLETE;
             break;
@@ -588,12 +588,12 @@ Return Value:
     case FSCTL_DELETE_REPARSE_POINT:
 
         switch (fileContext->RuleCode) {
-        case RULE_ACCESS_DENIED:
+        case RuleAccessDenined:
             SET_CALLBACK_DATA_STATUS(Data, STATUS_ACCESS_DENIED);
             callbackStatus = FLT_PREOP_COMPLETE;
             break;
 
-        case RULE_READONLY:
+        case RuleReadOnly:
             SET_CALLBACK_DATA_STATUS(Data, STATUS_MEDIA_WRITE_PROTECTED);
             callbackStatus = FLT_PREOP_COMPLETE;
             break;

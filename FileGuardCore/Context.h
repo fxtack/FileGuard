@@ -55,7 +55,7 @@ typedef struct _FG_FILE_CONTEXT {
     //
     // The policy of the rule.
     //
-    volatile ULONG RuleCode;
+    volatile FG_RUEL_CODE RuleCode;
 
 } FG_FILE_CONTEXT, *PFG_FILE_CONTEXT;
 
@@ -80,7 +80,7 @@ typedef struct _FG_COMPLETION_CONTEXT {
 
         struct {
             PFLT_FILE_NAME_INFORMATION FileNameInfo;
-            ULONG RuleCode;
+            FG_RUEL_CODE RuleCode;
         } Create;
 
         struct {

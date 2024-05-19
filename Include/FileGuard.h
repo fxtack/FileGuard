@@ -35,17 +35,18 @@ typedef struct _FG_CORE_VERSION {
     USHORT Build;
 } FG_CORE_VERSION, *PFG_CORE_VERSION;
 
-#define RULE_NONE          ((ULONG)0x00000000)
-#define RULE_ACCESS_DENIED ((ULONG)0x00000001)
-#define RULE_READONLY      ((ULONG)0x00000002)
-#define RULE_HIDE          ((ULONG)0x00000003)
-#define RULE_MAXIMUM       ((ULONG)0x00000004)
-#define RULE_MATCHED(_rule_code_) (0 != (_rule_code_))
+typedef enum _FG_RUEL_CODE {
+    RuleNone,
+    RuleAccessDenined,
+    RuleReadOnly,
+    RuleHide,
+    RuleMaximum
+} FG_RUEL_CODE, *PFG_RUEL_CODE;
 
-#define VALID_RULE_CODE(_rule_code_) ((_rule_code_) > RULE_NONE && (_rule_code_) < RULE_MAXIMUM)
+#define VALID_RULE_CODE(_rule_code_) ((_rule_code_) > RuleNone && (_rule_code_) < RuleMaximum)
 
 typedef struct _FG_RULE {
-    ULONG RuleCode;
+    FG_RUEL_CODE RuleCode;
     USHORT PathExpressionSize; // The bytes size of `FilePathName`, contain null wide char.
     WCHAR PathExpression[];    // End of null.
 } FG_RULE, *PFG_RULE;
