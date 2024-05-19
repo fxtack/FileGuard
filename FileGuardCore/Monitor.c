@@ -24,7 +24,7 @@
 
 Module Name:
 
-    FileGuardCore.c
+    Monitor.c
 
 Abstract:
 

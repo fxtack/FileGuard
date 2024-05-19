@@ -24,7 +24,7 @@
 
 Module Name:
 
-    FileGuardCore.c
+    Context.c
 
 Abstract:
 

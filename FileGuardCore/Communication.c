@@ -24,7 +24,7 @@
 
 Module Name:
 
-    FileGuardCore.c
+    Communication.c
 
 Abstract:
 
