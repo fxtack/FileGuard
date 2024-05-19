@@ -86,9 +86,13 @@ HRESULT FglCreateRulesMessage(
     message->RulesAmount = RulesAmount;
     message->RulesSize = (ULONG)rulesSize;
     for (i = 0; i < RulesAmount; i++) {
-        pathExpressionSize = (USHORT)wcslen(Rules[i].RulePathExpression) * sizeof(WCHAR);
-
+        if (!VALID_RULE_CODE(Rules[i].RuleCode)) {
+            free(message);
+            return E_INVALIDARG;
+        }
         rulePtr->RuleCode = Rules[i].RuleCode;
+
+        pathExpressionSize = (USHORT)wcslen(Rules[i].RulePathExpression) * sizeof(WCHAR);
         rulePtr->PathExpressionSize = pathExpressionSize;
         RtlCopyMemory(rulePtr->PathExpression, Rules[i].RulePathExpression, pathExpressionSize);
 

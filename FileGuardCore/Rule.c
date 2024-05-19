@@ -159,6 +159,18 @@ FgAddRules(
 
     for (; ruleIdx < RulesAmount; ruleIdx++) {
 
+        if (!VALID_RULE_CODE(rulePtr->RuleCode)) {
+
+            pathExpression.Buffer = rulePtr->PathExpression;
+            pathExpression.Length = rulePtr->PathExpressionSize;
+            pathExpression.MaximumLength = rulePtr->PathExpressionSize;
+            LOG_WARNING("Invalid rule code: 0x%08x, path expression: '%wZ'", 
+                        rulePtr->RuleCode, 
+                        &pathExpression);
+
+            goto NextNewRule;
+        }
+
         LIST_FOR_EACH_SAFE(entry, next, RuleList) {
 
             ruleEntry = CONTAINING_RECORD(entry, FG_RULE_ENTRY, List);
@@ -347,7 +359,6 @@ FgMatchRulesEx(
                                   ruleEntry->PathExpression->Length);
                     rulePtr->RuleCode = ruleEntry->RuleCode;
                     rulePtr->PathExpressionSize = ruleEntry->PathExpression->Length;
-                    FLT_ASSERT(!"WATCH HERE");
                 } except(EXCEPTION_EXECUTE_HANDLER) {
                     status = GetExceptionCode();
                     LOG_ERROR("NTSTATUS: 0x%08x, get rule failed", status);
@@ -373,7 +384,6 @@ FgMatchRulesEx(
         status = STATUS_BUFFER_TOO_SMALL;
     }
 
-    FLT_ASSERT(!"WATCH HERE");
     DBG_INFO("Matched rules amount: %hu, size: %lu", rulesAmount, *RulesSize);
 
     return status;

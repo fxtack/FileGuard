@@ -39,7 +39,10 @@ typedef struct _FG_CORE_VERSION {
 #define RULE_ACCESS_DENIED ((ULONG)0x00000001)
 #define RULE_READONLY      ((ULONG)0x00000002)
 #define RULE_HIDE          ((ULONG)0x00000003)
+#define RULE_MAXIMUM       ((ULONG)0x00000004)
 #define RULE_MATCHED(_rule_code_) (0 != (_rule_code_))
+
+#define VALID_RULE_CODE(_rule_code_) ((_rule_code_) > RULE_NONE && (_rule_code_) < RULE_MAXIMUM)
 
 typedef struct _FG_RULE {
     ULONG RuleCode;

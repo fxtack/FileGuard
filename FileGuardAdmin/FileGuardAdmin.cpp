@@ -118,7 +118,19 @@ namespace fileguard {
             std::shared_ptr<char[]> buf(new char[size], std::default_delete<char[]>());
             hr = FglQueryRules(port_, reinterpret_cast<FG_RULE*>(buf.get()), size, &amount, &size);
             if (FAILED(hr)) return hr;
-            return ResolveRulesBuffer(buf, size);;
+            return ResolveRulesBuffer(buf, size);
+        }
+
+        std::variant<std::vector<std::unique_ptr<Rule>>, HRESULT> CheckMatchedRules(std::wstring path) {
+            unsigned short amount = 0;
+            unsigned long size = 0ul;
+            auto hr = FglCheckMatchedRules(port_, path.c_str(), NULL, 0, &amount, &size);
+            if (FAILED(hr) && hr != HRESULT_FROM_WIN32(ERROR_INSUFFICIENT_BUFFER)) return hr;
+
+            std::shared_ptr<char[]> buf(new char[size], std::default_delete<char[]>());
+            hr = FglCheckMatchedRules(port_, path.c_str(), reinterpret_cast<FG_RULE*>(buf.get()), size, &amount, &size);
+            if (FAILED(hr)) return hr;
+            return ResolveRulesBuffer(buf, size);
         }
 
         std::variant<unsigned long, HRESULT> CleanupRules() {
@@ -319,7 +331,13 @@ namespace fileguard {
                 return E_INVALIDARG;
             }
 
-            auto result = core_client_->AddSingleRule(RuleNameToCode(v_type), v_expr);
+            auto v_type_code = RuleNameToCode(v_type);
+            if (!VALID_RULE_CODE(v_type_code)) {
+                std::wcerr << "error: invalid rule type: `" << v_type << "`" << std::endl;
+                return E_INVALIDARG;
+            }
+
+            auto result = core_client_->AddSingleRule(v_type_code, v_expr);
             if (auto added = std::get_if<bool>(&result)) {
                 if (*added) std::wcout << L"Add rule successfully" << std::endl;
                 else std::wcout << L"Rule already exist" << std::endl;
@@ -364,6 +382,12 @@ namespace fileguard {
                 return E_INVALIDARG;
             }
 
+            auto v_type_code = RuleNameToCode(v_type);
+            if (!VALID_RULE_CODE(v_type_code)) {
+                std::wcerr << "error: invalid rule type: `" << v_type << "`" << std::endl;
+                return E_INVALIDARG;
+            }
+
             auto result = core_client_->RemoveSingleRule(RuleNameToCode(v_type), v_expr);
             if (auto removed = std::get_if<bool>(&result)) {
                 if (*removed) std::wcout << L"Remove rule successfully" << std::endl;
@@ -381,7 +405,7 @@ namespace fileguard {
             std::wstring v_format;
 
             if (f_format == args.end()) {
-                std::wcerr << L"error: command flag `--format` required\n";
+                std::wcerr << L"error: command flag `"<< fn_format <<"` required\n";
                 return E_INVALIDARG;
             }
 
@@ -391,6 +415,8 @@ namespace fileguard {
             }
 
             v_format = argv_[f_format->second + 1];
+            std::transform(v_format.begin(), v_format.end(), v_format.begin(),
+                [](wchar_t c) { return std::tolower(c); });
 
             // Query rules.
             auto result = core_client_->QueryRules();
@@ -445,6 +471,8 @@ namespace fileguard {
 
             v_path = argv_[f_path->second + 1];
             v_format = argv_[f_format->second + 1];
+            std::transform(v_format.begin(), v_format.end(), v_format.begin(),
+                [](wchar_t c) { return std::tolower(c); });
 
             if (v_path == fn_format) {
                 std::wcerr << L"error: command flag `" << fn_path << "` value empty" << std::endl;
@@ -453,6 +481,31 @@ namespace fileguard {
                 std::wcerr << L"error: command flag `" << fn_format << "` value empty" << std::endl;
                 return E_INVALIDARG;
             }
+
+            // Check matched rules.
+            auto result = core_client_->CheckMatchedRules(v_path);
+            if (auto hr = std::get_if<HRESULT>(&result)) return *hr;
+            auto rules = std::get_if<std::vector<std::unique_ptr<Rule>>>(&result);
+
+            // Output matched rules result.
+            if (v_format == L"csv") std::wcout << "code,expression" << std::endl;
+            else if (v_format == L"list") std::wcout << "total: " << rules->size() << std::endl;
+            else {
+                std::wcerr << "error: invalid format: '" << v_format << "'" << std::endl;
+                return E_INVALIDARG;
+            }
+            std::for_each(rules->begin(), rules->end(), 
+                [&v_format](const std::unique_ptr<Rule>& rule) {
+                    if (v_format == L"csv") {
+                        std::wcout << RuleCodeToName(rule->code) << ","
+                                   << rule->path_expression
+                                   << std::endl;
+                    } else if (v_format == L"list") {
+                        std::wcout << "code: " << RuleCodeToName(rule->code)
+                                   << ", expression: " << rule->path_expression
+                                   << std::endl;
+                    }
+                });
 
             std::wcout << v_path << ", " << v_format << std::endl;
             return S_OK;
