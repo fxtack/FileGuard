@@ -97,7 +97,7 @@ Return Value
 
 VOID FgCoreControlPortDisconnectCallback(
     _In_opt_ PVOID ConnectionCookie
-)
+    )
 /*++
 
 Routine Description
@@ -134,7 +134,8 @@ FgCoreControlMessageNotifyCallback(
     _Out_writes_bytes_to_opt_(OutputSize, *ReturnSize) PVOID Output,
     _In_ ULONG OutputSize,
     _Out_ PULONG ReturnSize
-) {
+    )
+{
     NTSTATUS status = STATUS_SUCCESS, resultStatus = STATUS_SUCCESS;
     ULONG resultVariableSize = 0ul;
     FG_MESSAGE_TYPE commandType = 0;

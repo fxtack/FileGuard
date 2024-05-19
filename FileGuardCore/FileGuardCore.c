@@ -111,7 +111,8 @@ NTSTATUS
 DriverEntry(
     _In_ PDRIVER_OBJECT DriverObject,
     _In_ PUNICODE_STRING RegistryPath
-) {
+    )
+{
     NTSTATUS status = STATUS_SUCCESS;
     OBJECT_ATTRIBUTES attributes = { 0 };
     PSECURITY_DESCRIPTOR securityDescriptor = NULL;
@@ -291,7 +292,8 @@ DriverEntry(
 NTSTATUS
 FgUnload(
     _In_ FLT_FILTER_UNLOAD_FLAGS Flags
-) {
+    )
+{
     NTSTATUS status = STATUS_SUCCESS;
     LARGE_INTEGER monitorTerminateTimeout = { 0 };
 
@@ -364,7 +366,7 @@ FgInstanceSetup(
     _In_ FLT_INSTANCE_SETUP_FLAGS Flags,
     _In_ DEVICE_TYPE VolumeDeviceType,
     _In_ FLT_FILESYSTEM_TYPE VolumeFilesystemType
-)
+    )
 /*++
 
 Routine Description:
@@ -439,7 +441,8 @@ NTSTATUS
 FgInstanceQueryTeardown(
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
     _In_ FLT_INSTANCE_QUERY_TEARDOWN_FLAGS Flags
-) {
+    )
+{
     PAGED_CODE();
 
     UNREFERENCED_PARAMETER(FltObjects);
@@ -454,7 +457,8 @@ VOID
 FgInstanceTeardownStart(
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
     _In_ FLT_INSTANCE_TEARDOWN_FLAGS Flags
-) {
+    )
+{
     PAGED_CODE();
 
     UNREFERENCED_PARAMETER(FltObjects);
@@ -467,7 +471,8 @@ VOID
 FgInstanceTeardownComplete(
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
     _In_ FLT_INSTANCE_TEARDOWN_FLAGS Flags
-) {
+    )
+{
     PAGED_CODE();
 
     UNREFERENCED_PARAMETER(FltObjects);
@@ -480,7 +485,7 @@ _Check_return_
 NTSTATUS
 FgSetConfiguration(
     _In_ PUNICODE_STRING RegistryPath
-)
+    )
 /*++
 
 Routine Descrition:

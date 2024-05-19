@@ -98,7 +98,7 @@ FgAllocateBufferEx(
     _In_ POOL_FLAGS Flags,
     _In_ SIZE_T Size,
     _In_ ULONG Tag
-);
+    );
 
 #define FgAllocateBuffer(_buffer_ptr_, _size_) FgAllocateBufferEx((_buffer_ptr_), \
                                                                   POOL_FLAG_NON_PAGED, \
@@ -115,7 +115,7 @@ NTSTATUS
 FgAllocateUnicodeString(
     _In_ USHORT Size,
     _Out_ PUNICODE_STRING* String
-);
+    );
 
 #define FgFreeUnicodeString(_string_) FgFreeBuffer((_string_));
 
@@ -127,7 +127,7 @@ _Check_return_
 NTSTATUS
 FgCreatePushLock(
     _Inout_ PEX_PUSH_LOCK *Lock
-);
+    );
 
 FORCEINLINE
 VOID
@@ -152,8 +152,8 @@ FgFreePushLock(
 #define InterlockedExchangeBoolean(_bool_, _val_) InterlockedExchange8((__volatile char*)(_bool_), _val_)
 
 #define SET_CALLBACK_DATA_STATUS(_cbd_, _status_) (_cbd_)->IoStatus.Status = _status_;\
-                                        (_cbd_)->IoStatus.Information = 0; \
-                                        FltSetCallbackDataDirty(Data);
+                                                  (_cbd_)->IoStatus.Information = 0; \
+                                                  FltSetCallbackDataDirty(Data);
 
 /*-------------------------------------------------------------
     Exception routines.
@@ -162,6 +162,6 @@ FgFreePushLock(
 LONG AsMessageException(
     _In_ PEXCEPTION_POINTERS ExceptionPointer,
     _In_ BOOLEAN AccessingUserBuffer
-);
+    );
 
 #endif

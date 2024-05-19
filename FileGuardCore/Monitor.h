@@ -60,12 +60,12 @@ NTSTATUS
 FgAllocateMonitorRecordEntry(
     _In_ PFG_RULE Rule,
     _Outptr_ PFG_MONITOR_RECORD_ENTRY *MonitorRecordEntry
-);
+    );
 
 VOID
 FgFreeMonitorRecordEntry(
     _Inout_ PFG_MONITOR_RECORD_ENTRY MonitorRecordEntry
-);
+    );
 
 #define FG_MONITOR_SEND_RECORD_BUFFER_SIZE (32 * 1024)
 
@@ -105,18 +105,18 @@ FgCreateMonitorStartContext(
     _In_ PFLT_FILTER Filter,
     _In_ PLIST_ENTRY RecordsQueue,
     _In_ PFG_MONITOR_CONTEXT* Context
-);
+    );
 
 VOID
 FgFreeMonitorStartContext(
     _In_ PFG_MONITOR_CONTEXT Context
-);
+    );
 
 _IRQL_requires_max_(APC_LEVEL)
 VOID
 FgMonitorStartRoutine(
     _In_ PVOID MonitorContext
-);
+    );
 
 _Check_return_
 NTSTATUS
@@ -126,6 +126,6 @@ FgGetRecords(
     _Out_writes_bytes_to_(OutputBufferSize, *ReturnOutputBufferSize) PUCHAR OutputBuffer,
     _In_ ULONG OutputBufferSize,
     _Out_ PULONG ReturnOutputBufferSize
-);
+    );
 
 #endif

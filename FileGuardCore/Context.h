@@ -63,7 +63,7 @@ VOID
 FgCleanupFileContext(
     _In_ PFLT_CONTEXT Context,
     _In_ FLT_CONTEXT_TYPE ContextType
-);
+    );
 
 /*-------------------------------------------------------------
     Callback context structure and routines
@@ -96,7 +96,7 @@ NTSTATUS
 FgAllocateCompletionContext(
     _In_ UCHAR MajorFunction,
     _Inout_ PFG_COMPLETION_CONTEXT* CompletionContext
-);
+    );
 
 #define FgFreeCompletionContext(_context_) FgFreeBuffer((_context_));
 

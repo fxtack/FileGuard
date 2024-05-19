@@ -320,7 +320,8 @@ FgMatchRulesEx(
     _In_opt_ ULONG RulesBufferSize,
     _Inout_opt_ USHORT* RulesAmount,
     _Inout_ ULONG* RulesSize
-) {
+    )
+{
     NTSTATUS status = STATUS_SUCCESS;
     PLIST_ENTRY entry = NULL, next = NULL;
     PFG_RULE_ENTRY ruleEntry = NULL;

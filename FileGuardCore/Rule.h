@@ -69,7 +69,7 @@ FgAddRules(
     _In_ USHORT RulesAmount,
     _In_ FG_RULE* Rules,
     _Inout_opt_ USHORT* AddedAmount
-);
+    );
 
 _Check_return_
 NTSTATUS
@@ -79,7 +79,7 @@ FgFindAndRemoveRule(
     _In_ USHORT RulesAmount,
     _In_ FG_RULE* Rules,
     _Inout_opt_ USHORT* RemovedAmount
-);
+    );
 
 _Check_return_
 ULONG
@@ -87,7 +87,7 @@ FgMatchRules(
     _In_ PLIST_ENTRY RuleList,
     _In_ PEX_PUSH_LOCK ListLock,
     _In_ PUNICODE_STRING FileDevicePathName
-);
+    );
 
 _Check_return_
 NTSTATUS
@@ -99,13 +99,14 @@ FgMatchRulesEx(
     _In_opt_ ULONG RulesBufferSize,
     _Inout_opt_ USHORT* RulesAmount,
     _Inout_ ULONG* RulesSize
-);
+    );
 
 FORCEINLINE
 VOID
 FgFreeRuleEntry(
     _In_ PFG_RULE_ENTRY RuleEntry
-) {
+    )
+{
     FLT_ASSERT(NULL != RuleEntry);
 
     if (NULL != RuleEntry->PathExpression) {
@@ -125,12 +126,12 @@ FgGetRules(
     _In_opt_ ULONG RulesBufferSize,
     _Inout_opt_ USHORT* RulesAmount,
     _Inout_ ULONG* RulesSize
-);
+    );
 
 ULONG
 FgCleanupRuleEntriesList(
     _In_ PEX_PUSH_LOCK Lock,
     _In_ PLIST_ENTRY RuleEntriesList
-);
+    );
 
 #endif

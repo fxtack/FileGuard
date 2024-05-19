@@ -78,7 +78,7 @@ Environment:
 NTSTATUS
 FgUnload(
     _In_ FLT_FILTER_UNLOAD_FLAGS Flags
-);
+    );
 
 NTSTATUS
 FgInstanceSetup(
@@ -86,34 +86,33 @@ FgInstanceSetup(
     _In_ FLT_INSTANCE_SETUP_FLAGS Flags,
     _In_ DEVICE_TYPE VolumeDeviceType,
     _In_ FLT_FILESYSTEM_TYPE VolumeFilesystemType
-);
+    );
 
 VOID
 FgInstanceTeardownStart(
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
     _In_ FLT_INSTANCE_TEARDOWN_FLAGS Flags
-);
+    );
 
 VOID
 FgInstanceTeardownComplete(
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
     _In_ FLT_INSTANCE_TEARDOWN_FLAGS Flags
-);
+    );
 
 NTSTATUS
 FgInstanceQueryTeardown(
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
     _In_ FLT_INSTANCE_QUERY_TEARDOWN_FLAGS Flags
-);
+    );
 
 _Check_return_
 NTSTATUS
 FgSetConfiguration(
     _In_ PUNICODE_STRING RegistryPath
-);
+    );
 
 EXTERN_C_END
-
 
 // Assign text sections for each routine.
 #ifdef ALLOC_PRAGMA

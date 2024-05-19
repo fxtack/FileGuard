@@ -52,12 +52,12 @@ FgCoreControlPortConnectCallback(
     _In_reads_bytes_(ContextBytes) PVOID ConnectionContext,
     _In_ ULONG ContextBytes,
     _Flt_ConnectionCookie_Outptr_ PVOID* ConnectionCookie
-);
+    );
 
 VOID
 FgCoreControlPortDisconnectCallback(
     _In_opt_ PVOID ConnectionCookie
-);
+    );
 
 NTSTATUS
 FgCoreControlMessageNotifyCallback(
@@ -67,12 +67,7 @@ FgCoreControlMessageNotifyCallback(
     _Out_writes_bytes_to_opt_(OutputBytes, *ReturnSize) PVOID Output,
     _In_ ULONG OutputBytes,
     _Out_ PULONG ReturnSize
-);
-
-NTSTATUS
-FgProcessingCleanupRulesMessage(
-    _Outptr_ ULONG *RulesRemoved
-);
+    );
 
 /*-------------------------------------------------------------
     Monitor communication declarations.
@@ -85,11 +80,11 @@ FgMonitorPortConnectCallback(
     _In_reads_bytes_(ContextBytes) PVOID ConnectionContext,
     _In_ ULONG ContextBytes,
     _Flt_ConnectionCookie_Outptr_ PVOID* ConnectionCookie
-);
+    );
 
 VOID
 FgMonitorPortDisconnectCallback(
     _In_opt_ PVOID ConnectionCookie
-);
+    );
 
 #endif

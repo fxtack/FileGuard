@@ -50,7 +50,7 @@ FgAllocateBufferEx(
     _In_ POOL_FLAGS Flags,
     _In_ SIZE_T Size,
     _In_ ULONG Tag
-)
+    )
 /*++
 
 Routine Description:
@@ -85,7 +85,6 @@ Return Value:
     if (NULL == buffer) status = STATUS_INSUFFICIENT_RESOURCES;
 
     *Buffer = buffer;
-
     return status;
 }
 
@@ -170,22 +169,15 @@ Return value:
 
     if (NULL == Lock) return STATUS_INVALID_PARAMETER_1;
 
-    //
-    // Allocate resource by non-paged memory.
-    //
     status = FgAllocateBufferEx(&lock,
                                 POOL_FLAG_NON_PAGED,
                                 sizeof(EX_PUSH_LOCK),
                                 FG_PUSHLOCK_NON_PAGED_TAG);
     if (!NT_SUCCESS(status)) return status;
 
-    //
-    // Initialize resource.
-    //
     FltInitializePushLock(lock);
 
     *Lock = lock;
-
     return status;
 }
 
