@@ -44,7 +44,7 @@ Environment:
 -------------------------------------------------------------*/
 
 VOID
-FgCleanupFileContext(
+FgcCleanupFileContext(
     _In_ PFLT_CONTEXT Context,
     _In_ FLT_CONTEXT_TYPE ContextType
     )
@@ -66,7 +66,7 @@ FgCleanupFileContext(
 
 _Check_return_
 NTSTATUS
-FgAllocateCompletionContext(
+FgcAllocateCompletionContext(
     _In_ UCHAR MajorFunction,
     _Inout_ PFG_COMPLETION_CONTEXT* CompletionContext
     )
@@ -74,7 +74,7 @@ FgAllocateCompletionContext(
     NTSTATUS status = STATUS_SUCCESS;
     PFG_COMPLETION_CONTEXT completionContext = NULL;
 
-    status = FgAllocateBufferEx(&completionContext, 
+    status = FgcAllocateBufferEx(&completionContext, 
                                 POOL_FLAG_PAGED, 
                                 sizeof(FG_COMPLETION_CONTEXT), 
                                 FG_COMPLETION_CONTEXT_PAGED_TAG);

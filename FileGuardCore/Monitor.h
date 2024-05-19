@@ -57,13 +57,13 @@ typedef struct _FG_MONITOR_RECORD_ENTRY {
 
 _Check_return_
 NTSTATUS
-FgAllocateMonitorRecordEntry(
+FgcAllocateMonitorRecordEntry(
     _In_ PFG_RULE Rule,
     _Outptr_ PFG_MONITOR_RECORD_ENTRY *MonitorRecordEntry
     );
 
 VOID
-FgFreeMonitorRecordEntry(
+FgcFreeMonitorRecordEntry(
     _Inout_ PFG_MONITOR_RECORD_ENTRY MonitorRecordEntry
     );
 
@@ -101,26 +101,26 @@ typedef struct _FG_MONITOR_CONTEXT {
 
 _Check_return_
 NTSTATUS
-FgCreateMonitorStartContext(
+FgcCreateMonitorStartContext(
     _In_ PFLT_FILTER Filter,
     _In_ PLIST_ENTRY RecordsQueue,
     _In_ PFG_MONITOR_CONTEXT* Context
     );
 
 VOID
-FgFreeMonitorStartContext(
+FgcFreeMonitorStartContext(
     _In_ PFG_MONITOR_CONTEXT Context
     );
 
 _IRQL_requires_max_(APC_LEVEL)
 VOID
-FgMonitorStartRoutine(
+FgcMonitorStartRoutine(
     _In_ PVOID MonitorContext
     );
 
 _Check_return_
 NTSTATUS
-FgGetRecords(
+FgcGetRecords(
     _In_ PLIST_ENTRY List,
     _In_ PKSPIN_LOCK ListMutex,
     _Out_writes_bytes_to_(OutputBufferSize, *ReturnOutputBufferSize) PUCHAR OutputBuffer,

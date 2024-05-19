@@ -42,7 +42,7 @@ Environment:
 #pragma warning(disable: 4057)
 
 FLT_PREOP_CALLBACK_STATUS
-FgPreCreateCallback(
+FgcPreCreateCallback(
     _Inout_ PFLT_CALLBACK_DATA Data,
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
     _Flt_CompletionContext_Outptr_ PVOID* CompletionContext
@@ -112,7 +112,7 @@ Return Value:
     }
     
     try {
-        ruleCode = FgMatchRules(&Globals.RulesList, Globals.RulesListLock, &nameInfo->Name);
+        ruleCode = FgcMatchRules(&Globals.RulesList, Globals.RulesListLock, &nameInfo->Name);
         if (RuleAccessDenined == ruleCode) {
             SET_CALLBACK_DATA_STATUS(Data, STATUS_ACCESS_DENIED);
             callbackStatus = FLT_PREOP_COMPLETE;
@@ -127,7 +127,7 @@ Return Value:
     //
     // Allocate and setup completion context.
     //
-    status = FgAllocateCompletionContext(Data->Iopb->MajorFunction, &completionContext);
+    status = FgcAllocateCompletionContext(Data->Iopb->MajorFunction, &completionContext);
     if (!NT_SUCCESS(status)) {
         DBG_ERROR("Error(0x%08x), allocate create callback context failed", status);
         goto Cleanup;
@@ -154,7 +154,7 @@ Cleanup:
 }
 
 FLT_POSTOP_CALLBACK_STATUS
-FgPostCreateCallback(
+FgcPostCreateCallback(
     _Inout_ PFLT_CALLBACK_DATA Data,
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
     _In_opt_ PVOID CompletionContext,
@@ -302,7 +302,7 @@ Cleanup:
 }
 
 FLT_PREOP_CALLBACK_STATUS
-FgPreWriteCallback(
+FgcPreWriteCallback(
     _Inout_ PFLT_CALLBACK_DATA Data,
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
     _Flt_CompletionContext_Outptr_ PVOID* CompletionContext
@@ -383,7 +383,7 @@ Cleanup:
 }
 
 FLT_PREOP_CALLBACK_STATUS
-FgPreSetInformationCallback(
+FgcPreSetInformationCallback(
     _Inout_ PFLT_CALLBACK_DATA Data,
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
     _Flt_CompletionContext_Outptr_ PVOID* CompletionContext
@@ -469,7 +469,7 @@ Return Value:
         }
 
         try {
-            ruleCode = FgMatchRules(&Globals.RulesList, Globals.RulesListLock, &renameNameInfo->Name);
+            ruleCode = FgcMatchRules(&Globals.RulesList, Globals.RulesListLock, &renameNameInfo->Name);
             switch (ruleCode) {
             case RuleAccessDenined:
                 SET_CALLBACK_DATA_STATUS(Data, STATUS_ACCESS_DENIED);
@@ -526,7 +526,7 @@ Cleanup:
 }
 
 FLT_PREOP_CALLBACK_STATUS
-FgPreFileSystemControlCallback(
+FgcPreFileSystemControlCallback(
     _Inout_ PFLT_CALLBACK_DATA Data,
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
     _Flt_CompletionContext_Outptr_ PVOID* CompletionContext

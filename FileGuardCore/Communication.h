@@ -46,7 +46,7 @@ Environment:
 -------------------------------------------------------------*/
 
 NTSTATUS
-FgCoreControlPortConnectCallback(
+FgcCoreControlPortConnectCallback(
     _In_ PFLT_PORT AdminPort,
     _In_ PVOID CorePortCookie,
     _In_reads_bytes_(ContextBytes) PVOID ConnectionContext,
@@ -55,12 +55,12 @@ FgCoreControlPortConnectCallback(
     );
 
 VOID
-FgCoreControlPortDisconnectCallback(
+FgcCoreControlPortDisconnectCallback(
     _In_opt_ PVOID ConnectionCookie
     );
 
 NTSTATUS
-FgCoreControlMessageNotifyCallback(
+FgcCoreControlMessageNotifyCallback(
     _In_opt_ PVOID ConnectionCookie,
     _In_reads_bytes_opt_(InputBytes) PVOID Input,
     _In_ ULONG InputBytes,
@@ -74,7 +74,7 @@ FgCoreControlMessageNotifyCallback(
 -------------------------------------------------------------*/
 
 NTSTATUS
-FgMonitorPortConnectCallback(
+FgcMonitorPortConnectCallback(
     _In_ PFLT_PORT AdminPort,
     _In_ PVOID CorePortCookie,
     _In_reads_bytes_(ContextBytes) PVOID ConnectionContext,
@@ -83,7 +83,7 @@ FgMonitorPortConnectCallback(
     );
 
 VOID
-FgMonitorPortDisconnectCallback(
+FgcMonitorPortDisconnectCallback(
     _In_opt_ PVOID ConnectionCookie
     );
 

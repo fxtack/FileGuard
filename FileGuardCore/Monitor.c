@@ -44,7 +44,7 @@ Environment:
 
 _Check_return_
 NTSTATUS
-FgAllocateMonitorRecordEntry(
+FgcAllocateMonitorRecordEntry(
     _In_ PFG_RULE Rule,
     _Outptr_ PFG_MONITOR_RECORD_ENTRY* MonitorRecordEntry
     )
@@ -72,13 +72,13 @@ Return Value:
     if (NULL == Rule) return STATUS_INVALID_PARAMETER_1;
     if (NULL == MonitorRecordEntry) return STATUS_INVALID_PARAMETER_2;
 
-    return FgAllocateBuffer(MonitorRecordEntry, sizeof(PFG_MONITOR_RECORD_ENTRY) + Rule->PathExpressionSize);
+    return FgcAllocateBuffer(MonitorRecordEntry, sizeof(PFG_MONITOR_RECORD_ENTRY) + Rule->PathExpressionSize);
 }
 
 #pragma warning(pop)
 
 VOID
-FgFreeMonitorRecordEntry(
+FgcFreeMonitorRecordEntry(
     _Inout_ PFG_MONITOR_RECORD_ENTRY MonitorRecordEntry
     )
 /*++
@@ -99,12 +99,12 @@ Return Value:
 {
     FLT_ASSERT(NULL != MonitorRecordEntry);
 
-    FgFreeBuffer(MonitorRecordEntry);
+    FgcFreeBuffer(MonitorRecordEntry);
 }
 
 _Check_return_
 NTSTATUS
-FgCreateMonitorStartContext(
+FgcCreateMonitorStartContext(
     _In_ PFLT_FILTER Filter,
     _In_ PLIST_ENTRY RecordsQueue,
     _In_ PFG_MONITOR_CONTEXT* Context
@@ -157,7 +157,7 @@ Return Value:
     //
     // Allocate monitor records buffer as message body.
     //
-    status = FgAllocateBuffer(&context->MessageBody, sizeof(FG_RECORDS_MESSAGE_BODY));
+    status = FgcAllocateBuffer(&context->MessageBody, sizeof(FG_RECORDS_MESSAGE_BODY));
     if (!NT_SUCCESS(status)) {
         goto Cleanup;
     }
@@ -185,11 +185,11 @@ Cleanup:
     if (!NT_SUCCESS(status)) {
 
         if (NULL != context) {
-            FgFreeMonitorStartContext(context);
+            FgcFreeMonitorStartContext(context);
         }
 
         if (NULL != context->MessageBody) {
-            FgFreeBuffer(context->MessageBody);
+            FgcFreeBuffer(context->MessageBody);
         }
     }
 
@@ -197,7 +197,7 @@ Cleanup:
 }
 
 VOID
-FgFreeMonitorStartContext(
+FgcFreeMonitorStartContext(
     _In_ PFG_MONITOR_CONTEXT Context
 )
 /*++
@@ -225,7 +225,7 @@ Return Value:
 
 _IRQL_requires_max_(APC_LEVEL)
 VOID
-FgMonitorStartRoutine(
+FgcMonitorStartRoutine(
     _In_ PVOID MonitorContext
 )
 /*++
@@ -273,7 +273,7 @@ Return Value:
         //
         // Get monitor record from record queue.
         //
-        status = FgGetRecords(context->RecordsQueue, 
+        status = FgcGetRecords(context->RecordsQueue, 
                               &context->RecordsQueueLock, 
                               messageBody->DataBuffer, 
                               FG_MONITOR_SEND_RECORD_BUFFER_SIZE, 
@@ -313,7 +313,7 @@ Return Value:
 
 _Check_return_
 NTSTATUS
-FgGetRecords(
+FgcGetRecords(
     _In_ PLIST_ENTRY List,
     _In_ PKSPIN_LOCK Lock,
     _Out_writes_bytes_to_(OutputBufferSize, *ReturnOutputBufferSize) PUCHAR OutputBuffer,
@@ -365,7 +365,7 @@ FgGetRecords(
 
         OutputBuffer += writeSize;
 
-        FgFreeMonitorRecordEntry(recordEntry);
+        FgcFreeMonitorRecordEntry(recordEntry);
         
         KeAcquireSpinLock(Lock, &oldIrql);
     }

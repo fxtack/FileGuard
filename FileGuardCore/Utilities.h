@@ -93,18 +93,18 @@ Environment:
 
 _Check_return_
 NTSTATUS
-FgAllocateBufferEx(
+FgcAllocateBufferEx(
     _Inout_ PVOID *Buffer,
     _In_ POOL_FLAGS Flags,
     _In_ SIZE_T Size,
     _In_ ULONG Tag
     );
 
-#define FgAllocateBuffer(_buffer_ptr_, _size_) FgAllocateBufferEx((_buffer_ptr_), \
-                                                                  POOL_FLAG_NON_PAGED, \
-                                                                  (_size_), \
-                                                                  FG_BUFFER_NON_PAGED_TAG)
-#define FgFreeBuffer(_buffer_) ExFreePool((_buffer_))
+#define FgcAllocateBuffer(_buffer_ptr_, _size_) FgcAllocateBufferEx((_buffer_ptr_), \
+                                                                    POOL_FLAG_NON_PAGED, \
+                                                                    (_size_), \
+                                                                    FG_BUFFER_NON_PAGED_TAG)
+#define FgcFreeBuffer(_buffer_) ExFreePool((_buffer_))
 
 /*-------------------------------------------------------------
     Unicode string allocation/freeing routines.
@@ -112,12 +112,12 @@ FgAllocateBufferEx(
 
 _Check_return_
 NTSTATUS
-FgAllocateUnicodeString(
+FgcAllocateUnicodeString(
     _In_ USHORT Size,
     _Out_ PUNICODE_STRING* String
     );
 
-#define FgFreeUnicodeString(_string_) FgFreeBuffer((_string_));
+#define FgcFreeUnicodeString(_string_) FgcFreeBuffer((_string_));
 
 /*-------------------------------------------------------------
     Push lock routines.
@@ -125,19 +125,19 @@ FgAllocateUnicodeString(
 
 _Check_return_
 NTSTATUS
-FgCreatePushLock(
+FgcCreatePushLock(
     _Inout_ PEX_PUSH_LOCK *Lock
     );
 
 FORCEINLINE
 VOID
-FgFreePushLock(
+FgcFreePushLock(
     _Inout_ PEX_PUSH_LOCK Lock
     )
 {
     if (NULL != Lock) {
         FltDeletePushLock(Lock);
-        FgFreeBuffer(Lock);
+        FgcFreeBuffer(Lock);
     }
 }
 

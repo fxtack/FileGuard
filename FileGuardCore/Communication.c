@@ -43,7 +43,7 @@ Environment:
     Core control communication routines.
 -------------------------------------------------------------*/
 
-NTSTATUS FgCoreControlPortConnectCallback(
+NTSTATUS FgcCoreControlPortConnectCallback(
     _In_ PFLT_PORT AdminPort,
     _In_ PVOID CorePortCookie,
     _In_reads_bytes_(ContextBytes) PVOID ConnectionContext,
@@ -95,7 +95,7 @@ Return Value
     return STATUS_SUCCESS;
 }
 
-VOID FgCoreControlPortDisconnectCallback(
+VOID FgcCoreControlPortDisconnectCallback(
     _In_opt_ PVOID ConnectionCookie
     )
 /*++
@@ -127,7 +127,7 @@ Return Value
 }
 
 NTSTATUS
-FgCoreControlMessageNotifyCallback(
+FgcCoreControlMessageNotifyCallback(
     _In_opt_ PVOID ConnectionCookie,
     _In_reads_bytes_opt_(InputSize) PVOID Input,
     _In_ ULONG InputSize,
@@ -188,7 +188,7 @@ FgCoreControlMessageNotifyCallback(
 
         try {
             if (AddRules == commandType) {
-                resultStatus = FgAddRules(&Globals.RulesList,
+                resultStatus = FgcAddRules(&Globals.RulesList,
                                           Globals.RulesListLock,
                                           message->RulesAmount,
                                           (FG_RULE*)message->Rules,
@@ -201,7 +201,7 @@ FgCoreControlMessageNotifyCallback(
 
             } else {
 
-                resultStatus = FgFindAndRemoveRule(&Globals.RulesList,
+                resultStatus = FgcFindAndRemoveRule(&Globals.RulesList,
                                                    Globals.RulesListLock,
                                                    message->RulesAmount,
                                                    (FG_RULE*)message->Rules,
@@ -232,7 +232,7 @@ FgCoreControlMessageNotifyCallback(
             break;
         }
 
-        resultStatus = FgGetRules(&Globals.RulesList, 
+        resultStatus = FgcGetRules(&Globals.RulesList, 
                                   Globals.RulesListLock,
                                   (FG_RULE*)result->Rules.RulesBuffer, 
                                   OutputSize - sizeof(FG_MESSAGE_RESULT),
@@ -261,7 +261,7 @@ FgCoreControlMessageNotifyCallback(
         pathName.Length = message->PathNameSize;
         pathName.MaximumLength = message->PathNameSize;
         pathName.Buffer = message->PathName;
-        resultStatus = FgMatchRulesEx(&Globals.RulesList,
+        resultStatus = FgcMatchRulesEx(&Globals.RulesList,
                                       Globals.RulesListLock,
                                       &pathName,
                                       (FG_RULE*)result->Rules.RulesBuffer,
@@ -292,7 +292,7 @@ FgCoreControlMessageNotifyCallback(
             break;
         }
         
-        result->AffectedRulesAmount = FgCleanupRuleEntriesList(Globals.RulesListLock, &Globals.RulesList);
+        result->AffectedRulesAmount = FgcCleanupRuleEntriesList(Globals.RulesListLock, &Globals.RulesList);
         break;
         
     default:
@@ -317,7 +317,7 @@ FgCoreControlMessageNotifyCallback(
 -------------------------------------------------------------*/
 
 NTSTATUS
-FgMonitorPortConnectCallback(
+FgcMonitorPortConnectCallback(
     _In_ PFLT_PORT ClientPort,
     _In_ PVOID CorePortCookie,
     _In_reads_bytes_(ContextBytes) PVOID ConnectionContext,
@@ -335,7 +335,7 @@ FgMonitorPortConnectCallback(
 }
 
 VOID
-FgMonitorPortDisconnectCallback(
+FgcMonitorPortDisconnectCallback(
     _In_opt_ PVOID ConnectionCookie
     ) 
 {

@@ -45,7 +45,7 @@ Environment:
 
 _Check_return_
 NTSTATUS
-FgAllocateBufferEx(
+FgcAllocateBufferEx(
     _Inout_ PVOID* Buffer,
     _In_ POOL_FLAGS Flags,
     _In_ SIZE_T Size,
@@ -94,7 +94,7 @@ Return Value:
 
 _Check_return_
 NTSTATUS
-FgAllocateUnicodeString(
+FgcAllocateUnicodeString(
     _In_ USHORT Size,
     _Out_ PUNICODE_STRING* String
     )
@@ -124,7 +124,7 @@ Return Value:
     if (Size <= 0) return STATUS_INVALID_PARAMETER_1;
     if (NULL == String) return STATUS_INVALID_PARAMETER_2;
 
-    status = FgAllocateBufferEx(&stringBuffer,
+    status = FgcAllocateBufferEx(&stringBuffer,
                                 POOL_FLAG_NON_PAGED, 
                                 sizeof(UNICODE_STRING) + Size,
                                 FG_UNICODE_STRING_NON_PAGED_TAG);
@@ -145,7 +145,7 @@ Return Value:
 
 _Check_return_
 NTSTATUS
-FgCreatePushLock(
+FgcCreatePushLock(
     _Inout_ PEX_PUSH_LOCK* Lock
     )
 /*++
@@ -169,7 +169,7 @@ Return value:
 
     if (NULL == Lock) return STATUS_INVALID_PARAMETER_1;
 
-    status = FgAllocateBufferEx(&lock,
+    status = FgcAllocateBufferEx(&lock,
                                 POOL_FLAG_NON_PAGED,
                                 sizeof(EX_PUSH_LOCK),
                                 FG_PUSHLOCK_NON_PAGED_TAG);

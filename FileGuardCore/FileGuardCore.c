@@ -43,26 +43,26 @@ Environment:
 FG_CORE_GLOBALS Globals;
 
 //  operation registration
-CONST FLT_OPERATION_REGISTRATION FgOperationCallbacks[] = {
+CONST FLT_OPERATION_REGISTRATION FgcOperationCallbacks[] = {
 
     { IRP_MJ_CREATE,
       0,
-      FgPreCreateCallback,
-      FgPostCreateCallback },
+      FgcPreCreateCallback,
+      FgcPostCreateCallback },
 
     { IRP_MJ_WRITE,
       0,
-      FgPreWriteCallback,
+      FgcPreWriteCallback,
       NULL },
 
     { IRP_MJ_SET_INFORMATION,
       0,
-      FgPreSetInformationCallback,
+      FgcPreSetInformationCallback,
       NULL },
 
     { IRP_MJ_FILE_SYSTEM_CONTROL,
       0,
-      FgPreFileSystemControlCallback,
+      FgcPreFileSystemControlCallback,
       NULL },
 
     { IRP_MJ_OPERATION_END }
@@ -72,7 +72,7 @@ const FLT_CONTEXT_REGISTRATION FgContextRegistration[] = {
 
     { FLT_FILE_CONTEXT,
       0,
-      FgCleanupFileContext,
+      FgcCleanupFileContext,
       sizeof(FG_FILE_CONTEXT),
       FG_FILE_CONTEXT_PAGED_TAG },
 
@@ -90,13 +90,13 @@ CONST FLT_REGISTRATION FilterRegistration = {
     0,                              // Flags
 
     FgContextRegistration,      // Context
-    FgOperationCallbacks,       // Operation callbacks
+    FgcOperationCallbacks,       // Operation callbacks
 
-    FgUnload,                   // MiniFilterUnload
-    FgInstanceSetup,            // InstanceSetup
-    FgInstanceQueryTeardown,    // InstanceQueryTeardown
-    FgInstanceTeardownStart,    // InstanceTeardownStart
-    FgInstanceTeardownComplete, // InstanceTeardownComplete
+    FgcUnload,                   // MiniFilterUnload
+    FgcInstanceSetup,            // InstanceSetup
+    FgcInstanceQueryTeardown,    // InstanceQueryTeardown
+    FgcInstanceTeardownStart,    // InstanceTeardownStart
+    FgcInstanceTeardownComplete, // InstanceTeardownComplete
 
     NULL,                           // GenerateFileName
     NULL,                           // GenerateDestinationFileName
@@ -138,7 +138,7 @@ DriverEntry(
         //
         // Setup driver configuration from registry.
         //
-        status = FgSetConfiguration(RegistryPath);
+        status = FgcSetConfiguration(RegistryPath);
         if (!NT_SUCCESS(status)) {
             DBG_ERROR("NTSTATUS: '0x%08x', set configuration failed", status);
             leave;
@@ -149,7 +149,7 @@ DriverEntry(
         //
 
         InitializeListHead(&Globals.RulesList);
-        FgCreatePushLock(&Globals.RulesListLock);
+        FgcCreatePushLock(&Globals.RulesListLock);
 
         InitializeListHead(&Globals.MonitorRecordsQueue);
         KeInitializeSpinLock(&Globals.MonitorRecordsQueueLock);
@@ -183,9 +183,9 @@ DriverEntry(
                                             &Globals.ControlCorePort,
                                             &attributes,
                                             NULL,
-                                            FgCoreControlPortConnectCallback,
-                                            FgCoreControlPortDisconnectCallback,
-                                            FgCoreControlMessageNotifyCallback,
+                                            FgcCoreControlPortConnectCallback,
+                                            FgcCoreControlPortDisconnectCallback,
+                                            FgcCoreControlMessageNotifyCallback,
                                             1);
         if (!NT_SUCCESS(status)) {
             DBG_ERROR("NTSTATUS: '0x%08x', create core control communication port failed", status);
@@ -206,8 +206,8 @@ DriverEntry(
                                             &Globals.MonitorCorePort,
                                             &attributes,
                                             NULL,
-                                            FgMonitorPortConnectCallback,
-                                            FgMonitorPortDisconnectCallback,
+                                            FgcMonitorPortConnectCallback,
+                                            FgcMonitorPortDisconnectCallback,
                                             NULL,
                                             1);
         if (!NT_SUCCESS(status)) {
@@ -219,7 +219,7 @@ DriverEntry(
         // Create a kernel thread as monitor.
         //
 
-        status = FgCreateMonitorStartContext(Globals.Filter,
+        status = FgcCreateMonitorStartContext(Globals.Filter,
                                              &Globals.MonitorRecordsQueue,
                                              &monitorContext);
         if (!NT_SUCCESS(status) || NULL == monitorContext) {
@@ -235,7 +235,7 @@ DriverEntry(
                                       NULL,
                                       NULL,
                                       NULL,
-                                      FgMonitorStartRoutine,
+                                      FgcMonitorStartRoutine,
                                       monitorContext);
         if (!NT_SUCCESS(status)) {
             DBG_ERROR("NTSTATUS: '0x%08x', create monitor thread failed", status);
@@ -273,7 +273,7 @@ DriverEntry(
                 InterlockedExchangeBoolean(&Globals.MonitorContext->EndDaemonFlag, FALSE);
                 KeSetEvent(&Globals.MonitorContext->EventPortConnected, 0, FALSE);
                 KeSetEvent(&Globals.MonitorContext->EventWakeMonitor, 0, FALSE);
-                FgFreeMonitorStartContext(Globals.MonitorContext);
+                FgcFreeMonitorStartContext(Globals.MonitorContext);
             }
 
             if (NULL != Globals.MonitorThreadObject)
@@ -290,7 +290,7 @@ DriverEntry(
 }
 
 NTSTATUS
-FgUnload(
+FgcUnload(
     _In_ FLT_FILTER_UNLOAD_FLAGS Flags
     )
 {
@@ -348,11 +348,11 @@ FgUnload(
         ObDereferenceObject(Globals.MonitorThreadObject);
     }
 
-    FgFreeMonitorStartContext(Globals.MonitorContext);
+    FgcFreeMonitorStartContext(Globals.MonitorContext);
 
-    FgCleanupRuleEntriesList(Globals.RulesListLock, &Globals.RulesList);
+    FgcCleanupRuleEntriesList(Globals.RulesListLock, &Globals.RulesList);
     if (NULL != Globals.RulesListLock) {
-        FgFreePushLock(Globals.RulesListLock);
+        FgcFreePushLock(Globals.RulesListLock);
     }
 
     LOG_INFO("Unload driver successfully");
@@ -361,7 +361,7 @@ FgUnload(
 }
 
 NTSTATUS
-FgInstanceSetup(
+FgcInstanceSetup(
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
     _In_ FLT_INSTANCE_SETUP_FLAGS Flags,
     _In_ DEVICE_TYPE VolumeDeviceType,
@@ -414,7 +414,7 @@ Return Value:
         goto Cleanup;
     }
     
-    status = FgAllocateUnicodeString((USHORT)volumeNameSize, &volumeName);
+    status = FgcAllocateUnicodeString((USHORT)volumeNameSize, &volumeName);
     if (!NT_SUCCESS(status)) {
         LOG_ERROR("NTSTATUS: 0x%08x, allocate volume name string failed", status);
         goto Cleanup;
@@ -431,14 +431,14 @@ Return Value:
 Cleanup:
 
     if (NULL != volumeName) {
-        FgFreeUnicodeString(volumeName);
+        FgcFreeUnicodeString(volumeName);
     }
 
     return status;
 }
 
 NTSTATUS
-FgInstanceQueryTeardown(
+FgcInstanceQueryTeardown(
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
     _In_ FLT_INSTANCE_QUERY_TEARDOWN_FLAGS Flags
     )
@@ -454,7 +454,7 @@ FgInstanceQueryTeardown(
 }
 
 VOID
-FgInstanceTeardownStart(
+FgcInstanceTeardownStart(
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
     _In_ FLT_INSTANCE_TEARDOWN_FLAGS Flags
     )
@@ -468,7 +468,7 @@ FgInstanceTeardownStart(
 }
 
 VOID
-FgInstanceTeardownComplete(
+FgcInstanceTeardownComplete(
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
     _In_ FLT_INSTANCE_TEARDOWN_FLAGS Flags
     )
@@ -483,7 +483,7 @@ FgInstanceTeardownComplete(
 
 _Check_return_
 NTSTATUS
-FgSetConfiguration(
+FgcSetConfiguration(
     _In_ PUNICODE_STRING RegistryPath
     )
 /*++

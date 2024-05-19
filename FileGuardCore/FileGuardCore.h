@@ -71,12 +71,12 @@ Environment:
 #define FG_MONITOR_CONTEXT_PAGED_MEM_TAG 'FGmc'
 
 NTSTATUS
-FgUnload(
+FgcUnload(
     _In_ FLT_FILTER_UNLOAD_FLAGS Flags
     );
 
 NTSTATUS
-FgInstanceSetup(
+FgcInstanceSetup(
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
     _In_ FLT_INSTANCE_SETUP_FLAGS Flags,
     _In_ DEVICE_TYPE VolumeDeviceType,
@@ -84,26 +84,26 @@ FgInstanceSetup(
     );
 
 VOID
-FgInstanceTeardownStart(
+FgcInstanceTeardownStart(
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
     _In_ FLT_INSTANCE_TEARDOWN_FLAGS Flags
     );
 
 VOID
-FgInstanceTeardownComplete(
+FgcInstanceTeardownComplete(
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
     _In_ FLT_INSTANCE_TEARDOWN_FLAGS Flags
     );
 
 NTSTATUS
-FgInstanceQueryTeardown(
+FgcInstanceQueryTeardown(
     _In_ PCFLT_RELATED_OBJECTS FltObjects,
     _In_ FLT_INSTANCE_QUERY_TEARDOWN_FLAGS Flags
     );
 
 _Check_return_
 NTSTATUS
-FgSetConfiguration(
+FgcSetConfiguration(
     _In_ PUNICODE_STRING RegistryPath
     );
 
@@ -111,12 +111,12 @@ EXTERN_C_END
 
 // Assign text sections for each routine.
 #ifdef ALLOC_PRAGMA
-#pragma alloc_text(PAGE, FgUnload)
-#pragma alloc_text(PAGE, FgInstanceQueryTeardown)
-#pragma alloc_text(PAGE, FgInstanceSetup)
-#pragma alloc_text(PAGE, FgInstanceTeardownStart)
-#pragma alloc_text(PAGE, FgInstanceTeardownComplete)
-#pragma alloc_text(PAGE, FgSetConfiguration)
+#pragma alloc_text(PAGE, FgcUnload)
+#pragma alloc_text(PAGE, FgcInstanceQueryTeardown)
+#pragma alloc_text(PAGE, FgcInstanceSetup)
+#pragma alloc_text(PAGE, FgcInstanceTeardownStart)
+#pragma alloc_text(PAGE, FgcInstanceTeardownComplete)
+#pragma alloc_text(PAGE, FgcSetConfiguration)
 #endif
 
 //

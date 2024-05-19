@@ -60,7 +60,7 @@ typedef struct _FG_FILE_CONTEXT {
 } FG_FILE_CONTEXT, *PFG_FILE_CONTEXT;
 
 VOID
-FgCleanupFileContext(
+FgcCleanupFileContext(
     _In_ PFLT_CONTEXT Context,
     _In_ FLT_CONTEXT_TYPE ContextType
     );
@@ -93,12 +93,12 @@ typedef struct _FG_COMPLETION_CONTEXT {
 
 _Check_return_
 NTSTATUS
-FgAllocateCompletionContext(
+FgcAllocateCompletionContext(
     _In_ UCHAR MajorFunction,
     _Inout_ PFG_COMPLETION_CONTEXT* CompletionContext
     );
 
-#define FgFreeCompletionContext(_context_) FgFreeBuffer((_context_));
+#define FgFreeCompletionContext(_context_) FgcFreeBuffer((_context_));
 
 #pragma warning(pop)
 

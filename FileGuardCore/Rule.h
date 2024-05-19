@@ -63,7 +63,7 @@ typedef struct _FG_RULE_ENTRY {
 
 _Check_return_
 NTSTATUS
-FgAddRules(
+FgcAddRules(
     _In_ PLIST_ENTRY RuleList,
     _In_ PEX_PUSH_LOCK ListLock,
     _In_ USHORT RulesAmount,
@@ -73,7 +73,7 @@ FgAddRules(
 
 _Check_return_
 NTSTATUS
-FgFindAndRemoveRule(
+FgcFindAndRemoveRule(
     _In_ PLIST_ENTRY RuleList,
     _In_ PEX_PUSH_LOCK ListLock,
     _In_ USHORT RulesAmount,
@@ -83,7 +83,7 @@ FgFindAndRemoveRule(
 
 _Check_return_
 ULONG
-FgMatchRules(
+FgcMatchRules(
     _In_ PLIST_ENTRY RuleList,
     _In_ PEX_PUSH_LOCK ListLock,
     _In_ PUNICODE_STRING FileDevicePathName
@@ -91,7 +91,7 @@ FgMatchRules(
 
 _Check_return_
 NTSTATUS
-FgMatchRulesEx(
+FgcMatchRulesEx(
     _In_ PLIST_ENTRY RuleEntriesList,
     _In_ PEX_PUSH_LOCK Lock,
     _In_ PUNICODE_STRING FileDevicePathName,
@@ -103,23 +103,23 @@ FgMatchRulesEx(
 
 FORCEINLINE
 VOID
-FgFreeRuleEntry(
+FgcFreeRuleEntry(
     _In_ PFG_RULE_ENTRY RuleEntry
     )
 {
     FLT_ASSERT(NULL != RuleEntry);
 
     if (NULL != RuleEntry->PathExpression) {
-        FgFreeUnicodeString(InterlockedExchangePointer(&RuleEntry->PathExpression, NULL));
+        FgcFreeUnicodeString(InterlockedExchangePointer(&RuleEntry->PathExpression, NULL));
     }
 
     if (NULL != RuleEntry) {
-        FgFreeBuffer(RuleEntry);
+        FgcFreeBuffer(RuleEntry);
     }
 }
 
 NTSTATUS
-FgGetRules(
+FgcGetRules(
     _In_ PLIST_ENTRY RuleEntriesList,
     _In_ PEX_PUSH_LOCK Lock,
     _In_opt_  FG_RULE* RulesBuffer,
@@ -129,7 +129,7 @@ FgGetRules(
     );
 
 ULONG
-FgCleanupRuleEntriesList(
+FgcCleanupRuleEntriesList(
     _In_ PEX_PUSH_LOCK Lock,
     _In_ PLIST_ENTRY RuleEntriesList
     );

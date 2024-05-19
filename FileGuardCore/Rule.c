@@ -46,7 +46,7 @@ Environment:
 
 _Check_return_
 NTSTATUS
-FgCreateRuleEntry(
+FgcCreateRuleEntry(
     _In_ PFG_RULE Rule,
     _Inout_ PFG_RULE_ENTRY* RuleEntry
     ) 
@@ -79,7 +79,7 @@ Return Value:
     if (NULL == Rule) return STATUS_INVALID_PARAMETER_1;
     if (NULL == RuleEntry) return STATUS_INVALID_PARAMETER_2;
     
-    status = FgAllocateUnicodeString(Rule->PathExpressionSize, &pathExpression);
+    status = FgcAllocateUnicodeString(Rule->PathExpressionSize, &pathExpression);
     if (!NT_SUCCESS(status)) {
         LOG_ERROR("NTSTATUS: 0x%08x, allocate path expression string failed", status);
         goto Cleanup;
@@ -95,7 +95,7 @@ Return Value:
         goto Cleanup;
     }
 
-    status = FgAllocateBufferEx(&newRuleEntry, POOL_FLAG_PAGED, sizeof(FG_RULE_ENTRY), FG_RULE_ENTRY_PAGED_TAG);
+    status = FgcAllocateBufferEx(&newRuleEntry, POOL_FLAG_PAGED, sizeof(FG_RULE_ENTRY), FG_RULE_ENTRY_PAGED_TAG);
     if (!NT_SUCCESS(status)) {
         LOG_ERROR("NTSTATUS: 0x%08x, allocate new rule entry failed", status);
         goto Cleanup;
@@ -113,11 +113,11 @@ Cleanup:
     if (!NT_SUCCESS(status)) {
 
         if (NULL != newRuleEntry) {
-            FgFreeBuffer(newRuleEntry);
+            FgcFreeBuffer(newRuleEntry);
         }
 
         if (NULL != pathExpression) {
-            FgFreeUnicodeString(pathExpression);
+            FgcFreeUnicodeString(pathExpression);
         }
 
         *RuleEntry = NULL;
@@ -132,7 +132,7 @@ Cleanup:
 
 _Check_return_
 NTSTATUS
-FgAddRules(
+FgcAddRules(
     _In_ PLIST_ENTRY RuleList,
     _In_ PEX_PUSH_LOCK ListLock,
     _In_ USHORT RulesAmount,
@@ -185,7 +185,7 @@ FgAddRules(
             }
         }
 
-        status = FgCreateRuleEntry(rulePtr, &ruleEntry);
+        status = FgcCreateRuleEntry(rulePtr, &ruleEntry);
         if (!NT_SUCCESS(status)) {
             LOG_ERROR("NTSTATUS: 0x%08x, create rule entry failed", status);
             break;
@@ -210,7 +210,7 @@ FgAddRules(
 
 _Check_return_
 NTSTATUS
-FgFindAndRemoveRule(
+FgcFindAndRemoveRule(
     _In_ PLIST_ENTRY RuleList,
     _In_ PEX_PUSH_LOCK ListLock,
     _In_ USHORT RulesAmount,
@@ -253,7 +253,7 @@ FgFindAndRemoveRule(
                              ruleEntry->PathExpression);
 
                     RemoveEntryList(entry);
-                    FgFreeRuleEntry(ruleEntry);
+                    FgcFreeRuleEntry(ruleEntry);
                     if (NULL != RemovedAmount) (*RemovedAmount)++;
                 }
             }
@@ -268,7 +268,7 @@ FgFindAndRemoveRule(
 
 _Check_return_
 FG_RUEL_CODE
-FgMatchRules(
+FgcMatchRules(
     _In_ PLIST_ENTRY RuleList,
     _In_ PEX_PUSH_LOCK ListLock,
     _In_ PUNICODE_STRING FileDevicePathName
@@ -312,7 +312,7 @@ FgMatchRules(
 
 _Check_return_
 NTSTATUS
-FgMatchRulesEx(
+FgcMatchRulesEx(
     _In_ PLIST_ENTRY RuleEntriesList,
     _In_ PEX_PUSH_LOCK Lock,
     _In_ PUNICODE_STRING FileDevicePathName,
@@ -391,7 +391,7 @@ FgMatchRulesEx(
 }
 
 NTSTATUS
-FgGetRules(
+FgcGetRules(
     _In_ PLIST_ENTRY RuleEntriesList,
     _In_ PEX_PUSH_LOCK Lock,
     _In_opt_  FG_RULE *RulesBuffer,
@@ -469,7 +469,7 @@ Cleanup:
 }
 
 ULONG
-FgCleanupRuleEntriesList(
+FgcCleanupRuleEntriesList(
     _In_ PEX_PUSH_LOCK Lock,
     _In_ PLIST_ENTRY RuleEntriesList
     )
@@ -489,7 +489,7 @@ FgCleanupRuleEntriesList(
                   ruleEntry->RuleCode,
                   ruleEntry->PathExpression);
 
-        FgFreeRuleEntry(ruleEntry);
+        FgcFreeRuleEntry(ruleEntry);
         clean++;
     }
 
