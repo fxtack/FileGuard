@@ -183,9 +183,9 @@ DriverEntry(
                                             &Globals.ControlCorePort,
                                             &attributes,
                                             NULL,
-                                            FgcCoreControlPortConnectCallback,
-                                            FgcCoreControlPortDisconnectCallback,
-                                            FgcCoreControlMessageNotifyCallback,
+                                            FgcControlPortConnectCallback,
+                                            FgcControlPortDisconnectCallback,
+                                            FgcControlMessageNotifyCallback,
                                             1);
         if (!NT_SUCCESS(status)) {
             DBG_ERROR("NTSTATUS: '0x%08x', create core control communication port failed", status);

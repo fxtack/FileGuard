@@ -46,7 +46,7 @@ Environment:
 -------------------------------------------------------------*/
 
 NTSTATUS
-FgcCoreControlPortConnectCallback(
+FgcControlPortConnectCallback(
     _In_ PFLT_PORT AdminPort,
     _In_ PVOID CorePortCookie,
     _In_reads_bytes_(ContextBytes) PVOID ConnectionContext,
@@ -55,12 +55,12 @@ FgcCoreControlPortConnectCallback(
     );
 
 VOID
-FgcCoreControlPortDisconnectCallback(
+FgcControlPortDisconnectCallback(
     _In_opt_ PVOID ConnectionCookie
     );
 
 NTSTATUS
-FgcCoreControlMessageNotifyCallback(
+FgcControlMessageNotifyCallback(
     _In_opt_ PVOID ConnectionCookie,
     _In_reads_bytes_opt_(InputBytes) PVOID Input,
     _In_ ULONG InputBytes,

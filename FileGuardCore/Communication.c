@@ -43,9 +43,10 @@ Environment:
     Core control communication routines.
 -------------------------------------------------------------*/
 
-NTSTATUS FgcCoreControlPortConnectCallback(
-    _In_ PFLT_PORT AdminPort,
-    _In_ PVOID CorePortCookie,
+NTSTATUS
+FgcControlPortConnectCallback(
+    _In_ PFLT_PORT ClientPort,
+    _In_ PVOID ServerPortCookie,
     _In_reads_bytes_(ContextBytes) PVOID ConnectionContext,
     _In_ ULONG ContextBytes,
     _Flt_ConnectionCookie_Outptr_ PVOID* ConnectionCookie
@@ -80,22 +81,23 @@ Return Value
 {
     PAGED_CODE();
 
-    UNREFERENCED_PARAMETER(AdminPort);
-    UNREFERENCED_PARAMETER(CorePortCookie);
+    UNREFERENCED_PARAMETER(ClientPort);
+    UNREFERENCED_PARAMETER(ServerPortCookie);
     UNREFERENCED_PARAMETER(ConnectionContext);
     UNREFERENCED_PARAMETER(ContextBytes);
     UNREFERENCED_PARAMETER(ConnectionCookie);
 
     FLT_ASSERT(Globals.ControlClientPort == NULL);
 
-    Globals.ControlClientPort = AdminPort;
+    Globals.ControlClientPort = ClientPort;
 
-    DbgPrint("CannotCore!%s: Communicate port connected.\n", __FUNCTION__);
+    LOG_INFO("Control port connected");
 
     return STATUS_SUCCESS;
 }
 
-VOID FgcCoreControlPortDisconnectCallback(
+VOID
+FgcControlPortDisconnectCallback(
     _In_opt_ PVOID ConnectionCookie
     )
 /*++
@@ -115,19 +117,19 @@ Return Value
 
 --*/
 {
-    PAGED_CODE();
-
     UNREFERENCED_PARAMETER(ConnectionCookie);
+
+    PAGED_CODE();
 
     FLT_ASSERT(Globals.ControlClientPort != NULL);
 
     FltCloseClientPort(Globals.Filter, &Globals.ControlClientPort);
 
-    DbgPrint("CannotCore!%s: Communicate port disconnected.\n", __FUNCTION__);
+    LOG_INFO("Control port disconnected");
 }
 
 NTSTATUS
-FgcCoreControlMessageNotifyCallback(
+FgcControlMessageNotifyCallback(
     _In_opt_ PVOID ConnectionCookie,
     _In_reads_bytes_opt_(InputSize) PVOID Input,
     _In_ ULONG InputSize,
