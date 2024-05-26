@@ -98,7 +98,7 @@ Return Value:
         DBG_ERROR("NTSTATUS: '0x%08x', get file name information failed", status);
         goto Cleanup;
     }
-
+    
     status = FltParseFileNameInformation(nameInfo);
     if (!NT_SUCCESS(status)) {
         DBG_ERROR("NTSTATUS: '0x%08x', parse file name information failed", status);

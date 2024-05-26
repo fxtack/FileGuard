@@ -119,31 +119,14 @@ typedef struct _FG_MESSAGE_RESULT {
 
 typedef struct _FG_FILE_ID_DESCRIPTOR {
     
-    //
-    // The GUID name of volume that file belong to.
-    //
-    WCHAR VolumeGuidName;
+    ULONGLONG VolumeSerialNumber;
     
-    //
-    // The ID of the file on the file system volume.
-    //
     union {
-
-        //
-        // NTFS support 64 bits file ID.
-        //
         LARGE_INTEGER FileId64;
-
-        //
-        // Other file systems may support 128 bits file ID.
-        //
         FILE_ID_128 FileId128;  
-
     } FileId;
 
 } FG_FILE_ID_DESCRIPTOR, *PFG_FILE_ID_DESCRIPTOR;
-
-#pragma warning(pop)
 
 /*-------------------------------------------------------------
     Monitor structures
@@ -151,17 +134,21 @@ typedef struct _FG_FILE_ID_DESCRIPTOR {
 
 typedef struct _FG_MONITOR_RECORD {
 
-    //
-    // The time when the rules were successfully matched.
-    //
     LARGE_INTEGER Time;
 
-    //
-    // The rule successfully matched.
-    //
-    FG_RULE Rule;
+    FG_FILE_ID_DESCRIPTOR FileIdDescriptor;
+
+    ULONG_PTR RequestorPid;
+    ULONG_PTR RequestorTid;
+
+    NTSTATUS OperationStatus;
+
+    USHORT FileGUIDPathSize;
+    UCHAR FileGUIDPath[];
 
 } FG_MONITOR_RECORD, *PFG_MONITOR_RECORD;
+
+#pragma warning(pop)
 
 #define MONITOR_RECORDS_MESSAGE_BODY_BUFFER_SIZE (32 * 1024)
 
