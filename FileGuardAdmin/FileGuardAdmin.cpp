@@ -80,7 +80,6 @@ namespace fileguard {
 
         if (L"access-denied" == rule_type) return RuleAccessDenined;
         else if (L"readonly" == rule_type) return RuleReadOnly;
-        else if (L"hide" == rule_type) return RuleHide;
         return RuleNone;
     }
 
@@ -88,7 +87,6 @@ namespace fileguard {
         switch (code) {
         case RuleAccessDenined: return L"access-denied";
         case RuleReadOnly: return L"readonly";
-        case RuleHide: return L"hide";
         }
         return L"";
     }
@@ -258,11 +256,11 @@ namespace fileguard {
                 L"\n\nThis tool is used to operate rules\n\n"
                 L"commands:\n"
                 L"    add: Add a rule.\n"
-                L"        --type <access-denied|readonly|hide>\n"
+                L"        --type <access-denied|readonly>\n"
                 L"        --expr <expression> \n"
                 L"\n"
                 L"    remove: Remove a rule.\n"
-                L"        --type <access-denied|readonly|hide>\n"
+                L"        --type <access-denied|readonly>\n"
                 L"        --expr <expression>\n"
                 L"\n"
                 L"    query: Query all rules and output it.\n"
