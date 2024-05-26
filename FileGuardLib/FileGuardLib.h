@@ -61,6 +61,16 @@ extern HRESULT FglGetCoreVersion(
     _Inout_ FG_CORE_VERSION *Version
 );
 
+extern HRESULT FglSetUnloadAcceptable(
+    _In_ HANDLE Port,
+    _In_ BOOLEAN acceptable
+);
+
+extern HRESULT FglSetDetachAcceptable(
+    _In_ HANDLE Port,
+    _In_ BOOLEAN acceptable
+);
+
 extern HRESULT FglAddBulkRules(
     _In_ CONST HANDLE Port,
     _In_ CONST FGL_RULE Rules[],

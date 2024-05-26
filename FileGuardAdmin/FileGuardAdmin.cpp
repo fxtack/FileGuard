@@ -127,6 +127,16 @@ namespace fileguard {
             if (SUCCEEDED(hr)) return core_version;
             return hr;
         }
+
+        std::optional<HRESULT> SetUnloadAcceptable(bool acceptable) {
+            auto hr = FglSetUnloadAcceptable(port_, acceptable);
+            return SUCCEEDED(hr) ? std::nullopt : std::make_optional(hr);
+        }
+
+        std::optional<HRESULT> SetDetachAcceptable(bool acceptable) {
+            auto hr = FglSetDetachAcceptable(port_, acceptable);
+            return SUCCEEDED(hr) ? std::nullopt : std::make_optional(hr);
+        }
         
         std::variant<bool, HRESULT> AddSingleRule(unsigned long rule_code, std::wstring rule_path_expression) {
             FGL_RULE rule{ rule_code, rule_path_expression.c_str()};
@@ -222,7 +232,9 @@ namespace fileguard {
             }
 
             std::wstring command = argv_[1];
-            if (command == L"add") hr = CommandAdd(args);
+            if (command == L"unload") hr = CommandUnload(args);
+            else if (command == L"detach") hr = CommandDetach(args);
+            else if (command == L"add") hr = CommandAdd(args);
             else if (command == L"remove") hr = CommandRemove(args);
             else if (command == L"query") hr = CommandQuery(args);
             else if (command == L"check-matched") hr = CommandCheckMatched(args);
@@ -232,21 +244,11 @@ namespace fileguard {
                 return E_INVALIDARG;
             }
 
-            switch (hr) {
-            case  E_HANDLE:
-                std::wcerr << L"error: cannot connect to core, hresult: " 
-                           << std::setfill(L'0') << std::setw(8) << std::hex << hr
-                           << std::endl;
-                break;
-            case E_INVALIDARG:
-                break;
-            default:
-                if(FAILED(hr))
-                    std::wcerr << L"error: unhandle command error hresult: " 
-                               << std::setfill(L'0') << std::setw(8) << std::hex << hr 
-                               << std::endl;
+            if (E_HANDLE == hr) {
+                std::wcerr << L"error: cannot connect to core, hresult: "
+                    << std::setfill(L'0') << std::setw(8) << std::hex << hr
+                    << std::endl;
             }
-
             return hr;
         }
 
@@ -255,6 +257,11 @@ namespace fileguard {
                 L" [command] [flags]\n" << GetVersionInfo() <<
                 L"\n\nThis tool is used to operate rules\n\n"
                 L"commands:\n"
+                L"    unload: Unload core driver.\n"
+                L"\n"
+                L"    detach: Detach core instance.\n"
+                L"        --volume <volume>\n"
+                L"\n"
                 L"    add: Add a rule.\n"
                 L"        --type <access-denied|readonly>\n"
                 L"        --expr <expression> \n"
@@ -330,6 +337,111 @@ namespace fileguard {
                           << L"Core: " << core_ver_wstr;
 
             return admin_ver_wos.str();
+        }
+
+        HRESULT CommandUnload(std::map<std::wstring, int>& args) {
+            auto result = core_client_->SetUnloadAcceptable(true);
+            if (result) {
+                auto hr = result.value();
+                std::wcerr << L"error: set core unload acceptable to FALSE failed, hresult: "
+                           << "0x" << std::setfill(L'0') << std::setw(8) << std::hex << hr
+                           << std::endl;
+                return hr;
+            }
+
+            HANDLE token = INVALID_HANDLE_VALUE;
+            auto ok = OpenProcessToken(GetCurrentProcess(),
+                                       TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY,
+                                       &token);
+            if (!ok) {
+                auto hr = GetLastError();
+                std::wcerr << L"error: unload core failed: "
+                           << L"0x" << std::setfill(L'0') << std::setw(8) << std::hex << hr
+                           << std::endl;
+                return hr;
+            }
+
+            TOKEN_PRIVILEGES tp = { 0 };
+            LUID luid = { 0 };
+            ok = LookupPrivilegeValue(NULL, SE_LOAD_DRIVER_NAME, &luid);
+            if (!ok) {
+                auto hr = GetLastError();
+                std::wcerr << L"error: unload core failed: "
+                           << L"0x" << std::setfill(L'0') << std::setw(8) << std::hex << hr
+                           << std::endl;
+                return hr;
+            }
+
+            tp.PrivilegeCount = 1;
+            tp.Privileges[0].Luid = luid;
+            tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+            ok = AdjustTokenPrivileges(token,
+                                       FALSE, 
+                                       &tp,
+                                       sizeof(TOKEN_PRIVILEGES), 
+                                       NULL, 
+                                       NULL);
+            if (!ok) {
+                auto hr = GetLastError();
+                std::wcerr << L"error: unload core failed: "
+                           << L"0x" << std::setfill(L'0') << std::setw(8) << std::hex << hr
+                           << std::endl;
+                return hr;
+            }
+
+            auto hr = FilterUnload(FG_CORE_FILTER_NAME);
+            if (FAILED(hr)) {
+                std::wcerr << L"error: unload core failed, hresult: "
+                           << L"0x" << std::setfill(L'0') << std::setw(8) << std::hex << hr
+                           << std::endl;
+                return hr;
+            }
+
+            return S_OK;
+        }
+
+        HRESULT CommandDetach(std::map<std::wstring, int>& args) {
+            const std::wstring fn_volume = L"--volume";
+            auto f_volume = args.find(fn_volume);
+            std::wstring v_volume;
+
+            if (f_volume == args.end()) {
+                std::wcerr << L"error: command flag `" << fn_volume << "` required\n";
+                return E_INVALIDARG;
+            }
+
+            if (f_volume->second + 1 >= argc_) {
+                std::wcerr << L"error: command flag `" << f_volume->first << L"` value invalid\n";
+                return E_INVALIDARG;
+            }
+
+            v_volume = argv_[f_volume->second + 1];
+            auto result = core_client_->SetDetachAcceptable(true);
+            if (result) {
+                auto hr = result.value();
+                std::wcerr << L"error: set core detach acceptable to TRUE failed, hresult: "
+                           << "0x" << std::setfill(L'0') << std::setw(8) << std::hex << hr
+                           << std::endl;
+                return hr;
+            }
+
+            auto hr = FilterDetach(FG_CORE_FILTER_NAME, v_volume.c_str(), NULL);
+            if (FAILED(hr)) {
+                std::wcerr << L"error: detach volume '" << v_volume << L"' instance failed, hresult: "
+                           << "0x" << std::setfill(L'0') << std::setw(8) << std::hex << hr
+                           << std::endl;
+            }
+
+            result = core_client_->SetDetachAcceptable(false);
+            if (result) {
+                auto hr = result.value();
+                std::wcerr << L"error: set core detach acceptable to FALSE failed, hresult: "
+                           << "0x" << std::setfill(L'0') << std::setw(8) << std::hex << hr
+                           << std::endl;
+                return hr;
+            }
+
+            return S_OK;
         }
 
         HRESULT CommandAdd(std::map<std::wstring, int>& args) {

@@ -126,7 +126,10 @@ typedef struct _FG_CORE_GLOBALS {
 
     ULONG LogLevel;
 
-    PFLT_FILTER Filter;            // Filter instances.
+    PFLT_FILTER Filter;
+
+    __volatile BOOLEAN AcceptUnload;
+    __volatile BOOLEAN AcceptDetach;
 
     LIST_ENTRY RulesList;
     PEX_PUSH_LOCK RulesListLock;

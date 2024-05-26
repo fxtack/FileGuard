@@ -42,6 +42,8 @@ Environment:
 #pragma warning(push)
 #pragma warning(disable:4200 4201)
 
+#define FG_CORE_FILTER_NAME L"FileGuardCore"
+
 #define FG_CORE_CONTROL_PORT_NAME L"\\FileGuardControlPort"
 #define FG_MONITOR_PORT_NAME      L"\\FileGuardMonitorPort"
 
@@ -51,6 +53,9 @@ Environment:
 
 typedef enum _FG_MESSAGE_TYPE {
     GetCoreVersion,
+    SetUnloadAcceptable,
+    SetDetachAcceptable,
+    ControlCore,
     AddRules,
     RemoveRules,
     QueryRules,
@@ -87,6 +92,8 @@ typedef struct _FG_MESSAGE {
     FG_MESSAGE_TYPE Type;
     ULONG MessageSize;
     union {
+        BOOLEAN UnloadAcceptable;
+        BOOLEAN DetachAcceptable;
         struct {
             USHORT RulesAmount;
             ULONG RulesSize;

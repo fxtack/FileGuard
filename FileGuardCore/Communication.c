@@ -143,6 +143,7 @@ FgcControlMessageNotifyCallback(
     FG_MESSAGE_TYPE commandType = 0;
     PFG_MESSAGE message = NULL;
     PFG_MESSAGE_RESULT result = NULL;
+    BOOLEAN acceptable = FALSE;
     USHORT ruleAmount = 0;
     UNICODE_STRING pathName = { 0 };
 
@@ -176,6 +177,18 @@ FgcControlMessageNotifyCallback(
         result->CoreVersion.Minor = FG_CORE_VERSION_MINOR;
         result->CoreVersion.Patch = FG_CORE_VERSION_PATCH;
         result->CoreVersion.Build = FG_CORE_VERSION_BUILD;
+        break;
+
+    case SetUnloadAcceptable:
+        acceptable = message->UnloadAcceptable;
+        InterlockedExchange8((__volatile CHAR*)&Globals.AcceptUnload, acceptable);
+        LOG_INFO("Set unload acceptable to %s", acceptable ? "TRUE" : "FALSE");
+        break;
+
+    case SetDetachAcceptable:
+        acceptable = message->DetachAcceptable;
+        InterlockedExchange8((__volatile CHAR*)&Globals.AcceptDetach, acceptable);
+        LOG_INFO("Set detach acceptable to %s", acceptable ? "TRUE" : "FALSE");
         break;
 
     case AddRules:

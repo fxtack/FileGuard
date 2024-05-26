@@ -144,6 +144,9 @@ DriverEntry(
             leave;
         }
 
+        Globals.AcceptDetach = FALSE;
+        Globals.AcceptUnload = FALSE;
+
         //
         // Intialize instance context list and lock.
         //
@@ -295,11 +298,15 @@ FgcUnload(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    LARGE_INTEGER monitorTerminateTimeout = { 0 };
+    LARGE_INTEGER monitorTerminateTimeout = { .QuadPart = -1000000 };
+
+    UNREFERENCED_PARAMETER(Flags);
 
     PAGED_CODE();
 
-    UNREFERENCED_PARAMETER(Flags);
+    if (!InterlockedExchange8((__volatile CHAR*)&Globals.AcceptUnload, FALSE)) {
+        return STATUS_FLT_DO_NOT_DETACH;
+    }
 
     LOG_INFO("Unload driver start");
 
@@ -332,8 +339,6 @@ FgcUnload(
     KeSetEvent(&Globals.MonitorContext->EventWakeMonitor, 0, FALSE);
 
     if (NULL != Globals.MonitorThreadObject) {
-
-        monitorTerminateTimeout.QuadPart = -1000000;
 
         status = KeWaitForSingleObject(Globals.MonitorThreadObject,
                                        Executive,
@@ -443,14 +448,16 @@ FgcInstanceQueryTeardown(
     _In_ FLT_INSTANCE_QUERY_TEARDOWN_FLAGS Flags
     )
 {
-    PAGED_CODE();
-
     UNREFERENCED_PARAMETER(FltObjects);
     UNREFERENCED_PARAMETER(Flags);
 
-    LOG_INFO("Instance query teardown");
+    PAGED_CODE();
 
-    return STATUS_SUCCESS;
+    if (InterlockedExchange8((__volatile CHAR*)&Globals.AcceptDetach, FALSE)) {
+        return STATUS_SUCCESS;
+    }
+
+    return STATUS_FLT_DO_NOT_DETACH;
 }
 
 VOID
@@ -459,10 +466,10 @@ FgcInstanceTeardownStart(
     _In_ FLT_INSTANCE_TEARDOWN_FLAGS Flags
     )
 {
-    PAGED_CODE();
-
     UNREFERENCED_PARAMETER(FltObjects);
     UNREFERENCED_PARAMETER(Flags);
+
+    PAGED_CODE();
 
     LOG_INFO("Instance teardown start");
 }
@@ -473,10 +480,10 @@ FgcInstanceTeardownComplete(
     _In_ FLT_INSTANCE_TEARDOWN_FLAGS Flags
     )
 {
-    PAGED_CODE();
-
     UNREFERENCED_PARAMETER(FltObjects);
     UNREFERENCED_PARAMETER(Flags);
+
+    PAGED_CODE();
 
     LOG_INFO("Instance teardown completed");
 }

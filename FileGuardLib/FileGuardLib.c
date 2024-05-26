@@ -94,6 +94,46 @@ HRESULT FglGetCoreVersion(
     return hr;
 }
 
+HRESULT FglSetUnloadAcceptable(
+    _In_ HANDLE Port,
+    _In_ BOOLEAN Acceptable
+    )
+{
+    HRESULT hr = S_OK;
+    FG_MESSAGE msg = { .Type = SetUnloadAcceptable, .UnloadAcceptable = Acceptable };
+    FG_MESSAGE_RESULT result = { 0 };
+    DWORD returned = 0ul;
+
+    hr = FilterSendMessage(Port,
+                           &msg, 
+                           sizeof(FG_MESSAGE), 
+                           &result, 
+                           sizeof(FG_MESSAGE_RESULT), 
+                           &returned);
+    if (SUCCEEDED(hr)) hr = result.ResultCode;
+    return hr;
+}
+
+HRESULT FglSetDetachAcceptable(
+    _In_ HANDLE Port,
+    _In_ BOOLEAN Acceptable
+    )
+{
+    HRESULT hr = S_OK;
+    FG_MESSAGE msg = { .Type = SetDetachAcceptable, .UnloadAcceptable = Acceptable };
+    FG_MESSAGE_RESULT result = { 0 };
+    DWORD returned = 0ul;
+
+    hr = FilterSendMessage(Port,
+                           &msg,
+                           sizeof(FG_MESSAGE),
+                           &result,
+                           sizeof(FG_MESSAGE_RESULT),
+                           &returned);
+    if (SUCCEEDED(hr)) hr = result.ResultCode;
+    return hr;
+}
+
 HRESULT FglCreateRulesMessage(
     _In_ CONST FGL_RULE Rules[],
     _In_ USHORT RulesAmount,
