@@ -44,9 +44,9 @@ Environment:
 
 _Check_return_
 NTSTATUS
-FgcAllocateMonitorRecordEntry(
-    _In_ PFG_RULE Rule,
-    _Outptr_ PFG_MONITOR_RECORD_ENTRY* MonitorRecordEntry
+FgcCreateMonitorRecordEntry(
+    _In_ PUNICODE_STRING FilePath,
+    _Outptr_ PFG_MONITOR_RECORD_ENTRY *MonitorRecordEntry
     )
 /*++
 
@@ -69,45 +69,37 @@ Return Value:
 
 --*/
 {
-    if (NULL == Rule) return STATUS_INVALID_PARAMETER_1;
+    NTSTATUS status = STATUS_SUCCESS;
+    FG_MONITOR_RECORD_ENTRY *recordEntry = NULL;
+
+    if (NULL == FilePath) return STATUS_INVALID_PARAMETER_1;
     if (NULL == MonitorRecordEntry) return STATUS_INVALID_PARAMETER_2;
-    
-    return FgcAllocateBuffer(MonitorRecordEntry, sizeof(PFG_MONITOR_RECORD_ENTRY) + Rule->PathExpressionSize);
+
+    status = FgcAllocateBufferEx(&recordEntry, 
+                                 POOL_FLAG_PAGED, 
+                                 sizeof(FG_MONITOR_RECORD_ENTRY) + FilePath->Length,
+                                 FG_MONITOR_RECORD_ENTRY_NON_PAGED_TAG);
+    if (!NT_SUCCESS(status)) {
+        LOG_ERROR("NTSTATUS: 0x%08x, allocate monitor record entry failed", status);
+        return status;
+    }
+
+    RtlCopyMemory(recordEntry->Record.FileGUIDPath, FilePath->Buffer, FilePath->Length);
+    recordEntry->Record.FileGUIDPathSize = FilePath->Length;
+
+    *MonitorRecordEntry = recordEntry;
+
+    return status;
 }
 
 #pragma warning(pop)
-
-VOID
-FgcFreeMonitorRecordEntry(
-    _Inout_ PFG_MONITOR_RECORD_ENTRY MonitorRecordEntry
-    )
-/*++
-
-Routine Description:
-
-    This routine frees a monitor record entry.
-
-Arguments:
-
-    MonitorRecordEntry - Supplies the monitor record entry to be freed.
-
-Return Value:
-
-    None
-
---*/
-{
-    FLT_ASSERT(NULL != MonitorRecordEntry);
-
-    FgcFreeBuffer(MonitorRecordEntry);
-}
 
 _Check_return_
 NTSTATUS
 FgcCreateMonitorStartContext(
     _In_ PFLT_FILTER Filter,
     _In_ PLIST_ENTRY RecordsQueue,
-    _In_ PFG_MONITOR_CONTEXT* Context
+    _In_ PFG_MONITOR_CONTEXT *Context
     )
 /*++
 
@@ -132,7 +124,6 @@ Return Value:
     STATUS_INVALID_PARAMETER_1    - Failure. The 'Filter' parameter is NULL.
     STATUS_INVALID_PARAMETER_2    - Failure. The 'RecordsQueue' parameter is NULL.
     STATUS_INVALID_PARAMETER_3    - Failure. The 'QueueMutex' parameter is NULL.
-    STATUS_INVALID_PARAMETER_4    - Failure. The 'Context' parameter is NULL.
     STATUS_INSUFFICIENT_RESOURCES - Failure. Unable to allocate memory.
 
 --*/
@@ -142,28 +133,24 @@ Return Value:
 
     PAGED_CODE();
 
-    if (NULL == Filter)       return STATUS_INVALID_PARAMETER_1;
+    if (NULL == Filter) return STATUS_INVALID_PARAMETER_1;
     if (NULL == RecordsQueue) return STATUS_INVALID_PARAMETER_2;
-    if (NULL == Context)      return STATUS_INVALID_PARAMETER_3;
+    if (NULL == Context) return STATUS_INVALID_PARAMETER_3;
 
-    //
-    // Allocate monitor context from paged pool.
-    //
-    context = (PFG_MONITOR_CONTEXT)ExAllocatePool2(POOL_FLAG_NON_PAGED,
-                                                   sizeof(FG_MONITOR_CONTEXT),
-                                                   FG_MONITOR_CONTEXT_PAGED_MEM_TAG);
-    if (NULL == context) return STATUS_INSUFFICIENT_RESOURCES;
-
-    //
-    // Allocate monitor records buffer as message body.
-    //
-    status = FgcAllocateBuffer(&context->MessageBody, sizeof(FG_RECORDS_MESSAGE_BODY));
+    status = FgcAllocateBuffer(&context, sizeof(FG_MONITOR_CONTEXT));
     if (!NT_SUCCESS(status)) {
+        LOG_ERROR("NTSTATUS: 0x%08x, allocate monitor start context failed", status);
         goto Cleanup;
     }
 
-    context->Filter       = Filter;
-    context->ClientPort   = NULL;
+    status = FgcAllocateBuffer(&context->MessageBody, sizeof(FG_RECORDS_MESSAGE_BODY));
+    if (!NT_SUCCESS(status)) {
+        LOG_ERROR("NTSTATUS: 0x%08x, allocate monitor message body failed", status);
+        goto Cleanup;
+    }
+
+    context->Filter = Filter;
+    context->ClientPort = NULL;
     context->RecordsQueue = RecordsQueue;
 
     //
@@ -176,57 +163,25 @@ Return Value:
     //
     // Initialize daemon flag.
     //
-    InterlockedExchangeBoolean(&context->EndDaemonFlag, FALSE);
+    InterlockedExchangeBoolean(&context->EndMonitorFlag, FALSE);
 
     *Context = context;
 
 Cleanup:
 
     if (!NT_SUCCESS(status)) {
-
         if (NULL != context) {
             FgcFreeMonitorStartContext(context);
-        }
-
-        if (NULL != context->MessageBody) {
-            FgcFreeBuffer(context->MessageBody);
         }
     }
 
     return status;
 }
 
-VOID
-FgcFreeMonitorStartContext(
-    _In_ PFG_MONITOR_CONTEXT Context
-)
-/*++
-
-Routine Description:
-
-    This routine frees a monitor context.
-
-Arguments:
-
-    Context - Supplies the monitor context to be freed.
-
-Return Value:
-
-    None.
-
---*/
-{
-    PAGED_CODE();
-
-    FLT_ASSERT(NULL != Context);
-
-    ExFreePoolWithTag(Context, FG_MONITOR_CONTEXT_PAGED_MEM_TAG);
-}
-
 _IRQL_requires_max_(APC_LEVEL)
 VOID
-FgcMonitorStartRoutine(
-    _In_ PVOID MonitorContext
+FgcMonitorThreadRoutine(
+    _In_ PVOID MonitorStartContext
 )
 /*++
 
@@ -250,12 +205,12 @@ Return Value:
 
     PAGED_CODE();
 
-    FLT_ASSERT(NULL != MonitorContext);
+    FLT_ASSERT(NULL != MonitorStartContext);
 
-    context = (PFG_MONITOR_CONTEXT)MonitorContext;
+    context = (PFG_MONITOR_CONTEXT)MonitorStartContext;
     messageBody = (PFG_RECORDS_MESSAGE_BODY)context->MessageBody;
 
-    while (!context->EndDaemonFlag) {
+    while (!context->EndMonitorFlag) {
 
         if (STATUS_SUCCESS == status || STATUS_BUFFER_TOO_SMALL == status) {
             RtlZeroMemory(messageBody, sizeof(FG_RECORDS_MESSAGE_BODY));
@@ -274,10 +229,10 @@ Return Value:
         // Get monitor record from record queue.
         //
         status = FgcGetRecords(context->RecordsQueue, 
-                              &context->RecordsQueueLock, 
-                              messageBody->DataBuffer, 
-                              FG_MONITOR_SEND_RECORD_BUFFER_SIZE, 
-                              &messageBody->DataSize);
+                               &context->RecordsQueueLock, 
+                               messageBody->DataBuffer, 
+                               FG_MONITOR_SEND_RECORD_BUFFER_SIZE, 
+                               &messageBody->DataSize);
         if (STATUS_BUFFER_TOO_SMALL == status) {
             goto WaitForNextWake;
         }
@@ -330,7 +285,6 @@ FgcGetRecords(
     ULONG writeSize = 0UL;
 
     KeAcquireSpinLock(Lock, &oldIrql);
-
     while (!IsListEmpty(List) && (OutputBufferSize > 0)) {
 
         recordsAvailable = TRUE;
@@ -347,37 +301,26 @@ FgcGetRecords(
         KeReleaseSpinLock(Lock, oldIrql);
 
         try {
-
             RtlCopyMemory(OutputBuffer, &recordEntry->Record, writeSize);
-
         } except (AsMessageException(GetExceptionInformation(), TRUE)) {
-
             KeAcquireSpinLock(Lock, &oldIrql);
             InsertHeadList(List, listEntry);
             KeReleaseSpinLock(Lock, oldIrql);
-
             return GetExceptionCode();
         }
 
         bytesWritten += writeSize;
-
         OutputBufferSize -= writeSize;
-
         OutputBuffer += writeSize;
-
         FgcFreeMonitorRecordEntry(recordEntry);
         
         KeAcquireSpinLock(Lock, &oldIrql);
     }
-
     KeReleaseSpinLock(Lock, oldIrql);
 
     if ((0 == bytesWritten) && recordsAvailable) {
-
         status = STATUS_BUFFER_TOO_SMALL;
-
     } else if (bytesWritten > 0) {
-
         status = STATUS_SUCCESS;
     }
 

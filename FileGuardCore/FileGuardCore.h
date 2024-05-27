@@ -62,13 +62,13 @@ Environment:
 //
 // Memory pool tags.
 //
-#define FG_BUFFER_NON_PAGED_TAG          'Fgnb'
-#define FG_UNICODE_STRING_NON_PAGED_TAG  'FGus'
-#define FG_PUSHLOCK_NON_PAGED_TAG        'FGNr'
-#define FG_RULE_ENTRY_PAGED_TAG          'Fgre'
-#define FG_COMPLETION_CONTEXT_PAGED_TAG  'Fgct'
-#define FG_FILE_CONTEXT_PAGED_TAG        'Fgfc'
-#define FG_MONITOR_CONTEXT_PAGED_MEM_TAG 'FGmc'
+#define FG_BUFFER_NON_PAGED_TAG               'Fgnb'
+#define FG_UNICODE_STRING_NON_PAGED_TAG       'FGus'
+#define FG_PUSHLOCK_NON_PAGED_TAG             'FGNr'
+#define FG_RULE_ENTRY_PAGED_TAG               'Fgre'
+#define FG_COMPLETION_CONTEXT_PAGED_TAG       'Fgct'
+#define FG_FILE_CONTEXT_PAGED_TAG             'Fgfc'
+#define FG_MONITOR_RECORD_ENTRY_NON_PAGED_TAG 'Fgmr'
 
 NTSTATUS
 FgcUnload(

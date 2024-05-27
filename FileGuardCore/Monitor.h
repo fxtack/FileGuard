@@ -57,15 +57,14 @@ typedef struct _FG_MONITOR_RECORD_ENTRY {
 
 _Check_return_
 NTSTATUS
-FgcAllocateMonitorRecordEntry(
-    _In_ PFG_RULE Rule,
+FgcCreateMonitorRecordEntry(
+    _In_ PUNICODE_STRING FilePath,
     _Outptr_ PFG_MONITOR_RECORD_ENTRY *MonitorRecordEntry
     );
 
-VOID
-FgcFreeMonitorRecordEntry(
-    _Inout_ PFG_MONITOR_RECORD_ENTRY MonitorRecordEntry
-    );
+#define FgcFreeMonitorRecordEntry(_entry_) FgcFreeBuffer((_entry_))
+
+#define FgcAddMonitorRecordEntry(_list_, _entry_, _lock_) ExInterlockedInsertHeadList((_list_), (_entry_), (_lock_))
 
 #define FG_MONITOR_SEND_RECORD_BUFFER_SIZE (32 * 1024)
 
@@ -95,27 +94,37 @@ typedef struct _FG_MONITOR_CONTEXT {
     PFG_RECORDS_MESSAGE_BODY MessageBody;
 
     // Monitor daemon thread ending flag.
-    __volatile BOOLEAN EndDaemonFlag;
+    __volatile BOOLEAN EndMonitorFlag;
 
-} FG_MONITOR_CONTEXT, * PFG_MONITOR_CONTEXT;
+} FG_MONITOR_CONTEXT, *PFG_MONITOR_CONTEXT;
 
 _Check_return_
 NTSTATUS
 FgcCreateMonitorStartContext(
     _In_ PFLT_FILTER Filter,
     _In_ PLIST_ENTRY RecordsQueue,
-    _In_ PFG_MONITOR_CONTEXT* Context
+    _In_ PFG_MONITOR_CONTEXT *Context
     );
 
+FORCEINLINE
 VOID
 FgcFreeMonitorStartContext(
     _In_ PFG_MONITOR_CONTEXT Context
-    );
+    )
+{
+    if (NULL != Context) {
+        if (NULL != Context->MessageBody) {
+            FgcFreeBuffer(Context->MessageBody);
+        }
+
+        FgcFreeBuffer(Context);
+    }
+}
 
 _IRQL_requires_max_(APC_LEVEL)
 VOID
-FgcMonitorStartRoutine(
-    _In_ PVOID MonitorContext
+FgcMonitorThreadRoutine(
+    _In_ PVOID MonitorStartContext
     );
 
 _Check_return_

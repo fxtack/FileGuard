@@ -238,6 +238,7 @@ namespace fileguard {
             else if (command == L"remove") hr = CommandRemove(args);
             else if (command == L"query") hr = CommandQuery(args);
             else if (command == L"check-matched") hr = CommandCheckMatched(args);
+            else if (command == L"monitor") hr = CommandMonitor(args);
             else if (command == L"cleanup") hr = CommandCleanup(args);
             else {
                 std::wcerr << L"error: invalid flag or command: '" << command << L"'" << std::endl;
@@ -275,6 +276,9 @@ namespace fileguard {
                 L"\n"
                 L"    check-matched: Check which rules will matched for path.\n"
                 L"        --path   <path>\n"
+                L"        --format <list|csv>\n"
+                L"\n"
+                L"    monitor: Receive monitoring records.\n"
                 L"        --format <list|csv>\n"
                 L"\n"
                 L"    cleanup: Cleanup all rules.\n"
@@ -655,6 +659,32 @@ namespace fileguard {
                 });
 
             std::wcout << v_path << ", " << v_format << std::endl;
+            return S_OK;
+        }
+
+        HRESULT CommandMonitor(std::map<std::wstring, int>& args) {
+            const std::wstring fn_format = L"--format";
+            auto f_format = args.find(fn_format);
+            std::wstring v_format;
+
+            if (f_format == args.end()) {
+                std::wcerr << L"error: command flag `" << fn_format << "` required\n";
+                return E_INVALIDARG;
+            }
+
+            if (f_format->second + 1 >= argc_) {
+                std::wcerr << L"error: command flag `" << f_format->first << L"` value invalid\n";
+                return E_INVALIDARG;
+            }
+
+            v_format = argv_[f_format->second + 1];
+            std::transform(v_format.begin(), v_format.end(), v_format.begin(),
+                [](wchar_t c) { return std::tolower(c); });
+
+            // TODO Receive monitor records.
+
+            // Output rules query result.
+
             return S_OK;
         }
 

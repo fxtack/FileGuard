@@ -238,7 +238,7 @@ DriverEntry(
                                       NULL,
                                       NULL,
                                       NULL,
-                                      FgcMonitorStartRoutine,
+                                      FgcMonitorThreadRoutine,
                                       monitorContext);
         if (!NT_SUCCESS(status)) {
             DBG_ERROR("NTSTATUS: '0x%08x', create monitor thread failed", status);
@@ -273,7 +273,7 @@ DriverEntry(
                 FltUnregisterFilter(Globals.Filter);
 
             if (NULL != Globals.MonitorContext) {
-                InterlockedExchangeBoolean(&Globals.MonitorContext->EndDaemonFlag, FALSE);
+                InterlockedExchangeBoolean(&Globals.MonitorContext->EndMonitorFlag, FALSE);
                 KeSetEvent(&Globals.MonitorContext->EventPortConnected, 0, FALSE);
                 KeSetEvent(&Globals.MonitorContext->EventWakeMonitor, 0, FALSE);
                 FgcFreeMonitorStartContext(Globals.MonitorContext);
@@ -334,7 +334,7 @@ FgcUnload(
 
     FLT_ASSERT(NULL != Globals.MonitorContext);
 
-    InterlockedExchangeBoolean(&Globals.MonitorContext->EndDaemonFlag, TRUE);
+    InterlockedExchangeBoolean(&Globals.MonitorContext->EndMonitorFlag, TRUE);
     KeSetEvent(&Globals.MonitorContext->EventPortConnected, 0, FALSE);
     KeSetEvent(&Globals.MonitorContext->EventWakeMonitor, 0, FALSE);
 
