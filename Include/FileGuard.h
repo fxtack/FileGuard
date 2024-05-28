@@ -74,6 +74,7 @@ typedef enum _FG_RUEL_CODE {
     RuleNone,
     RuleAccessDenined,
     RuleReadOnly,
+    RuleMonitored,
     RuleMaximum
 } FG_RUEL_CODE, *PFG_RUEL_CODE;
 
