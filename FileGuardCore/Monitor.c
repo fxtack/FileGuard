@@ -84,8 +84,8 @@ Return Value:
         return status;
     }
 
-    RtlCopyMemory(recordEntry->Record.FileGUIDPath, FilePath->Buffer, FilePath->Length);
-    recordEntry->Record.FileGUIDPathSize = FilePath->Length;
+    RtlCopyMemory(recordEntry->Record.FilePath, FilePath->Buffer, FilePath->Length);
+    recordEntry->Record.FilePathSize = FilePath->Length;
 
     *MonitorRecordEntry = recordEntry;
 
@@ -291,7 +291,7 @@ FgcGetRecords(
 
         listEntry = RemoveHeadList(List);
         recordEntry = CONTAINING_RECORD(listEntry, FG_MONITOR_RECORD_ENTRY, List);
-        writeSize = sizeof(FG_MONITOR_RECORD) + recordEntry->Record.FileGUIDPathSize;
+        writeSize = sizeof(FG_MONITOR_RECORD) + recordEntry->Record.FilePathSize;
 
         if (OutputBufferSize < writeSize) {
             InsertHeadList(List, listEntry);

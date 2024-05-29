@@ -148,11 +148,9 @@ typedef struct _FG_MONITOR_RECORD {
 
     ULONG_PTR RequestorPid;
     ULONG_PTR RequestorTid;
-
-    NTSTATUS OperationStatus;
-
-    USHORT FileGUIDPathSize;
-    UCHAR FileGUIDPath[];
+    
+    USHORT FilePathSize;
+    UCHAR FilePath[];
 
 } FG_MONITOR_RECORD, *PFG_MONITOR_RECORD;
 
