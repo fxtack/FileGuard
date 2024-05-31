@@ -141,6 +141,9 @@ typedef struct _FG_CORE_GLOBALS {
     PFLT_PORT MonitorCorePort;   // Monitor core port.
     PFG_MONITOR_CONTEXT MonitorContext;
     PETHREAD MonitorThreadObject;
+
+    ULONG MaxMonitorRecordsAllocated;
+    __volatile ULONG MonitorRecordsAllocated;
     LIST_ENTRY MonitorRecordsQueue;
     KSPIN_LOCK MonitorRecordsQueueLock;
 

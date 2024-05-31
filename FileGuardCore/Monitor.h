@@ -57,14 +57,13 @@ typedef struct _FG_MONITOR_RECORD_ENTRY {
 
 _Check_return_
 NTSTATUS
-FgcCreateMonitorRecordEntry(
-    _In_ PUNICODE_STRING FilePath,
-    _Outptr_ PFG_MONITOR_RECORD_ENTRY *MonitorRecordEntry
+FgcRecordOperation(
+    _In_ ULONG_PTR RequestorPid,
+    _In_ ULONG_PTR RequestorTid,
+    _In_opt_ IO_STATUS_BLOCK *IoStatus,
+    _In_opt_ FG_FILE_ID_DESCRIPTOR *FileIdDescriptor,
+    _In_ PUNICODE_STRING FilePath
     );
-
-#define FgcFreeMonitorRecordEntry(_entry_) FgcFreeBuffer((_entry_))
-
-#define FgcAddMonitorRecordEntry(_list_, _entry_, _lock_) ExInterlockedInsertHeadList((_list_), (_entry_), (_lock_))
 
 #define FG_MONITOR_SEND_RECORD_BUFFER_SIZE (32 * 1024)
 

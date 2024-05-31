@@ -141,17 +141,14 @@ typedef struct _FG_FILE_ID_DESCRIPTOR {
 -------------------------------------------------------------*/
 
 typedef struct _FG_MONITOR_RECORD {
-
-    LARGE_INTEGER Time;
-
-    FG_FILE_ID_DESCRIPTOR FileIdDescriptor;
-
     ULONG_PTR RequestorPid;
     ULONG_PTR RequestorTid;
-    
+    LARGE_INTEGER RecordTime;
+    NTSTATUS OpStatus;
+    ULONG_PTR OpInformation;
+    FG_FILE_ID_DESCRIPTOR FileIdDescriptor;
     USHORT FilePathSize;
     UCHAR FilePath[];
-
 } FG_MONITOR_RECORD, *PFG_MONITOR_RECORD;
 
 #pragma warning(pop)

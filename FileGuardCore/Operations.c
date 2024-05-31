@@ -211,6 +211,18 @@ Return Value:
         status = STATUS_DEVICE_REMOVED;
         goto Cleanup;
     }
+
+    if (RuleMonitored == ruleCode) {
+        status = FgcRecordOperation((ULONG_PTR)PsGetCurrentProcessId(),
+                                    (ULONG_PTR)PsGetCurrentThreadId(),
+                                    &Data->IoStatus,
+                                    NULL,
+                                    &nameInfo->Name);
+        if (!NT_SUCCESS(status)) {
+            LOG_ERROR("NTSTATUS: 0x%08x, allocate monitor record entry failed", status);
+            goto Cleanup;
+        }
+    }
     
     if (!NT_SUCCESS(Data->IoStatus.Status)) {
         DBG_WARNING("File '%wZ' operation result status: 0x%08x", &nameInfo->Name, Data->IoStatus.Status);
@@ -238,7 +250,7 @@ Return Value:
         } else {
             RtlZeroMemory(fileContext, sizeof(FG_FILE_CONTEXT));
         }
-
+        
         status = FltSetFileContext(Data->Iopb->TargetInstance,
                                    Data->Iopb->TargetFileObject,
                                    FLT_SET_CONTEXT_KEEP_IF_EXISTS,

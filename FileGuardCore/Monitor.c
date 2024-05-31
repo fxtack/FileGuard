@@ -42,11 +42,21 @@ Environment:
 #pragma warning(push)
 #pragma warning(disable: 6001)
 
+#define FgcAddMonitorRecordEntry(_list_, _entry_, _lock_) ExInterlockedInsertHeadList((_list_), (_entry_), (_lock_))
+
+#define FgcFreeMonitorRecordEntry(_entry_) InterlockedDecrement((volatile LONG*)&Globals.MonitorRecordsAllocated); \
+                                           FgcFreeBuffer((_entry_))
+
+#define FgcAddMonitorRecordEntry(_list_, _entry_, _lock_) ExInterlockedInsertHeadList((_list_), (_entry_), (_lock_))
+
 _Check_return_
 NTSTATUS
-FgcCreateMonitorRecordEntry(
-    _In_ PUNICODE_STRING FilePath,
-    _Outptr_ PFG_MONITOR_RECORD_ENTRY *MonitorRecordEntry
+FgcRecordOperation(
+    _In_ ULONG_PTR RequestorPid,
+    _In_ ULONG_PTR RequestorTid,
+    _In_opt_ IO_STATUS_BLOCK *IoStatus,
+    _In_opt_ FG_FILE_ID_DESCRIPTOR *FileIdDescriptor,
+    _In_ PUNICODE_STRING FilePath
     )
 /*++
 
@@ -56,24 +66,27 @@ Routine Description:
 
 Arguments:
 
-    Rule               - The rule wrapped in record entry.
-
-    MonitorRecordEntry - A pointer to a variable that receives the monitor record entry.
+    RequestorPid       - IO requestor process id.
+    RequestorTid       - IO requestor thread id.
+    IoStatus           - IO status.
+    FileIdDescriptor   - File id descriptor.
+    FilePath           - File path.
 
 Return Value:
 
-    STATUS_SUCCESS                - Success.
-    STATUS_INSUFFICIENT_RESOURCES - Failure. Unable to allocate memory.
-    STATUS_INVALID_PARAMETER_1    - Failure. The 'Rule' parameter is NULL.
-    STATUS_INVALID_PARAMETER_2    - Failure. The 'MonitorRecordEntry' is NULL.
+    STATUS_SUCCESS - Success.
+    Other          - Error status.
 
 --*/
 {
     NTSTATUS status = STATUS_SUCCESS;
     FG_MONITOR_RECORD_ENTRY *recordEntry = NULL;
 
-    if (NULL == FilePath) return STATUS_INVALID_PARAMETER_1;
-    if (NULL == MonitorRecordEntry) return STATUS_INVALID_PARAMETER_2;
+    if (NULL == FilePath) return STATUS_INVALID_PARAMETER_5;
+
+    if (Globals.MonitorRecordsAllocated >= Globals.MaxMonitorRecordsAllocated) {
+        return STATUS_NO_MORE_ENTRIES;
+    }
 
     status = FgcAllocateBufferEx(&recordEntry, 
                                  POOL_FLAG_PAGED, 
@@ -84,10 +97,29 @@ Return Value:
         return status;
     }
 
+    InterlockedIncrement((volatile LONG*)&Globals.MonitorRecordsAllocated);
+    
+    recordEntry->Record.RequestorPid = RequestorPid;
+    recordEntry->Record.RequestorTid = RequestorTid;
+    KeQuerySystemTime(&recordEntry->Record.RecordTime);
+
+    if (NULL != IoStatus) {
+        recordEntry->Record.OpStatus = IoStatus->Status;
+        recordEntry->Record.OpInformation = IoStatus->Information;
+    }
+
+    if (NULL != FileIdDescriptor) {
+        RtlCopyMemory(&recordEntry->Record.FileIdDescriptor, 
+                      FileIdDescriptor, 
+                      sizeof(FG_FILE_ID_DESCRIPTOR));
+    }
+
     RtlCopyMemory(recordEntry->Record.FilePath, FilePath->Buffer, FilePath->Length);
     recordEntry->Record.FilePathSize = FilePath->Length;
 
-    *MonitorRecordEntry = recordEntry;
+    FgcAddMonitorRecordEntry(&Globals.MonitorRecordsQueue, 
+                             &recordEntry->List,
+                             &Globals.MonitorRecordsQueueLock);
 
     return status;
 }
