@@ -174,12 +174,12 @@ typedef struct _FG_MONITOR_RECORDS_MESSAGE {
     //
     // Message header.
     //
-    FILTER_MESSAGE_HEADER MessageHeader;
+    FILTER_MESSAGE_HEADER Header;
 
     //
     // Message body.
     //
-    FG_RECORDS_MESSAGE_BODY	MessageBody;
+    FG_RECORDS_MESSAGE_BODY	Body;
 
 } FG_MONITOR_RECORDS_MESSAGE, *PFG_MONITOR_RECORDS_MESSAGE;
 

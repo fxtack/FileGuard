@@ -48,12 +48,20 @@ typedef struct _FGL_RULE {
     PCWSTR RulePathExpression;
 } FGL_RULE, *PFGL_RULE;
 
+typedef void (CALLBACK *MonitorRecordCallback) (_In_opt_ FG_MONITOR_RECORD*);
+
 extern HRESULT FglConnectCore(
     _Outptr_ HANDLE *Port
 );
 
 extern VOID FglDisconnectCore(
     _In_ _Post_ptr_invalid_ HANDLE Port
+);
+
+extern HRESULT FglReceiveMonitorRecords(
+    _In_ HANDLE Port,
+    _In_ volatile BOOLEAN *End,
+    _In_ MonitorRecordCallback MonitorRecordCallback
 );
 
 extern HRESULT FglGetCoreVersion(

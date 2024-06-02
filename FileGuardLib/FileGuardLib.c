@@ -65,6 +65,96 @@ VOID FglDisconnectCore(
     CloseHandle(Port);
 }
 
+HRESULT FglParseMonitorRecords(
+    _In_ FG_RECORDS_MESSAGE_BODY *RecordMessageBody,
+    _Out_writes_(ArrayLength) PFG_MONITOR_RECORD *RecordsArray,
+    _In_ USHORT ArrayLength,
+    _Out_ USHORT *ParsedCount
+) {
+    ULONG totalSize = RecordMessageBody->DataSize;
+    UCHAR *buffer = RecordMessageBody->DataBuffer;
+    ULONG offset = 0;
+    USHORT recordCount = 0;
+
+    if (RecordMessageBody == NULL || RecordsArray == NULL || ParsedCount == NULL)
+        return E_INVALIDARG;
+
+    while (offset < totalSize) {
+        if (recordCount >= ArrayLength) {
+            // Buffer too small to hold all parsed pointers
+            *ParsedCount = recordCount;
+            return HRESULT_FROM_WIN32(ERROR_INSUFFICIENT_BUFFER);
+        }
+
+        PFG_MONITOR_RECORD record = (PFG_MONITOR_RECORD)(buffer + offset);
+        RecordsArray[recordCount++] = record;
+        offset += sizeof(FG_MONITOR_RECORD) + record->FilePathSize;
+    }
+
+    *ParsedCount = recordCount;
+    return S_OK;
+}
+
+HRESULT FglReceiveMonitorRecords(
+    _In_ HANDLE Port,
+    _In_ volatile BOOLEAN *End,
+    _In_ MonitorRecordCallback MonitorRecordCallback
+    )
+{
+    HRESULT hr = S_OK;
+    FG_MONITOR_RECORDS_MESSAGE *recordsMessage = NULL;
+    USHORT parsedRecordsArrayLength = 32, parsedRecordsCount = 0;
+    PFG_MONITOR_RECORD *parsedRecords = NULL;
+    ULONG i = 0;
+
+    recordsMessage = malloc(sizeof(FG_MONITOR_RECORDS_MESSAGE));
+    if (NULL == recordsMessage) return HRESULT_FROM_WIN32(ERROR_INSUFFICIENT_BUFFER);
+
+    parsedRecords = (PFG_MONITOR_RECORD*)malloc(parsedRecordsArrayLength * sizeof(PFG_MONITOR_RECORD));
+    if (NULL == parsedRecords) return HRESULT_FROM_WIN32(ERROR_INSUFFICIENT_BUFFER);
+
+    while (!(*End)) {
+        hr = FilterGetMessage(Port,
+                              &recordsMessage->Header, 
+                              sizeof(FG_MONITOR_RECORDS_MESSAGE), 
+                              NULL);
+        if (FAILED(hr)) goto Cleanup;
+
+        while (TRUE) {
+            hr = FglParseMonitorRecords(&recordsMessage->Body,
+                                        parsedRecords,
+                                        parsedRecordsArrayLength,
+                                        &parsedRecordsCount);
+            if (hr != HRESULT_FROM_WIN32(ERROR_INSUFFICIENT_BUFFER)) {
+                break;
+            }
+
+            parsedRecordsArrayLength *= 2;
+            PFG_MONITOR_RECORD* temp = (PFG_MONITOR_RECORD*)realloc(parsedRecords, parsedRecordsArrayLength * sizeof(PFG_MONITOR_RECORD));
+            if (temp == NULL) {
+                hr = HRESULT_FROM_WIN32(ERROR_INSUFFICIENT_BUFFER);
+                goto Cleanup;
+            }
+
+            parsedRecords = temp;
+        }
+
+        if (FAILED(hr)) {
+            goto Cleanup;
+        }
+        
+        for (i = 0; i < parsedRecordsCount; i++) {
+            MonitorRecordCallback(parsedRecords[i]);
+        }
+    }
+
+Cleanup:
+
+    if (NULL != parsedRecords) free(parsedRecords);
+
+    return hr;
+}
+
 HRESULT FglGetCoreVersion(
     _In_ CONST HANDLE Port,
     _Inout_ FG_CORE_VERSION *Version
