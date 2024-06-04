@@ -128,6 +128,11 @@ namespace fileguard {
             return hr;
         }
 
+        std::optional<HRESULT> ReceiveMonitorRecords(volatile BOOLEAN* End, MonitorRecordCallback callback) {
+            auto hr = FglReceiveMonitorRecords(port_, End, callback);
+            return SUCCEEDED(hr) ? std::nullopt : std::make_optional(hr);
+        }
+
         std::optional<HRESULT> SetUnloadAcceptable(bool acceptable) {
             auto hr = FglSetUnloadAcceptable(port_, acceptable);
             return SUCCEEDED(hr) ? std::nullopt : std::make_optional(hr);
@@ -681,9 +686,22 @@ namespace fileguard {
             std::transform(v_format.begin(), v_format.end(), v_format.begin(),
                 [](wchar_t c) { return std::tolower(c); });
 
-            // TODO Receive monitor records.
+            volatile BOOLEAN end = FALSE;
+            MonitorRecordCallback callback = NULL;
+            if (v_format == L"csv") {
+                callback = [](FG_MONITOR_RECORD* record) {
+                    std::wcout << std::wstring_view((wchar_t*)record->FilePath, record->FilePathSize/sizeof(wchar_t))
+                               << std::endl;
+                    };
+            } else if (v_format == L"list") {
+                callback = [](FG_MONITOR_RECORD* record) {
+                    std::wcout << std::wstring_view((wchar_t*)record->FilePath, record->FilePathSize / sizeof(wchar_t))
+                        << std::endl;
+                    };
+            }
 
-            // Output rules query result.
+            auto result = core_client_->ReceiveMonitorRecords(&end, callback);
+            if (result) return result.value();
 
             return S_OK;
         }
