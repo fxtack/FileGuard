@@ -70,7 +70,8 @@ HRESULT FglParseMonitorRecords(
     _Out_writes_(ArrayLength) PFG_MONITOR_RECORD *RecordsArray,
     _In_ USHORT ArrayLength,
     _Out_ USHORT *ParsedCount
-) {
+    )
+{
     ULONG totalSize = RecordMessageBody->DataSize;
     UCHAR *buffer = RecordMessageBody->DataBuffer;
     ULONG offset = 0;
@@ -104,7 +105,7 @@ HRESULT FglReceiveMonitorRecords(
     HRESULT hr = S_OK;
     FG_MONITOR_RECORDS_MESSAGE *recordsMessage = NULL;
     USHORT parsedRecordsArrayLength = 32, parsedRecordsCount = 0;
-    PFG_MONITOR_RECORD *parsedRecords = NULL;
+    PFG_MONITOR_RECORD *parsedRecords = NULL, *temp = NULL;
     ULONG i = 0;
 
     recordsMessage = malloc(sizeof(FG_MONITOR_RECORDS_MESSAGE));
@@ -130,7 +131,7 @@ HRESULT FglReceiveMonitorRecords(
             }
 
             parsedRecordsArrayLength *= 2;
-            PFG_MONITOR_RECORD* temp = (PFG_MONITOR_RECORD*)realloc(parsedRecords, parsedRecordsArrayLength * sizeof(PFG_MONITOR_RECORD));
+            temp = (PFG_MONITOR_RECORD*)realloc(parsedRecords, parsedRecordsArrayLength * sizeof(PFG_MONITOR_RECORD));
             if (temp == NULL) {
                 hr = HRESULT_FROM_WIN32(ERROR_INSUFFICIENT_BUFFER);
                 goto Cleanup;
@@ -139,13 +140,10 @@ HRESULT FglReceiveMonitorRecords(
             parsedRecords = temp;
         }
 
-        if (FAILED(hr)) {
-            goto Cleanup;
-        }
+        if (FAILED(hr)) goto Cleanup;
         
-        for (i = 0; i < parsedRecordsCount; i++) {
-            MonitorRecordCallback(parsedRecords[i]);
-        }
+        for (i = 0; i < parsedRecordsCount; i++) MonitorRecordCallback(parsedRecords[i]);
+       
     }
 
 Cleanup:
