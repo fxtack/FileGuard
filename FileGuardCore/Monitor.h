@@ -136,4 +136,9 @@ FgcGetRecords(
     _Out_ PULONG ReturnOutputBufferSize
     );
 
+VOID
+FgcCleanupMonitorRecords(
+    VOID
+    );
+
 #endif

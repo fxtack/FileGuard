@@ -97,16 +97,24 @@ HRESULT FglParseMonitorRecords(
 }
 
 HRESULT FglReceiveMonitorRecords(
-    _In_ HANDLE Port,
     _In_ volatile BOOLEAN *End,
     _In_ MonitorRecordCallback MonitorRecordCallback
     )
 {
     HRESULT hr = S_OK;
+    HANDLE port = INVALID_HANDLE_VALUE;
     FG_MONITOR_RECORDS_MESSAGE *recordsMessage = NULL;
     USHORT parsedRecordsArrayLength = 32, parsedRecordsCount = 0;
     PFG_MONITOR_RECORD *parsedRecords = NULL, *temp = NULL;
     ULONG i = 0;
+
+    hr = FilterConnectCommunicationPort(FG_MONITOR_PORT_NAME,
+                                        0,
+                                        NULL,
+                                        0,
+                                        NULL,
+                                        &port);
+    if (FAILED(hr)) return hr;
 
     recordsMessage = malloc(sizeof(FG_MONITOR_RECORDS_MESSAGE));
     if (NULL == recordsMessage) return HRESULT_FROM_WIN32(ERROR_INSUFFICIENT_BUFFER);
@@ -115,7 +123,7 @@ HRESULT FglReceiveMonitorRecords(
     if (NULL == parsedRecords) return HRESULT_FROM_WIN32(ERROR_INSUFFICIENT_BUFFER);
 
     while (!(*End)) {
-        hr = FilterGetMessage(Port,
+        hr = FilterGetMessage(port,
                               &recordsMessage->Header, 
                               sizeof(FG_MONITOR_RECORDS_MESSAGE), 
                               NULL);

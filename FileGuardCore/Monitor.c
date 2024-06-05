@@ -120,7 +120,7 @@ Return Value:
     FgcAddMonitorRecordEntry(&Globals.MonitorRecordsQueue, 
                              &recordEntry->List,
                              &Globals.MonitorRecordsQueueLock);
-
+    KeSetEvent(&Globals.MonitorContext->EventWakeMonitor, 0, FALSE);
     return status;
 }
 
@@ -359,6 +359,35 @@ FgcGetRecords(
     *ReturnOutputBufferSize = bytesWritten;
 
     return status;
+}
+
+VOID
+FgcCleanupMonitorRecords(
+    VOID
+    )
+{
+    PLIST_ENTRY pListEntry = NULL;
+    FG_MONITOR_RECORD_ENTRY *monitorRecordEntry;
+    INT count = 0;
+    KIRQL oldIrql;
+
+    KeAcquireSpinLock(&Globals.MonitorRecordsQueueLock, &oldIrql);
+
+    while (!IsListEmpty(&Globals.MonitorRecordsQueue)) {
+
+        pListEntry = RemoveHeadList(&Globals.MonitorRecordsQueue);
+        KeReleaseSpinLock(&Globals.MonitorRecordsQueueLock, oldIrql);
+
+        monitorRecordEntry = CONTAINING_RECORD(pListEntry, FG_MONITOR_RECORD_ENTRY, List);
+        FgcFreeMonitorRecordEntry(monitorRecordEntry);
+        count++;
+
+        KeAcquireSpinLock(&Globals.MonitorRecordsQueueLock, &oldIrql);
+    }
+
+    KeReleaseSpinLock(&Globals.MonitorRecordsQueueLock, oldIrql);
+
+    DBG_TRACE("Clean monitor record count: %d", count);
 }
 
 #pragma warning(pop)

@@ -219,7 +219,7 @@ Return Value:
                                     NULL,
                                     &nameInfo->Name);
         if (!NT_SUCCESS(status)) {
-            LOG_ERROR("NTSTATUS: 0x%08x, allocate monitor record entry failed", status);
+            LOG_ERROR("NTSTATUS: 0x%08x, record operation failed", status);
             goto Cleanup;
         }
     }

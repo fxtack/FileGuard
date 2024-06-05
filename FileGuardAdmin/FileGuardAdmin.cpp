@@ -80,6 +80,7 @@ namespace fileguard {
 
         if (L"access-denied" == rule_type) return RuleAccessDenined;
         else if (L"readonly" == rule_type) return RuleReadOnly;
+        else if (L"monitored" == rule_type) return RuleMonitored;
         return RuleNone;
     }
 
@@ -87,6 +88,7 @@ namespace fileguard {
         switch (code) {
         case RuleAccessDenined: return L"access-denied";
         case RuleReadOnly: return L"readonly";
+        case RuleMonitored: return L"monitored";
         }
         return L"";
     }
@@ -129,7 +131,7 @@ namespace fileguard {
         }
 
         std::optional<HRESULT> ReceiveMonitorRecords(volatile BOOLEAN* End, MonitorRecordCallback callback) {
-            auto hr = FglReceiveMonitorRecords(port_, End, callback);
+            auto hr = FglReceiveMonitorRecords(End, callback);
             return SUCCEEDED(hr) ? std::nullopt : std::make_optional(hr);
         }
 
@@ -269,11 +271,11 @@ namespace fileguard {
                 L"        --volume <volume>\n"
                 L"\n"
                 L"    add: Add a rule.\n"
-                L"        --type <access-denied|readonly>\n"
+                L"        --type <access-denied|readonly|monitor>\n"
                 L"        --expr <expression> \n"
                 L"\n"
                 L"    remove: Remove a rule.\n"
-                L"        --type <access-denied|readonly>\n"
+                L"        --type <access-denied|readonly|monitor>\n"
                 L"        --expr <expression>\n"
                 L"\n"
                 L"    query: Query all rules and output it.\n"
@@ -690,13 +692,13 @@ namespace fileguard {
             MonitorRecordCallback callback = NULL;
             if (v_format == L"csv") {
                 callback = [](FG_MONITOR_RECORD* record) {
-                    std::wcout << std::wstring_view((wchar_t*)record->FilePath, record->FilePathSize/sizeof(wchar_t))
+                    std::wcout << std::wstring_view((wchar_t*)record->FilePath, record->FilePathSize / sizeof(wchar_t))
                                << std::endl;
                     };
             } else if (v_format == L"list") {
                 callback = [](FG_MONITOR_RECORD* record) {
                     std::wcout << std::wstring_view((wchar_t*)record->FilePath, record->FilePathSize / sizeof(wchar_t))
-                        << std::endl;
+                               << std::endl;
                     };
             }
 

@@ -144,6 +144,9 @@ DriverEntry(
             leave;
         }
 
+        Globals.MonitorRecordsAllocated = 0ul;
+        Globals.MaxMonitorRecordsAllocated = MAXUSHORT;
+
         Globals.AcceptDetach = FALSE;
         Globals.AcceptUnload = FALSE;
 
@@ -282,6 +285,7 @@ DriverEntry(
             if (NULL != Globals.MonitorThreadObject)
                 ObReferenceObject(Globals.MonitorThreadObject);
 
+            FgcCleanupMonitorRecords();
         } 
 
         if (NULL != securityDescriptor) FltFreeSecurityDescriptor(securityDescriptor);
@@ -359,6 +363,8 @@ FgcUnload(
     if (NULL != Globals.RulesListLock) {
         FgcFreePushLock(Globals.RulesListLock);
     }
+
+    FgcCleanupMonitorRecords();
 
     LOG_INFO("Unload driver successfully");
 

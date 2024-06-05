@@ -59,7 +59,6 @@ extern VOID FglDisconnectCore(
 );
 
 extern HRESULT FglReceiveMonitorRecords(
-    _In_ HANDLE Port,
     _In_ volatile BOOLEAN *End,
     _In_ MonitorRecordCallback MonitorRecordCallback
 );

@@ -340,13 +340,20 @@ FgcMonitorPortConnectCallback(
     _Flt_ConnectionCookie_Outptr_ PVOID* ConnectionCookie
     )
 {
-    UNREFERENCED_PARAMETER(ClientPort);
     UNREFERENCED_PARAMETER(CorePortCookie);
     UNREFERENCED_PARAMETER(ConnectionContext);
     UNREFERENCED_PARAMETER(ContextBytes);
     UNREFERENCED_PARAMETER(ConnectionCookie);
 
-    return STATUS_NOT_IMPLEMENTED;
+    PAGED_CODE();
+
+    Globals.MonitorClientPort = ClientPort;
+    Globals.MonitorContext->ClientPort = ClientPort;
+    KeSetEvent(&Globals.MonitorContext->EventPortConnected, 0, FALSE);
+
+    LOG_INFO("Monitor communication port connected");
+
+    return STATUS_SUCCESS;
 }
 
 VOID
@@ -355,4 +362,14 @@ FgcMonitorPortDisconnectCallback(
     ) 
 {
     UNREFERENCED_PARAMETER(ConnectionCookie);
+
+    PAGED_CODE();
+
+    KeClearEvent(&Globals.MonitorContext->EventPortConnected);
+
+    FltCloseClientPort(Globals.Filter, &Globals.MonitorClientPort);
+    Globals.MonitorClientPort = NULL;
+    Globals.MonitorContext->ClientPort = NULL;
+
+    LOG_INFO("Monitor communication port disconnected");
 }
