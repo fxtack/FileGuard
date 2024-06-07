@@ -61,6 +61,8 @@ EXTERN_C_END
 #define FGA_PATCH_VERSION ((USHORT)0)
 #define FGA_BUILD_VERSION ((USHORT)0)
 
+#define HEX(_num_) L"0x" << std::hex << std::setfill(L'0') << std::setw(8) << (_num_)
+
 namespace fileguard {
     
     struct Rule {
@@ -254,8 +256,8 @@ namespace fileguard {
 
             if (E_HANDLE == hr) {
                 std::wcerr << L"error: cannot connect to core, hresult: "
-                    << std::setfill(L'0') << std::setw(8) << std::hex << hr
-                    << std::endl;
+                           << HEX(hr)
+                           << std::endl;
             }
             return hr;
         }
@@ -330,9 +332,7 @@ namespace fileguard {
                                  << core_ver.Patch << L"."
                                  << core_ver.Patch;
                 } else if (std::holds_alternative<HRESULT>(core_ver_opt)) {
-                    core_ver_wos << L"(error: 0x" << std::setfill(L'0') << std::setw(8)
-                                 << std::hex << std::get<HRESULT>(core_ver_opt)
-                                 << L")";
+                    core_ver_wos << L"(error: " HEX(std::get<HRESULT>(core_ver_opt)) << L")";
                 }
                 core_ver_wstr = core_ver_wos.str();
             } else {
@@ -355,7 +355,7 @@ namespace fileguard {
             if (result) {
                 auto hr = result.value();
                 std::wcerr << L"error: set core unload acceptable to FALSE failed, hresult: "
-                           << "0x" << std::setfill(L'0') << std::setw(8) << std::hex << hr
+                           << HEX(hr)
                            << std::endl;
                 return hr;
             }
@@ -367,7 +367,7 @@ namespace fileguard {
             if (!ok) {
                 auto hr = GetLastError();
                 std::wcerr << L"error: unload core failed: "
-                           << L"0x" << std::setfill(L'0') << std::setw(8) << std::hex << hr
+                           << HEX(hr)
                            << std::endl;
                 return hr;
             }
@@ -378,7 +378,7 @@ namespace fileguard {
             if (!ok) {
                 auto hr = GetLastError();
                 std::wcerr << L"error: unload core failed: "
-                           << L"0x" << std::setfill(L'0') << std::setw(8) << std::hex << hr
+                           << HEX(hr)
                            << std::endl;
                 return hr;
             }
@@ -395,7 +395,7 @@ namespace fileguard {
             if (!ok) {
                 auto hr = GetLastError();
                 std::wcerr << L"error: unload core failed: "
-                           << L"0x" << std::setfill(L'0') << std::setw(8) << std::hex << hr
+                           << HEX(hr)
                            << std::endl;
                 return hr;
             }
@@ -403,7 +403,7 @@ namespace fileguard {
             auto hr = FilterUnload(FG_CORE_FILTER_NAME);
             if (FAILED(hr)) {
                 std::wcerr << L"error: unload core failed, hresult: "
-                           << L"0x" << std::setfill(L'0') << std::setw(8) << std::hex << hr
+                           << HEX(hr)
                            << std::endl;
                 return hr;
             }
@@ -431,7 +431,7 @@ namespace fileguard {
             if (result) {
                 auto hr = result.value();
                 std::wcerr << L"error: set core detach acceptable to TRUE failed, hresult: "
-                           << "0x" << std::setfill(L'0') << std::setw(8) << std::hex << hr
+                           << HEX(hr)
                            << std::endl;
                 return hr;
             }
@@ -439,7 +439,7 @@ namespace fileguard {
             auto hr = FilterDetach(FG_CORE_FILTER_NAME, v_volume.c_str(), NULL);
             if (FAILED(hr)) {
                 std::wcerr << L"error: detach volume '" << v_volume << L"' instance failed, hresult: "
-                           << "0x" << std::setfill(L'0') << std::setw(8) << std::hex << hr
+                           << HEX(hr)
                            << std::endl;
             }
 
@@ -447,7 +447,7 @@ namespace fileguard {
             if (result) {
                 auto hr = result.value();
                 std::wcerr << L"error: set core detach acceptable to FALSE failed, hresult: "
-                           << "0x" << std::setfill(L'0') << std::setw(8) << std::hex << hr
+                           << HEX(hr)
                            << std::endl;
                 return hr;
             }
@@ -580,10 +580,15 @@ namespace fileguard {
             auto result = core_client_->QueryRules();
             if (auto hr = std::get_if<HRESULT>(&result)) return *hr;
             auto rules = std::get_if<std::vector<std::unique_ptr<Rule>>>(&result);
+            if (rules->empty()) {
+                std::wcout << "empty query result" << std::endl;
+                return S_OK;
+            }
 
             // Output rules query result.
             if (v_format == L"csv") std::wcout << "code,expression" << std::endl;
-            else if (v_format == L"list") std::wcout << "total: " << rules->size() << std::endl;
+            else if (v_format == L"list") std::wcout << "     total: " << rules->size() << std::endl
+                                                     << std::endl;
             else { 
                 std::wcerr << "error: invalid format: '" << v_format << "'" << std::endl;
                 return E_INVALIDARG;
@@ -595,8 +600,8 @@ namespace fileguard {
                                    << rule->path_expression
                                    << std::endl;
                     } else if (v_format == L"list") {
-                        std::wcout << "code: " << RuleCodeToName(rule->code)
-                                   << ", expression: " << rule->path_expression
+                        std::wcout << "      Type: " << RuleCodeToName(rule->code) << std::endl
+                                   << "expression: " << rule->path_expression << std::endl
                                    << std::endl;
                     }
                 });
@@ -644,10 +649,15 @@ namespace fileguard {
             auto result = core_client_->CheckMatchedRules(v_path);
             if (auto hr = std::get_if<HRESULT>(&result)) return *hr;
             auto rules = std::get_if<std::vector<std::unique_ptr<Rule>>>(&result);
+            if (rules->empty()) {
+                std::wcout << "no rule matched" << std::endl;
+                return S_OK;
+            }
 
             // Output matched rules result.
             if (v_format == L"csv") std::wcout << "code,expression" << std::endl;
-            else if (v_format == L"list") std::wcout << "total: " << rules->size() << std::endl;
+            else if (v_format == L"list") std::wcout << "     total: " << rules->size() << std::endl
+                                                     << std::endl;
             else {
                 std::wcerr << "error: invalid format: '" << v_format << "'" << std::endl;
                 return E_INVALIDARG;
@@ -659,13 +669,11 @@ namespace fileguard {
                                    << rule->path_expression
                                    << std::endl;
                     } else if (v_format == L"list") {
-                        std::wcout << "code: " << RuleCodeToName(rule->code)
-                                   << ", expression: " << rule->path_expression
+                        std::wcout << "      Type: " << RuleCodeToName(rule->code) << std::endl
+                                   << "expression: " << rule->path_expression << std::endl
                                    << std::endl;
                     }
                 });
-
-            std::wcout << v_path << ", " << v_format << std::endl;
             return S_OK;
         }
 
@@ -691,13 +699,29 @@ namespace fileguard {
             volatile BOOLEAN end = FALSE;
             MonitorRecordCallback callback = NULL;
             if (v_format == L"csv") {
+                std::wcout << "requestor_pid, requestor_tid, record_time, op_status, op_information, volume_serial_number, file_id, file_path"
+                           << std::endl;
                 callback = [](FG_MONITOR_RECORD* record) {
-                    std::wcout << std::wstring_view((wchar_t*)record->FilePath, record->FilePathSize / sizeof(wchar_t))
+                    std::wcout << record->RequestorPid << L","
+                               << record->RequestorTid << L","
+                               << record->RecordTime.QuadPart << L","
+                               << record->OpStatus << L","
+                               << record->OpInformation << L","
+                               << record->FileIdDescriptor.VolumeSerialNumber << L","
+                               << record->FileIdDescriptor.FileId.FileId64.QuadPart << L","
+                               << std::wstring_view((wchar_t*)record->FilePath, record->FilePathSize / sizeof(wchar_t))
                                << std::endl;
                     };
             } else if (v_format == L"list") {
                 callback = [](FG_MONITOR_RECORD* record) {
-                    std::wcout << std::wstring_view((wchar_t*)record->FilePath, record->FilePathSize / sizeof(wchar_t))
+                    std::wcout << "       requestor_pid: " << record->RequestorPid << std::endl
+                               << "       requestor_tid: " << record->RequestorTid << std::endl
+                               << "         record_time: " << record->RecordTime.QuadPart << std::endl
+                               << "           op_status: " << record->OpStatus << std::endl
+                               << "      op_information: " << record->OpInformation << std::endl
+                               << "volume_serial_number: " << record->FileIdDescriptor.VolumeSerialNumber << std::endl
+                               << "             file_id: " << record->FileIdDescriptor.FileId.FileId64.QuadPart << std::endl
+                               << "           file_path: " << std::wstring_view((wchar_t*)record->FilePath, record->FilePathSize / sizeof(wchar_t)) << std::endl
                                << std::endl;
                     };
             }
@@ -723,7 +747,7 @@ namespace fileguard {
 int wmain(int argc, wchar_t* argv[]) {
     auto admin_opt = fileguard::Admin::New(argc, argv);
     if (auto hr = std::get_if<HRESULT>(&admin_opt)) {
-        std::cerr << "0x" << std::hex << std::setfill('0') << std::setw(8) << hr << std::endl;
+        std::wcerr << HEX(hr) << std::endl;
         return *hr;
     }
     return std::get<std::unique_ptr<fileguard::Admin>>(std::move(admin_opt))->Parse();
