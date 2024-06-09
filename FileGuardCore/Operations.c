@@ -213,7 +213,9 @@ Return Value:
     }
 
     if (RuleMonitored == ruleCode) {
-        status = FgcRecordOperation((ULONG_PTR)PsGetCurrentProcessId(),
+        status = FgcRecordOperation(Data->Iopb->MajorFunction,
+                                    Data->Iopb->MinorFunction,
+                                    (ULONG_PTR)PsGetCurrentProcessId(),
                                     (ULONG_PTR)PsGetCurrentThreadId(),
                                     &Data->IoStatus,
                                     NULL,

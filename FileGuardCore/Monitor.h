@@ -58,6 +58,8 @@ typedef struct _FG_MONITOR_RECORD_ENTRY {
 _Check_return_
 NTSTATUS
 FgcRecordOperation(
+    _In_ UCHAR MajorFunction,
+    _In_ UCHAR MinorFunction,
     _In_ ULONG_PTR RequestorPid,
     _In_ ULONG_PTR RequestorTid,
     _In_opt_ IO_STATUS_BLOCK *IoStatus,

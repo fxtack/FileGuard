@@ -95,6 +95,23 @@ namespace fileguard {
         return L"";
     }
 
+    std::wstring MajorIRPName(UCHAR major_irp_code) {
+        const UCHAR IRP_MJ_CREATE = 0x00;
+        const UCHAR IRP_MJ_CLOSE = 0x02;
+        const UCHAR IRP_MJ_WRITE = 0x04;
+        const UCHAR IRP_MJ_SET_INFORMATION = 0x06;
+        const UCHAR IRP_MJ_FILE_SYSTEM_CONTROL = 0x0d;
+
+        switch (major_irp_code) {
+        case IRP_MJ_CREATE: return L"IRP_MJ_CREATE";
+        case IRP_MJ_CLOSE: return L"IRP_MJ_CLOSE";
+        case IRP_MJ_WRITE: return L"IRP_MJ_WRITE";
+        case IRP_MJ_SET_INFORMATION: return L"IRP_MJ_SET_INFORMATION";
+        case IRP_MJ_FILE_SYSTEM_CONTROL: return L"IRP_MJ_FILE_SYSTEM_CONTROL";
+        default: return L"Unknown";
+        }
+    }
+
     std::vector<std::unique_ptr<Rule>> ResolveRulesBuffer(std::shared_ptr<char[]> buf, size_t buf_size) {
         std::vector<std::unique_ptr<Rule>> rules;
         char* rule_offset_ptr = buf.get();
@@ -699,29 +716,31 @@ namespace fileguard {
             volatile BOOLEAN end = FALSE;
             MonitorRecordCallback callback = NULL;
             if (v_format == L"csv") {
-                std::wcout << "requestor_pid, requestor_tid, record_time, op_status, op_information, volume_serial_number, file_id, file_path"
+                std::wcout << "major_irp,requestor_pid,requestor_tid,record_time,op_status,op_information,volume_serial_number,file_id,file_path"
                            << std::endl;
                 callback = [](FG_MONITOR_RECORD* record) {
-                    std::wcout << record->RequestorPid << L","
+                    std::wcout << MajorIRPName(record->MajorFunction) << L","
+                               << record->RequestorPid << L","
                                << record->RequestorTid << L","
                                << record->RecordTime.QuadPart << L","
                                << record->OpStatus << L","
                                << record->OpInformation << L","
                                << record->FileIdDescriptor.VolumeSerialNumber << L","
                                << record->FileIdDescriptor.FileId.FileId64.QuadPart << L","
-                               << std::wstring_view((wchar_t*)record->FilePath, record->FilePathSize / sizeof(wchar_t))
+                               << std::wstring_view(record->FilePath, record->FilePathSize / sizeof(wchar_t))
                                << std::endl;
                     };
             } else if (v_format == L"list") {
                 callback = [](FG_MONITOR_RECORD* record) {
-                    std::wcout << "       requestor_pid: " << record->RequestorPid << std::endl
-                               << "       requestor_tid: " << record->RequestorTid << std::endl
-                               << "         record_time: " << record->RecordTime.QuadPart << std::endl
-                               << "           op_status: " << record->OpStatus << std::endl
-                               << "      op_information: " << record->OpInformation << std::endl
-                               << "volume_serial_number: " << record->FileIdDescriptor.VolumeSerialNumber << std::endl
-                               << "             file_id: " << record->FileIdDescriptor.FileId.FileId64.QuadPart << std::endl
-                               << "           file_path: " << std::wstring_view((wchar_t*)record->FilePath, record->FilePathSize / sizeof(wchar_t)) << std::endl
+                    std::wcout << L"           major_irp: " << MajorIRPName(record->MajorFunction) << std::endl
+                               << L"       requestor_pid: " << record->RequestorPid << std::endl
+                               << L"       requestor_tid: " << record->RequestorTid << std::endl
+                               << L"         record_time: " << record->RecordTime.QuadPart << std::endl
+                               << L"           op_status: " << record->OpStatus << std::endl
+                               << L"      op_information: " << record->OpInformation << std::endl
+                               << L"volume_serial_number: " << record->FileIdDescriptor.VolumeSerialNumber << std::endl
+                               << L"             file_id: " << record->FileIdDescriptor.FileId.FileId64.QuadPart << std::endl
+                               << L"           file_path: " << std::wstring_view(record->FilePath, record->FilePathSize / sizeof(wchar_t)) << std::endl
                                << std::endl;
                     };
             }
