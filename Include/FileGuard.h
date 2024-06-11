@@ -145,10 +145,10 @@ typedef struct _FG_MONITOR_RECORD {
     UCHAR MinorFunction;
     ULONG_PTR RequestorPid;
     ULONG_PTR RequestorTid;
-    LARGE_INTEGER RecordTime;
-    NTSTATUS OpStatus;
-    ULONG_PTR OpInformation;
     FG_FILE_ID_DESCRIPTOR FileIdDescriptor;
+    LARGE_INTEGER RecordTime;
+    ULONG_PTR OpInformation;
+    NTSTATUS OpStatus;
     USHORT FilePathSize;
     USHORT RenameFilePathSize;
     WCHAR FilePath[];

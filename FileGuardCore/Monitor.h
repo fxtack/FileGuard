@@ -39,7 +39,10 @@ Environment:
 #pragma once
 
 #ifndef __MONITOR_H__
-#define __MONITOR_H__
+#define __MONITOR_H__         
+
+#define FgcSubmitMonitorRecordEntry(_queue_, _lock_, _entry_) ExInterlockedInsertTailList((_queue_), (_entry_), (_lock_)); \
+                                                              KeSetEvent(&Globals.MonitorContext->EventWakeMonitor, 0, FALSE);
 
 typedef struct _FG_MONITOR_RECORD_ENTRY {
 
@@ -57,14 +60,16 @@ typedef struct _FG_MONITOR_RECORD_ENTRY {
 
 _Check_return_
 NTSTATUS
-FgcRecordOperation(
+FgcCreateMonitorRecordEntry(
     _In_ UCHAR MajorFunction,
     _In_ UCHAR MinorFunction,
     _In_ ULONG_PTR RequestorPid,
     _In_ ULONG_PTR RequestorTid,
-    _In_opt_ IO_STATUS_BLOCK *IoStatus,
     _In_opt_ FG_FILE_ID_DESCRIPTOR *FileIdDescriptor,
-    _In_ PUNICODE_STRING FilePath
+    _In_opt_ IO_STATUS_BLOCK *IoStatus,
+    _In_opt_ PUNICODE_STRING RenameFilePath,
+    _In_ PUNICODE_STRING FilePath,
+    _Inout_ PFG_MONITOR_RECORD_ENTRY* MonitorRecordEntry
     );
 
 #define FG_MONITOR_SEND_RECORD_BUFFER_SIZE (32 * 1024)
@@ -81,7 +86,7 @@ typedef struct _FG_MONITOR_CONTEXT {
     PLIST_ENTRY RecordsQueue;
 
     // Monitor reocrd queue lock.
-    KSPIN_LOCK RecordsQueueLock;
+    KSPIN_LOCK *RecordsQueueLock;
 
     // The event to notify monitor daemon to send records.
     KEVENT EventWakeMonitor;
@@ -103,7 +108,8 @@ _Check_return_
 NTSTATUS
 FgcCreateMonitorStartContext(
     _In_ PFLT_FILTER Filter,
-    _In_ PLIST_ENTRY RecordsQueue,
+    _In_ LIST_ENTRY *RecordsQueue,
+    _In_ KSPIN_LOCK *RecordsQueueLock,
     _In_ PFG_MONITOR_CONTEXT *Context
     );
 

@@ -65,6 +65,12 @@ CONST FLT_OPERATION_REGISTRATION FgcOperationCallbacks[] = {
       FgcPreFileSystemControlCallback,
       NULL },
 
+    { IRP_MJ_CLOSE,
+      0,
+      FgcPreCloseCallback,
+      FgcPostCloseCallback,
+      NULL },
+
     { IRP_MJ_OPERATION_END }
 };
 
@@ -227,6 +233,7 @@ DriverEntry(
 
         status = FgcCreateMonitorStartContext(Globals.Filter,
                                              &Globals.MonitorRecordsQueue,
+                                             &Globals.MonitorRecordsQueueLock,
                                              &monitorContext);
         if (!NT_SUCCESS(status) || NULL == monitorContext) {
             DBG_ERROR("NTSTATUS: '0x%08x', create monitor start context failed", status);

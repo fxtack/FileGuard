@@ -42,23 +42,21 @@ Environment:
 #pragma warning(push)
 #pragma warning(disable: 6001)
 
-#define FgcAddMonitorRecordEntry(_list_, _entry_, _lock_) ExInterlockedInsertHeadList((_list_), (_entry_), (_lock_))
-
 #define FgcFreeMonitorRecordEntry(_entry_) InterlockedDecrement((volatile LONG*)&Globals.MonitorRecordsAllocated); \
                                            FgcFreeBuffer((_entry_))
 
-#define FgcAddMonitorRecordEntry(_list_, _entry_, _lock_) ExInterlockedInsertHeadList((_list_), (_entry_), (_lock_))
-
 _Check_return_
 NTSTATUS
-FgcRecordOperation(
+FgcCreateMonitorRecordEntry(
     _In_ UCHAR MajorFunction,
     _In_ UCHAR MinorFunction,
     _In_ ULONG_PTR RequestorPid,
     _In_ ULONG_PTR RequestorTid,
-    _In_opt_ IO_STATUS_BLOCK *IoStatus,
     _In_opt_ FG_FILE_ID_DESCRIPTOR *FileIdDescriptor,
-    _In_ PUNICODE_STRING FilePath
+    _In_opt_ IO_STATUS_BLOCK *IoStatus,
+    _In_opt_ PUNICODE_STRING RenameFilePath,
+    _In_ PUNICODE_STRING FilePath,
+    _Inout_ PFG_MONITOR_RECORD_ENTRY *MonitorRecordEntry
     )
 /*++
 
@@ -68,10 +66,13 @@ Routine Description:
 
 Arguments:
 
+    MajorFunction      - IRP major function.
+    MinorFunction      - IRP minior function.
     RequestorPid       - IO requestor process id.
     RequestorTid       - IO requestor thread id.
     IoStatus           - IO status.
     FileIdDescriptor   - File id descriptor.
+    RenameFilePath     - Rename file path.
     FilePath           - File path.
 
 Return Value:
@@ -82,7 +83,9 @@ Return Value:
 --*/
 {
     NTSTATUS status = STATUS_SUCCESS;
+    SIZE_T allocateSize = 0;
     FG_MONITOR_RECORD_ENTRY *recordEntry = NULL;
+    WCHAR *filePathPtr = NULL;
 
     if (NULL == FilePath) return STATUS_INVALID_PARAMETER_5;
 
@@ -90,9 +93,13 @@ Return Value:
         return STATUS_NO_MORE_ENTRIES;
     }
 
+    allocateSize = sizeof(FG_MONITOR_RECORD_ENTRY) + 
+                   FilePath->Length + 
+                   (NULL == RenameFilePath ? 0 : RenameFilePath->Length);
+
     status = FgcAllocateBufferEx(&recordEntry, 
                                  POOL_FLAG_PAGED, 
-                                 sizeof(FG_MONITOR_RECORD_ENTRY) + FilePath->Length,
+                                 allocateSize,
                                  FG_MONITOR_RECORD_ENTRY_NON_PAGED_TAG);
     if (!NT_SUCCESS(status)) {
         LOG_ERROR("NTSTATUS: 0x%08x, allocate monitor record entry failed", status);
@@ -105,7 +112,6 @@ Return Value:
     recordEntry->Record.MinorFunction = MinorFunction;
     recordEntry->Record.RequestorPid = RequestorPid;
     recordEntry->Record.RequestorTid = RequestorTid;
-    KeQuerySystemTime(&recordEntry->Record.RecordTime);
 
     if (NULL != IoStatus) {
         recordEntry->Record.OpStatus = IoStatus->Status;
@@ -118,13 +124,18 @@ Return Value:
                       sizeof(FG_FILE_ID_DESCRIPTOR));
     }
 
-    RtlCopyMemory(recordEntry->Record.FilePath, FilePath->Buffer, FilePath->Length);
+    filePathPtr = recordEntry->Record.FilePath;
+    RtlCopyMemory(filePathPtr, FilePath->Buffer, FilePath->Length);
     recordEntry->Record.FilePathSize = FilePath->Length;
 
-    FgcAddMonitorRecordEntry(&Globals.MonitorRecordsQueue, 
-                             &recordEntry->List,
-                             &Globals.MonitorRecordsQueueLock);
-    KeSetEvent(&Globals.MonitorContext->EventWakeMonitor, 0, FALSE);
+    filePathPtr += FilePath->Length;
+    if (NULL != RenameFilePath) {
+        RtlCopyMemory(filePathPtr, RenameFilePath->Buffer, RenameFilePath->Length);
+        recordEntry->Record.RenameFilePathSize = RenameFilePath->Length;
+    }
+
+    *MonitorRecordEntry = recordEntry;
+
     return status;
 }
 
@@ -134,7 +145,8 @@ _Check_return_
 NTSTATUS
 FgcCreateMonitorStartContext(
     _In_ PFLT_FILTER Filter,
-    _In_ PLIST_ENTRY RecordsQueue,
+    _In_ LIST_ENTRY *RecordsQueue,
+    _In_ KSPIN_LOCK *RecordsQueueLock,
     _In_ PFG_MONITOR_CONTEXT *Context
     )
 /*++
@@ -145,14 +157,14 @@ Routine Description:
 
 Arguments:
 
-    Filter       - Pointer to the filter structure.
+    Filter           - Pointer to the filter structure.
+                     
+    RecordsQueue     - A pointer to monitor records queue that save records what need be 
+                       send to user-mode application.
 
-    RecordsQueue - A pointer to monitor records queue that save records what need be 
-                   send to user-mode application.
+    RecordsQueueLock - Lock of record queue.
 
-    QueueMutex   - The mutex for records queue.
-
-    Context      - A pointer to a variable that receives the monitor context.
+    Context          - A pointer to a variable that receives the monitor context.
 
 Return Value:
 
@@ -188,11 +200,10 @@ Return Value:
     context->Filter = Filter;
     context->ClientPort = NULL;
     context->RecordsQueue = RecordsQueue;
-
+    context->RecordsQueueLock = RecordsQueueLock;
     //
     // Initialize monitor thread control event.
     //
-    KeInitializeSpinLock(&context->RecordsQueueLock);
     KeInitializeEvent(&context->EventWakeMonitor, NotificationEvent, FALSE);
     KeInitializeEvent(&context->EventPortConnected, NotificationEvent, FALSE);
 
@@ -265,7 +276,7 @@ Return Value:
         // Get monitor record from record queue.
         //
         status = FgcGetRecords(context->RecordsQueue, 
-                               &context->RecordsQueueLock, 
+                               context->RecordsQueueLock, 
                                messageBody->DataBuffer, 
                                FG_MONITOR_SEND_RECORD_BUFFER_SIZE, 
                                &messageBody->DataSize);
@@ -312,9 +323,8 @@ FgcGetRecords(
     _Out_ PULONG ReturnOutputBufferSize
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
     BOOLEAN recordsAvailable = FALSE;
-    PLIST_ENTRY listEntry = NULL;
+    PLIST_ENTRY entry = NULL;
     PFG_MONITOR_RECORD_ENTRY recordEntry = NULL;
     ULONG bytesWritten = 0UL;
     KIRQL oldIrql;
@@ -325,12 +335,12 @@ FgcGetRecords(
 
         recordsAvailable = TRUE;
 
-        listEntry = RemoveHeadList(List);
-        recordEntry = CONTAINING_RECORD(listEntry, FG_MONITOR_RECORD_ENTRY, List);
+        entry = RemoveHeadList(List);
+        recordEntry = CONTAINING_RECORD(entry, FG_MONITOR_RECORD_ENTRY, List);
         writeSize = sizeof(FG_MONITOR_RECORD) + recordEntry->Record.FilePathSize;
 
         if (OutputBufferSize < writeSize) {
-            InsertHeadList(List, listEntry);
+            InsertHeadList(List, entry);
             break;
         }
 
@@ -339,9 +349,7 @@ FgcGetRecords(
         try {
             RtlCopyMemory(OutputBuffer, &recordEntry->Record, writeSize);
         } except (AsMessageException(GetExceptionInformation(), TRUE)) {
-            KeAcquireSpinLock(Lock, &oldIrql);
-            InsertHeadList(List, listEntry);
-            KeReleaseSpinLock(Lock, oldIrql);
+            ExInterlockedInsertHeadList(List, entry, Lock);
             return GetExceptionCode();
         }
 
@@ -354,15 +362,15 @@ FgcGetRecords(
     }
     KeReleaseSpinLock(Lock, oldIrql);
 
-    if ((0 == bytesWritten) && recordsAvailable) {
-        status = STATUS_BUFFER_TOO_SMALL;
-    } else if (bytesWritten > 0) {
-        status = STATUS_SUCCESS;
-    }
-
     *ReturnOutputBufferSize = bytesWritten;
 
-    return status;
+    if ((0 == bytesWritten) && recordsAvailable) {
+        return STATUS_BUFFER_TOO_SMALL;
+    } else if (bytesWritten > 0) {
+        return STATUS_SUCCESS;
+    }
+
+    return STATUS_UNSUCCESSFUL;
 }
 
 VOID

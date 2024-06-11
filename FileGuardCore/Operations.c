@@ -76,9 +76,9 @@ Return Value:
     PFG_COMPLETION_CONTEXT completionContext = NULL;
     FG_RUEL_CODE ruleCode = 0ul;
 
-    PAGED_CODE();
-
     UNREFERENCED_PARAMETER(FltObjects);
+
+    PAGED_CODE();
 
     FLT_ASSERT(NULL != Data);
     FLT_ASSERT(NULL != Data->Iopb);
@@ -191,6 +191,7 @@ Return Value:
     PFG_COMPLETION_CONTEXT completionContext = CompletionContext;
     PFLT_FILE_NAME_INFORMATION nameInfo = NULL;
     ULONG ruleCode = 0;
+    PFG_MONITOR_RECORD_ENTRY recordEntry = NULL;
     PFG_FILE_CONTEXT fileContext = NULL, oldFileContext = NULL;
 
     UNREFERENCED_PARAMETER(FltObjects);
@@ -213,17 +214,24 @@ Return Value:
     }
 
     if (RuleMonitored == ruleCode) {
-        status = FgcRecordOperation(Data->Iopb->MajorFunction,
-                                    Data->Iopb->MinorFunction,
-                                    (ULONG_PTR)PsGetCurrentProcessId(),
-                                    (ULONG_PTR)PsGetCurrentThreadId(),
-                                    &Data->IoStatus,
-                                    NULL,
-                                    &nameInfo->Name);
+        status = FgcCreateMonitorRecordEntry(Data->Iopb->MajorFunction,
+                                             Data->Iopb->MinorFunction,
+                                             (ULONG_PTR)PsGetCurrentProcessId(),
+                                             (ULONG_PTR)PsGetCurrentThreadId(),
+                                             NULL,
+                                             &Data->IoStatus,
+                                             NULL,
+                                             &nameInfo->Name,
+                                             &recordEntry);
         if (!NT_SUCCESS(status)) {
             LOG_ERROR("NTSTATUS: 0x%08x, record operation failed", status);
             goto Cleanup;
         }
+
+        KeQuerySystemTime(&recordEntry->Record.RecordTime);
+        FgcSubmitMonitorRecordEntry(&Globals.MonitorRecordsQueue, 
+                                    &Globals.MonitorRecordsQueueLock,
+                                    &recordEntry->List);
     }
     
     if (!NT_SUCCESS(Data->IoStatus.Status)) {
@@ -626,4 +634,126 @@ Cleanup:
     }
 
     return callbackStatus;
+}
+
+FLT_PREOP_CALLBACK_STATUS
+FgcPreCloseCallback(
+    _Inout_ PFLT_CALLBACK_DATA Data,
+    _In_ PCFLT_RELATED_OBJECTS FltObjects,
+    _Flt_CompletionContext_Outptr_ PVOID *CompletionContext
+    )
+/*++
+
+Routine Description:
+
+    This routine is a pre-operation dispatch routine for 'IRP_MJ_CLOSE'.
+
+    This is non-pageable because it could be called on the paging path
+
+Arguments:
+
+    Data              - Pointer to the filter callbackData that is passed to us.
+    FltObjects        - Pointer to the FLT_RELATED_OBJECTS data structure containing
+                        opaque handles to this filter, instance, its associated volume and
+                        file object.
+    CompletionContext - The context for the completion routine for this
+                        operation.
+
+Return Value:
+
+    The return value is the status of the operation.
+
+--*/
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    FLT_PREOP_CALLBACK_STATUS callbackStatus = FLT_PREOP_SUCCESS_NO_CALLBACK;
+    PFG_FILE_CONTEXT fileContext = NULL;
+    PFG_MONITOR_RECORD_ENTRY recordEntry = NULL;
+
+    UNREFERENCED_PARAMETER(FltObjects);
+
+    PAGED_CODE();
+
+    status = FltGetFileContext(Data->Iopb->TargetInstance, Data->Iopb->TargetFileObject, &fileContext);
+    if (!NT_SUCCESS(status)) {
+        goto Cleanup;
+    }
+
+    if (RuleMonitored == fileContext->RuleCode) {
+        status = FgcCreateMonitorRecordEntry(Data->Iopb->MajorFunction,
+                                             Data->Iopb->MinorFunction,
+                                             (ULONG_PTR)PsGetCurrentProcessId(),
+                                             (ULONG_PTR)PsGetCurrentThreadId(),
+                                             NULL,
+                                             NULL,
+                                             NULL,
+                                             &fileContext->FileNameInfo->Name,
+                                             &recordEntry);
+        if (!NT_SUCCESS(status)) {
+            LOG_ERROR("NTSTATUS: 0x%08x, record operation failed", status);
+            goto Cleanup;
+        }
+
+        *CompletionContext = recordEntry;
+        callbackStatus = FLT_PREOP_SUCCESS_WITH_CALLBACK;
+    }
+
+Cleanup:
+
+    if (NULL != fileContext) {
+        FltReleaseContext(fileContext);
+    }
+
+    return callbackStatus;
+}
+
+FLT_POSTOP_CALLBACK_STATUS
+FgcPostCloseCallback(
+    _Inout_ PFLT_CALLBACK_DATA Data,
+    _In_ PCFLT_RELATED_OBJECTS FltObjects,
+    _In_opt_ PVOID CompletionContext,
+    _In_ FLT_POST_OPERATION_FLAGS Flags
+    )
+/*++
+
+Routine Description:
+
+    This routine is the post-operation completion routine for 'IRP_MJ_CREATE'.
+
+    This is non-pageable because it may be called at DPC level.
+
+Arguments:
+
+    Data              - Pointer to the filter callbackData that is passed to us.
+
+    FltObjects        - Pointer to the FLT_RELATED_OBJECTS data structure containing
+                        opaque handles to this filter, instance, its associated volume and
+                        file object.
+
+    CompletionContext - The completion context set in the pre-operation routine.
+
+    Flags             - Denotes whether the completion is successful or is being drained.
+
+Return Value:
+
+    The return value is the status of the operation.
+
+--*/
+{
+    FG_MONITOR_RECORD_ENTRY *recordEntry = (FG_MONITOR_RECORD_ENTRY*)CompletionContext;
+
+    UNREFERENCED_PARAMETER(Data);
+    UNREFERENCED_PARAMETER(FltObjects);
+    UNREFERENCED_PARAMETER(Flags);
+
+    PAGED_CODE();
+
+    if (NULL != recordEntry) {
+        KeQuerySystemTime(&recordEntry->Record.RecordTime);
+        FgcSubmitMonitorRecordEntry(&Globals.MonitorRecordsQueue,
+                                    &Globals.MonitorRecordsQueueLock,
+                                    &recordEntry->List);
+    }
+
+    return FLT_POSTOP_FINISHED_PROCESSING;
 }
