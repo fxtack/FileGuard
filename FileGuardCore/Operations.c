@@ -216,8 +216,6 @@ Return Value:
     if (RuleMonitored == ruleCode) {
         status = FgcCreateMonitorRecordEntry(Data->Iopb->MajorFunction,
                                              Data->Iopb->MinorFunction,
-                                             (ULONG_PTR)PsGetCurrentProcessId(),
-                                             (ULONG_PTR)PsGetCurrentThreadId(),
                                              NULL,
                                              &Data->IoStatus,
                                              NULL,
@@ -357,6 +355,7 @@ Return Value:
     NTSTATUS status = STATUS_SUCCESS;
     FLT_PREOP_CALLBACK_STATUS callbackStatus = FLT_PREOP_SUCCESS_NO_CALLBACK;
     PFG_FILE_CONTEXT fileContext = NULL;
+    PFG_MONITOR_RECORD_ENTRY recordEntry = NULL;
 
     UNREFERENCED_PARAMETER(CompletionContext);
     UNREFERENCED_PARAMETER(FltObjects);
@@ -388,6 +387,23 @@ Return Value:
         SET_CALLBACK_DATA_STATUS(Data, STATUS_MEDIA_WRITE_PROTECTED);
         callbackStatus = FLT_PREOP_COMPLETE;
         break;
+
+    case RuleMonitored:
+        status = FgcCreateMonitorRecordEntry(Data->Iopb->MajorFunction, 
+                                             Data->Iopb->MinorFunction,
+                                             NULL,
+                                             NULL,
+                                             NULL,
+                                             &fileContext->FileNameInfo->Name,
+                                             &recordEntry);
+        if (!NT_SUCCESS(status)) {
+            LOG_ERROR("NTSTATUS: 0x%08x, create monitor record entry failed", status);
+            goto Cleanup;
+        }
+
+        *CompletionContext = recordEntry;
+        callbackStatus = FLT_PREOP_SUCCESS_WITH_CALLBACK;
+        break;
     }
 
 Cleanup:
@@ -402,6 +418,55 @@ Cleanup:
     }
 
     return callbackStatus;
+}
+
+FLT_POSTOP_CALLBACK_STATUS
+FgcPostWriteCallback(
+    _Inout_ PFLT_CALLBACK_DATA Data,
+    _In_ PCFLT_RELATED_OBJECTS FltObjects,
+    _In_opt_ PVOID CompletionContext,
+    _In_ FLT_POST_OPERATION_FLAGS Flags
+)
+/*++
+
+Routine Description:
+
+    This routine is the post-operation completion routine for 'IRP_MJ_CREATE'.
+
+    This is non-pageable because it may be called at DPC level.
+
+Arguments:
+
+    Data              - Pointer to the filter callbackData that is passed to us.
+
+    FltObjects        - Pointer to the FLT_RELATED_OBJECTS data structure containing
+                        opaque handles to this filter, instance, its associated volume and
+                        file object.
+
+    CompletionContext - The completion context set in the pre-operation routine.
+
+    Flags             - Denotes whether the completion is successful or is being drained.
+
+Return Value:
+
+    The return value is the status of the operation.
+
+--*/
+{
+    FG_MONITOR_RECORD_ENTRY* recordEntry = (FG_MONITOR_RECORD_ENTRY*)CompletionContext;
+
+    UNREFERENCED_PARAMETER(FltObjects);
+    UNREFERENCED_PARAMETER(Flags);
+
+    if (NULL != recordEntry) {
+        FgcSetRecordIoStatus(recordEntry->Record, &Data->IoStatus);
+        KeQuerySystemTime(&recordEntry->Record.RecordTime);
+        FgcSubmitMonitorRecordEntry(&Globals.MonitorRecordsQueue,
+                                    &Globals.MonitorRecordsQueueLock,
+                                    &recordEntry->List);
+    }
+
+    return FLT_POSTOP_FINISHED_PROCESSING;
 }
 
 FLT_PREOP_CALLBACK_STATUS
@@ -682,15 +747,13 @@ Return Value:
     if (RuleMonitored == fileContext->RuleCode) {
         status = FgcCreateMonitorRecordEntry(Data->Iopb->MajorFunction,
                                              Data->Iopb->MinorFunction,
-                                             (ULONG_PTR)PsGetCurrentProcessId(),
-                                             (ULONG_PTR)PsGetCurrentThreadId(),
                                              NULL,
                                              NULL,
                                              NULL,
                                              &fileContext->FileNameInfo->Name,
                                              &recordEntry);
         if (!NT_SUCCESS(status)) {
-            LOG_ERROR("NTSTATUS: 0x%08x, record operation failed", status);
+            LOG_ERROR("NTSTATUS: 0x%08x, create monitor record entry failed", status);
             goto Cleanup;
         }
 
@@ -749,6 +812,7 @@ Return Value:
     PAGED_CODE();
 
     if (NULL != recordEntry) {
+        FgcSetRecordIoStatus(recordEntry->Record, &Data->IoStatus);
         KeQuerySystemTime(&recordEntry->Record.RecordTime);
         FgcSubmitMonitorRecordEntry(&Globals.MonitorRecordsQueue,
                                     &Globals.MonitorRecordsQueueLock,

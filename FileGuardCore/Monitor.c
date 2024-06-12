@@ -50,8 +50,6 @@ NTSTATUS
 FgcCreateMonitorRecordEntry(
     _In_ UCHAR MajorFunction,
     _In_ UCHAR MinorFunction,
-    _In_ ULONG_PTR RequestorPid,
-    _In_ ULONG_PTR RequestorTid,
     _In_opt_ FG_FILE_ID_DESCRIPTOR *FileIdDescriptor,
     _In_opt_ IO_STATUS_BLOCK *IoStatus,
     _In_opt_ PUNICODE_STRING RenameFilePath,
@@ -110,8 +108,8 @@ Return Value:
     
     recordEntry->Record.MajorFunction = MajorFunction;
     recordEntry->Record.MinorFunction = MinorFunction;
-    recordEntry->Record.RequestorPid = RequestorPid;
-    recordEntry->Record.RequestorTid = RequestorTid;
+    recordEntry->Record.RequestorPid = (ULONG_PTR)PsGetCurrentProcessId();
+    recordEntry->Record.RequestorTid = (ULONG_PTR)PsGetCurrentThreadId();
 
     if (NULL != IoStatus) {
         recordEntry->Record.OpStatus = IoStatus->Status;

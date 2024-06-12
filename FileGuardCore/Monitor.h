@@ -44,6 +44,9 @@ Environment:
 #define FgcSubmitMonitorRecordEntry(_queue_, _lock_, _entry_) ExInterlockedInsertTailList((_queue_), (_entry_), (_lock_)); \
                                                               KeSetEvent(&Globals.MonitorContext->EventWakeMonitor, 0, FALSE);
 
+#define FgcSetRecordIoStatus(_record_, _io_status_) (_record_).OpInformation = (_io_status_)->Information;\
+                                                    (_record_).OpStatus = (_io_status_)->Status
+
 typedef struct _FG_MONITOR_RECORD_ENTRY {
 
     //
@@ -63,8 +66,6 @@ NTSTATUS
 FgcCreateMonitorRecordEntry(
     _In_ UCHAR MajorFunction,
     _In_ UCHAR MinorFunction,
-    _In_ ULONG_PTR RequestorPid,
-    _In_ ULONG_PTR RequestorTid,
     _In_opt_ FG_FILE_ID_DESCRIPTOR *FileIdDescriptor,
     _In_opt_ IO_STATUS_BLOCK *IoStatus,
     _In_opt_ PUNICODE_STRING RenameFilePath,
