@@ -431,7 +431,7 @@ FgcPostWriteCallback(
 
 Routine Description:
 
-    This routine is the post-operation completion routine for 'IRP_MJ_CREATE'.
+    This routine is the post-operation completion routine for 'IRP_MJ_WRITE'.
 
     This is non-pageable because it may be called at DPC level.
 
@@ -781,7 +781,7 @@ FgcPostCloseCallback(
 
 Routine Description:
 
-    This routine is the post-operation completion routine for 'IRP_MJ_CREATE'.
+    This routine is the post-operation completion routine for 'IRP_MJ_CLOSE'.
 
     This is non-pageable because it may be called at DPC level.
 
