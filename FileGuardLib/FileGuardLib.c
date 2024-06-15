@@ -260,12 +260,11 @@ HRESULT FglCreateRulesMessage(
     message->RulesAmount = RulesAmount;
     message->RulesSize = (ULONG)rulesSize;
     for (i = 0; i < RulesAmount; i++) {
-        if (!VALID_RULE_CODE(Rules[i].MajorCode, Rules[i].MinorCode)) {
+        if (!VALID_RULE_CODE(Rules[i].Code)) {
             free(message);
             return E_INVALIDARG;
         }
-        rulePtr->MajorCode = Rules[i].MajorCode;
-        rulePtr->MinorCode = Rules[i].MinorCode;
+        rulePtr->Code = Rules[i].Code;
 
         pathExpressionSize = (USHORT)wcslen(Rules[i].RulePathExpression) * sizeof(WCHAR);
         rulePtr->PathExpressionSize = pathExpressionSize;

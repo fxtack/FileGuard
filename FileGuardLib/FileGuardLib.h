@@ -44,8 +44,7 @@ Environment:
 #include <windows.h>
 
 typedef struct _FGL_RULE {
-    FG_RULE_MAJOR_CODE MajorCode;
-    FG_RULE_MINOR_CODE MinorCode;
+    FG_RULE_CODE Code;
     PCWSTR RulePathExpression;
 } FGL_RULE, *PFGL_RULE;
 

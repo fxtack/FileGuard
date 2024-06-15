@@ -70,10 +70,18 @@ typedef struct _FG_CORE_VERSION {
     USHORT Build;
 } FG_CORE_VERSION, *PFG_CORE_VERSION;
 
+typedef union _FG_RULE_CODE {
+    ULONG Code;
+    struct {
+        USHORT Minor;
+        USHORT Major;
+    } DUMMYSTRUCTNAME;
+} FG_RULE_CODE, *PFG_RULE_CODE;
+
 typedef enum _FG_RULE_MAJOR_CODE {
     RuleMajorNone,
-    RuleMajorAccessDenined,
-    RuleMajorReadOnly,
+    RuleMajorAccessDenied,
+    RuleMajorReadonly,
     RuleMajorMaximum
 } FG_RULE_MAJOR_CODE, *PFG_RULE_MAJOR_CODE;
 
@@ -83,13 +91,12 @@ typedef enum _FG_RULE_MINOR_CODE {
     RuleMinorMaximum
 } FG_RULE_MINOR_CODE, *PFG_RULE_MINOR_CODE;
 
-#define VALID_MAJOR_RULE_CODE(_major_code_) ((_major_code_) > RuleMajorNone && (_major_code_) < RuleMajorMaximum)
-#define VALID_MINOR_RULE_CODE(_minor_code_) ((_minor_code_) > RuleMinorNone && (_minor_code_) < RuleMinorMaximum)
-#define VALID_RULE_CODE(_major_code_, _minor_code_) (VALID_MAJOR_RULE_CODE(_major_code_) && VALID_MINOR_RULE_CODE(_minor_code_))
+#define VALID_MAJOR_RULE_CODE(_code_) ((_code_).Major > RuleMajorNone && (_code_).Major < RuleMajorMaximum)
+#define VALID_MINOR_RULE_CODE(_code_) ((_code_).Minor > RuleMinorNone && (_code_).Minor < RuleMinorMaximum)
+#define VALID_RULE_CODE(_code_) (VALID_MAJOR_RULE_CODE(_code_) && VALID_MINOR_RULE_CODE(_code_))
 
 typedef struct _FG_RULE {
-    FG_RULE_MAJOR_CODE MajorCode;
-    FG_RULE_MINOR_CODE MinorCode;
+    FG_RULE_CODE Code;
     USHORT PathExpressionSize; // The bytes size of `FilePathName`, contain null wide char.
     WCHAR PathExpression[];    // End of null.
 } FG_RULE, *PFG_RULE;
@@ -155,10 +162,9 @@ typedef struct _FG_MONITOR_RECORD {
     ULONG_PTR RequestorTid;
     FG_FILE_ID_DESCRIPTOR FileIdDescriptor;
     LARGE_INTEGER RecordTime;
-    ULONG_PTR OpInformation;
-    NTSTATUS OpStatus;
+    ULONG RuleMajorCode;
     USHORT FilePathSize;
-    USHORT RenameFilePathSize;
+    USHORT RulePathExpression;
     WCHAR FilePath[];
 } FG_MONITOR_RECORD, *PFG_MONITOR_RECORD;
 
