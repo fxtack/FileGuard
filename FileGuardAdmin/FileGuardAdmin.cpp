@@ -56,6 +56,8 @@ EXTERN_C_START
 #include "FileGuardLib.h"
 EXTERN_C_END
 
+#include "CLI11/CLI11.hpp"
+
 #define FGA_MAJOR_VERSION ((USHORT)0)
 #define FGA_MINOR_VERSION ((USHORT)1)
 #define FGA_PATCH_VERSION ((USHORT)0)
@@ -66,31 +68,46 @@ EXTERN_C_END
 namespace fileguard {
     
     struct Rule {
-        FG_RUEL_CODE code;
+        FG_RULE_MAJOR_CODE major_code;
+        FG_RULE_MINOR_CODE minor_code;
         std::wstring_view path_expression;
         const std::shared_ptr<char[]> buf; 
 
-        Rule(FG_RUEL_CODE c,
+        Rule(FG_RULE_MAJOR_CODE major_code,
+            FG_RULE_MINOR_CODE minor_code,
             std::wstring_view path_expression, 
             const std::shared_ptr<char[]> buf):
-            code(c), path_expression(path_expression), buf(buf) {}
+            major_code(major_code), minor_code(minor_code), path_expression(path_expression), buf(buf) { }
     };
 
-    ULONG RuleNameToCode(std::wstring& rule_type) {
-        std::transform(rule_type.begin(), rule_type.end(), rule_type.begin(),
+    FG_RULE_MAJOR_CODE RuleMajorNameToCode(std::wstring& major_name) {
+        std::transform(major_name.begin(), major_name.end(), major_name.begin(),
             [](wchar_t c) { return std::tolower(c); });
 
-        if (L"access-denied" == rule_type) return RuleAccessDenined;
-        else if (L"readonly" == rule_type) return RuleReadOnly;
-        else if (L"monitored" == rule_type) return RuleMonitored;
-        return RuleNone;
+        if (L"access-denied" == major_name) return FG_RULE_MAJOR_CODE::RuleMajorAccessDenined;
+        else if (L"readonly" == major_name) return FG_RULE_MAJOR_CODE::RuleMajorReadOnly;
+        return FG_RULE_MAJOR_CODE::RuleMajorNone;
     }
 
-    std::wstring RuleCodeToName(FG_RUEL_CODE code) {
-        switch (code) {
-        case RuleAccessDenined: return L"access-denied";
-        case RuleReadOnly: return L"readonly";
-        case RuleMonitored: return L"monitored";
+    std::wstring RuleMajorName(FG_RULE_MAJOR_CODE major_code) {
+        switch (major_code) {
+        case FG_RULE_MAJOR_CODE::RuleMajorAccessDenined: return L"access-denied";
+        case FG_RULE_MAJOR_CODE::RuleMajorReadOnly: return L"readonly";
+        }
+        return L"";
+    }
+
+    FG_RULE_MINOR_CODE RuleMinorNameToCode(std::wstring& minor_name) {
+        std::transform(minor_name.begin(), minor_name.end(), minor_name.begin(),
+            [](wchar_t c) { return std::tolower(c); });
+
+        if (L"monitored" == minor_name) return FG_RULE_MINOR_CODE::RuleMinorMonitored;
+        return FG_RULE_MINOR_CODE::RuleMinorNone;
+    }
+
+    std::wstring RuleMinorName(FG_RULE_MINOR_CODE minor_code) {
+        switch (minor_code) {
+        case FG_RULE_MINOR_CODE::RuleMinorMonitored: return L"monitered";
         }
         return L"";
     }
@@ -117,7 +134,8 @@ namespace fileguard {
         char* rule_offset_ptr = buf.get();
         while (buf_size > 0) {
             auto rule_ptr = reinterpret_cast<FG_RULE*>(rule_offset_ptr);
-            auto rule = std::make_unique<Rule>(rule_ptr->RuleCode, 
+            auto rule = std::make_unique<Rule>(rule_ptr->MajorCode, 
+                                               rule_ptr->MinorCode,
                                                std::wstring_view(rule_ptr->PathExpression, rule_ptr->PathExpressionSize/sizeof(wchar_t)),
                                                buf);
             rules.push_back(std::move(rule));
@@ -164,16 +182,16 @@ namespace fileguard {
             return SUCCEEDED(hr) ? std::nullopt : std::make_optional(hr);
         }
         
-        std::variant<bool, HRESULT> AddSingleRule(unsigned long rule_code, std::wstring rule_path_expression) {
-            FGL_RULE rule{ rule_code, rule_path_expression.c_str()};
+        std::variant<bool, HRESULT> AddSingleRule(FG_RULE_MAJOR_CODE major_code, FG_RULE_MINOR_CODE minor_code, std::wstring rule_path_expression) {
+            FGL_RULE rule{ major_code, minor_code, rule_path_expression.c_str()};
             BOOLEAN added = FALSE;
             auto hr = FglAddSingleRule(port_, &rule, &added);
             if (FAILED(hr)) return hr;
             return bool(added);
         }
 
-        std::variant<bool, HRESULT> RemoveSingleRule(unsigned long rule_code, std::wstring rule_path_expression) {
-            FGL_RULE rule{ rule_code, rule_path_expression.c_str() };
+        std::variant<bool, HRESULT> RemoveSingleRule(FG_RULE_MAJOR_CODE major_code, FG_RULE_MINOR_CODE minor_code, std::wstring rule_path_expression) {
+            FGL_RULE rule{ major_code, minor_code, rule_path_expression.c_str() };
             BOOLEAN removed = FALSE;
             auto hr = FglRemoveSingleRule(port_, &rule, &removed);
             if (FAILED(hr)) return hr;
@@ -228,90 +246,56 @@ namespace fileguard {
         ~Admin() = default;
 
         HRESULT Parse() {
-            HRESULT hr = S_OK;
-            std::map<std::wstring, int> args;
 
-            if (argc_ < 2) {
-                PrintUsage();
-                return hr;
-            }
+            CLI::App app("This tool is used to operate rules");
 
-            for (int i = 1; i < argc_; i++) {
-                std::wstring flag = argv_[i];
-                if (flag.find(L"--") == 0 || (flag.length() == 2 && flag[0] == L'-')) {
-                    auto result = args.emplace(flag, i);
-                    if (!result.second) {
-                        std::wcerr << L"error: invalid parameter: repeated flags '" << flag << "'\n\n";
-                        return E_INVALIDARG;
-                    }
-                }
-            }
+            app.set_help_flag("--help", "Print this help message and exit");
+            app.set_version_flag("--version", "1.0.0");
 
-            std::wstring flag = argv_[1];
-            if (flag == L"--help" || flag == L"-h") {
-                PrintUsage();
-                return hr;
-            }
-            if (flag == L"--version" || flag == L"-v") {
-                std::wcout << GetVersionInfo() << std::endl;
-                return hr;
-            }
+            app.require_subcommand(1);
 
-            std::wstring command = argv_[1];
-            if (command == L"unload") hr = CommandUnload(args);
-            else if (command == L"detach") hr = CommandDetach(args);
-            else if (command == L"add") hr = CommandAdd(args);
-            else if (command == L"remove") hr = CommandRemove(args);
-            else if (command == L"query") hr = CommandQuery(args);
-            else if (command == L"check-matched") hr = CommandCheckMatched(args);
-            else if (command == L"monitor") hr = CommandMonitor(args);
-            else if (command == L"cleanup") hr = CommandCleanup(args);
-            else {
-                std::wcerr << L"error: invalid flag or command: '" << command << L"'" << std::endl;
-                return E_INVALIDARG;
-            }
+            auto unload_cmd = app.add_subcommand("unload", "Unload core driver");
+            unload_cmd->callback([&]() { CommandUnload(); });
 
-            if (E_HANDLE == hr) {
-                std::wcerr << L"error: cannot connect to core, hresult: "
-                           << HEX(hr)
-                           << std::endl;
-            }
-            return hr;
-        }
+            auto detach_cmd = app.add_subcommand("detach", "Detach core instance");
+            std::wstring volume;
+            detach_cmd->add_option("--volume", volume, "Detach instance volume path")->required();
+            detach_cmd->callback([&]() { CommandDetach(volume); });
 
-        void PrintUsage() {
-            std::wcout << GetAdminImageName() <<
-                L" [command] [flags]\n" << GetVersionInfo() <<
-                L"\n\nThis tool is used to operate rules\n\n"
-                L"commands:\n"
-                L"    unload: Unload core driver.\n"
-                L"\n"
-                L"    detach: Detach core instance.\n"
-                L"        --volume <volume>\n"
-                L"\n"
-                L"    add: Add a rule.\n"
-                L"        --type <access-denied|readonly|monitor>\n"
-                L"        --expr <expression> \n"
-                L"\n"
-                L"    remove: Remove a rule.\n"
-                L"        --type <access-denied|readonly|monitor>\n"
-                L"        --expr <expression>\n"
-                L"\n"
-                L"    query: Query all rules and output it.\n"
-                L"        --format <list|csv>\n"
-                L"\n"
-                L"    check-matched: Check which rules will matched for path.\n"
-                L"        --path   <path>\n"
-                L"        --format <list|csv>\n"
-                L"\n"
-                L"    monitor: Receive monitoring records.\n"
-                L"        --format <list|csv>\n"
-                L"\n"
-                L"    cleanup: Cleanup all rules.\n"
-                L"\n"
-                L"flags:\n"
-                L"    --help, -h\n"
-                L"    --version, -v\n";
+            auto add_cmd = app.add_subcommand("add", "Add a rule");
+            std::wstring major_type, minor_type, expr;
+            add_cmd->add_option("--major-type", major_type, "Rule major type")->required();
+            add_cmd->add_option("--minor-type", minor_type, "Rule minor type")->default_val("monitored");
+            add_cmd->add_option("--expr", expr, "Rule path expression")->required();
+            add_cmd->callback([&]() { CommandAdd(major_type, minor_type, expr); });
+
+            auto remove_cmd = app.add_subcommand("remove", "Remove a rule");
+            remove_cmd->add_option("--major-type", major_type, "Rule major type")->required();
+            remove_cmd->add_option("--minor-type", minor_type, "Rule minor type")->default_val("monitored");
+            remove_cmd->add_option("--expr", expr, "Rule path expression")->required();
+            remove_cmd->callback([&]() { CommandRemove(major_type, expr, minor_type); });
+
+            auto query_cmd = app.add_subcommand("query", "Query all rules and output it");
+            std::wstring format = L"list";
+            query_cmd->add_option("--format", format, "Default output format")->default_val("list");
+            query_cmd->callback([&]() { CommandQuery(format); });
+
+            auto check_cmd = app.add_subcommand("check-matched", "Check which rules will matched for path");
+            std::wstring path;
+            check_cmd->add_option("--path", path, "Check for matching paths")->required();
+            check_cmd->add_option("--format", format, "Default format")->default_val("list");
+            check_cmd->callback([&]() { CommandCheckMatched(path, format); });
+
+            auto monitor_cmd = app.add_subcommand("monitor", "Receive monitoring records");
+            monitor_cmd->add_option("--format", format, "Default output format")->default_val("list");
+            monitor_cmd->callback([&]() { CommandMonitor(format); });
+
+            auto cleanup_cmd = app.add_subcommand("cleanup", "Cleanup all rules");
+            cleanup_cmd->callback([&]() { CommandCleanup(); });
+
+            CLI11_PARSE(app, argc_, argv_);
+
+            return S_OK;
         }
 
     private:
@@ -367,7 +351,7 @@ namespace fileguard {
             return admin_ver_wos.str();
         }
 
-        HRESULT CommandUnload(std::map<std::wstring, int>& args) {
+        HRESULT CommandUnload() {
             auto result = core_client_->SetUnloadAcceptable(true);
             if (result) {
                 auto hr = result.value();
@@ -428,91 +412,42 @@ namespace fileguard {
             return S_OK;
         }
 
-        HRESULT CommandDetach(std::map<std::wstring, int>& args) {
-            const std::wstring fn_volume = L"--volume";
-            auto f_volume = args.find(fn_volume);
-            std::wstring v_volume;
-
-            if (f_volume == args.end()) {
-                std::wcerr << L"error: command flag `" << fn_volume << "` required\n";
-                return E_INVALIDARG;
-            }
-
-            if (f_volume->second + 1 >= argc_) {
-                std::wcerr << L"error: command flag `" << f_volume->first << L"` value invalid\n";
-                return E_INVALIDARG;
-            }
-
-            v_volume = argv_[f_volume->second + 1];
+        HRESULT CommandDetach(std::wstring& volume) {
             auto result = core_client_->SetDetachAcceptable(true);
             if (result) {
                 auto hr = result.value();
                 std::wcerr << L"error: set core detach acceptable to TRUE failed, hresult: "
-                           << HEX(hr)
-                           << std::endl;
+                           << HEX(hr) << std::endl;
                 return hr;
             }
 
-            auto hr = FilterDetach(FG_CORE_FILTER_NAME, v_volume.c_str(), NULL);
+            auto hr = FilterDetach(FG_CORE_FILTER_NAME, volume.c_str(), NULL);
             if (FAILED(hr)) {
-                std::wcerr << L"error: detach volume '" << v_volume << L"' instance failed, hresult: "
-                           << HEX(hr)
-                           << std::endl;
+                std::wcerr << L"error: detach volume '" << volume << L"' instance failed, hresult: "
+                           << HEX(hr) << std::endl;
             }
 
             result = core_client_->SetDetachAcceptable(false);
             if (result) {
                 auto hr = result.value();
                 std::wcerr << L"error: set core detach acceptable to FALSE failed, hresult: "
-                           << HEX(hr)
-                           << std::endl;
+                           << HEX(hr) << std::endl;
                 return hr;
             }
 
             return S_OK;
         }
 
-        HRESULT CommandAdd(std::map<std::wstring, int>& args) {
-            const std::wstring fn_type = L"--type", fn_expr = L"--expr";
-            auto f_type = args.find(fn_type), f_expr = args.find(fn_expr);
-            std::wstring v_type, v_expr;
-
-            if (f_type == args.end()) {
-                std::wcerr << L"error: command flag `" << fn_type << "` required\n";
-                return E_INVALIDARG;
-            }
-            if (f_expr == args.end()) {
-                std::wcerr << L"error: command flag `" << fn_expr << "` required\n";
+        HRESULT CommandAdd(std::wstring& major_type, std::wstring& minor_type, std::wstring& expr) {
+            auto major_code = RuleMajorNameToCode(major_type);
+            auto minor_code = RuleMinorNameToCode(minor_type);
+            if (!VALID_RULE_CODE(major_code, minor_code)) {
+                std::wcerr << "error: invalid rule type, major: `" << major_type
+                                                  << "`, minor: `" << minor_type << "`\n";
                 return E_INVALIDARG;
             }
 
-            if (f_type->second + 1 >= argc_) {
-                std::wcerr << L"error: command flag `" << fn_type << L"` value invalid\n";
-                return E_INVALIDARG;
-            }
-            if (f_expr->second + 1 >= argc_) {
-                std::wcerr << L"error: command flag `" << fn_expr << "` value invalid\n";
-                return E_INVALIDARG;
-            }
-
-            v_type = argv_[f_type->second + 1];
-            v_expr = argv_[f_expr->second + 1];
-
-            if (v_type == fn_expr) {
-                std::wcerr << L"error: command flag `" << fn_type << "` value empty" << std::endl;
-                return E_INVALIDARG;
-            } else if (v_expr == fn_type) {
-                std::wcerr << L"error: command flag `" << fn_expr << "` value empty" << std::endl;
-                return E_INVALIDARG;
-            }
-
-            auto v_type_code = RuleNameToCode(v_type);
-            if (!VALID_RULE_CODE(v_type_code)) {
-                std::wcerr << "error: invalid rule type: `" << v_type << "`" << std::endl;
-                return E_INVALIDARG;
-            }
-
-            auto result = core_client_->AddSingleRule(v_type_code, v_expr);
+            auto result = core_client_->AddSingleRule(major_code, minor_code, expr);
             if (auto added = std::get_if<bool>(&result)) {
                 if (*added) std::wcout << L"Add rule successfully" << std::endl;
                 else std::wcout << L"Rule already exist" << std::endl;
@@ -523,47 +458,16 @@ namespace fileguard {
             return S_OK;
         }
 
-        HRESULT CommandRemove(std::map<std::wstring, int>& args) {
-            const std::wstring fn_type = L"--type", fn_expr = L"--expr";
-            auto f_type = args.find(fn_type), f_expr = args.find(fn_expr);
-            std::wstring v_type, v_expr;
-
-            if (f_type == args.end()) {
-                std::wcerr << L"error: command flag `" << fn_type << "` required\n";
-                return E_INVALIDARG;
-            }
-            if (f_expr == args.end()) {
-                std::wcerr << L"error: command flag `" << fn_expr << "` required\n";
+        HRESULT CommandRemove(std::wstring& major_type, std::wstring& minor_type, std::wstring& expr) {
+            auto major_code = RuleMajorNameToCode(major_type);
+            auto minor_code = RuleMinorNameToCode(minor_type);
+            if (!VALID_RULE_CODE(major_code, minor_code)) {
+                std::wcerr << "error: invalid rule type, major: `" << major_type
+                    << "`, minor: `" << minor_type << "`\n";
                 return E_INVALIDARG;
             }
 
-            if (f_type->second + 1 >= argc_) {
-                std::wcerr << L"error: command flag `" << fn_type << L"` value invalid\n";
-                return E_INVALIDARG;
-            }
-            if (f_expr->second + 1 >= argc_) {
-                std::wcerr << L"error: command flag `" << fn_expr << L"` value invalid\n";
-                return E_INVALIDARG;
-            }
-
-            v_type = argv_[f_type->second + 1];
-            v_expr = argv_[f_expr->second + 1];
-
-            if (v_type == fn_expr) {
-                std::wcerr << L"error: command flag `" << fn_type << "` value empty" << std::endl;
-                return E_INVALIDARG;
-            } else if (v_expr == fn_type) {
-                std::wcerr << L"error: command flag `" << fn_expr << "` value empty" << std::endl;
-                return E_INVALIDARG;
-            }
-
-            auto v_type_code = RuleNameToCode(v_type);
-            if (!VALID_RULE_CODE(v_type_code)) {
-                std::wcerr << "error: invalid rule type: `" << v_type << "`" << std::endl;
-                return E_INVALIDARG;
-            }
-
-            auto result = core_client_->RemoveSingleRule(RuleNameToCode(v_type), v_expr);
+            auto result = core_client_->RemoveSingleRule(major_code, minor_code, expr);
             if (auto removed = std::get_if<bool>(&result)) {
                 if (*removed) std::wcout << L"Remove rule successfully" << std::endl;
                 else std::wcout << "Rule not found" << std::endl;
@@ -574,24 +478,11 @@ namespace fileguard {
             return S_OK;
         }
 
-        HRESULT CommandQuery(std::map<std::wstring, int>& args) {
-            const std::wstring fn_format = L"--format";
-            auto f_format = args.find(fn_format);
-            std::wstring v_format;
-
-            if (f_format == args.end()) {
-                std::wcerr << L"error: command flag `"<< fn_format <<"` required\n";
+        HRESULT CommandQuery(std::wstring& format) {
+            if (format != L"list" && format != L"csv") {
+                std::wcerr << "error: invalid format: '" << format << "'" << std::endl;
                 return E_INVALIDARG;
             }
-
-            if (f_format->second + 1 >= argc_) {
-                std::wcerr << L"error: command flag `" << f_format->first << L"` value invalid\n";
-                return E_INVALIDARG;
-            }
-
-            v_format = argv_[f_format->second + 1];
-            std::transform(v_format.begin(), v_format.end(), v_format.begin(),
-                [](wchar_t c) { return std::tolower(c); });
 
             // Query rules.
             auto result = core_client_->QueryRules();
@@ -603,67 +494,38 @@ namespace fileguard {
             }
 
             // Output rules query result.
-            if (v_format == L"csv") std::wcout << "code,expression" << std::endl;
-            else if (v_format == L"list") std::wcout << "     total: " << rules->size() << std::endl
-                                                     << std::endl;
-            else { 
-                std::wcerr << "error: invalid format: '" << v_format << "'" << std::endl;
-                return E_INVALIDARG;
-            }
+            if (format == L"csv") std::wcout << "major_code,minor_code,expression" << std::endl;
+            
+            auto total_rules = rules->size();
+            auto index = 0;
             std::for_each(rules->begin(), rules->end(),
-                [&v_format](const std::unique_ptr<Rule>& rule) {
-                    if (v_format == L"csv") {
-                        std::wcout << RuleCodeToName(rule->code) << ","
+                [&total_rules, &index, &format](const std::unique_ptr<Rule>& rule) {
+                    if (format == L"csv") {
+                        std::wcout << RuleMajorName(rule->major_code) << ","
+                                   << RuleMinorName(rule->minor_code) << ","
                                    << rule->path_expression
                                    << std::endl;
-                    } else if (v_format == L"list") {
-                        std::wcout << "      Type: " << RuleCodeToName(rule->code) << std::endl
+                    } else if (format == L"list") {
+                        std::wcout << "     index: " << index << "/" << total_rules << std::endl
+                                   << "major type: " << RuleMajorName(rule->major_code) << std::endl
+                                   << "minor type: " << RuleMinorName(rule->minor_code) << std::endl
                                    << "expression: " << rule->path_expression << std::endl
                                    << std::endl;
+                        index++;
                     }
                 });
 
             return S_OK;
         }
 
-        HRESULT CommandCheckMatched(std::map<std::wstring, int> args) {
-            const std::wstring fn_path = L"--path", fn_format = L"--format";
-            auto f_format = args.find(fn_format), f_path = args.find(fn_path);
-            std::wstring v_path, v_format;
-
-            if (f_path == args.end()) {
-                std::wcerr << L"error: command flag `"<< fn_path <<"` required\n";
-                return E_INVALIDARG;
-            } 
-            if (f_format == args.end()) {
-                std::wcerr << L"error: command flag `" << fn_format << "` required\n";
-                return E_INVALIDARG;
-            }
-            
-            if (f_path->second + 1 >= argc_) {
-                std::wcerr << L"error: command flag `" << fn_path << L"` value invalid\n";
-                return E_INVALIDARG;
-            }
-            if (f_format->second +1 >= argc_) {
-                std::wcerr << L"error: command flag `" << fn_format << "` value invalid\n";
-                return E_INVALIDARG;
-            }
-
-            v_path = argv_[f_path->second + 1];
-            v_format = argv_[f_format->second + 1];
-            std::transform(v_format.begin(), v_format.end(), v_format.begin(),
-                [](wchar_t c) { return std::tolower(c); });
-
-            if (v_path == fn_format) {
-                std::wcerr << L"error: command flag `" << fn_path << "` value empty" << std::endl;
-                return E_INVALIDARG;
-            } else if (v_format == fn_path) {
-                std::wcerr << L"error: command flag `" << fn_format << "` value empty" << std::endl;
+        HRESULT CommandCheckMatched(std::wstring& path, std::wstring& format) {
+            if (format != L"list" && format != L"csv") {
+                std::wcerr << "error: invalid format: '" << format << "'" << std::endl;
                 return E_INVALIDARG;
             }
 
             // Check matched rules.
-            auto result = core_client_->CheckMatchedRules(v_path);
+            auto result = core_client_->CheckMatchedRules(path);
             if (auto hr = std::get_if<HRESULT>(&result)) return *hr;
             auto rules = std::get_if<std::vector<std::unique_ptr<Rule>>>(&result);
             if (rules->empty()) {
@@ -672,50 +534,39 @@ namespace fileguard {
             }
 
             // Output matched rules result.
-            if (v_format == L"csv") std::wcout << "code,expression" << std::endl;
-            else if (v_format == L"list") std::wcout << "     total: " << rules->size() << std::endl
-                                                     << std::endl;
-            else {
-                std::wcerr << "error: invalid format: '" << v_format << "'" << std::endl;
-                return E_INVALIDARG;
-            }
-            std::for_each(rules->begin(), rules->end(), 
-                [&v_format](const std::unique_ptr<Rule>& rule) {
-                    if (v_format == L"csv") {
-                        std::wcout << RuleCodeToName(rule->code) << ","
+            if (format == L"csv") std::wcout << "major_code,minor_code,expression" << std::endl;
+
+            auto total_rules = rules->size();
+            auto index = 0;
+            std::for_each(rules->begin(), rules->end(),
+                [&total_rules, &index, &format](const std::unique_ptr<Rule>& rule) {
+                    if (format == L"csv") {
+                        std::wcout << RuleMajorName(rule->major_code) << ","
+                                   << RuleMinorName(rule->minor_code) << ","
                                    << rule->path_expression
                                    << std::endl;
-                    } else if (v_format == L"list") {
-                        std::wcout << "      Type: " << RuleCodeToName(rule->code) << std::endl
+                    } else if (format == L"list") {
+                        std::wcout << "     index: " << index << "/" << total_rules << std::endl
+                                   << "major type: " << RuleMajorName(rule->major_code) << std::endl
+                                   << "minor type: " << RuleMinorName(rule->minor_code) << std::endl
                                    << "expression: " << rule->path_expression << std::endl
                                    << std::endl;
+                        index++;
                     }
                 });
+
             return S_OK;
         }
 
-        HRESULT CommandMonitor(std::map<std::wstring, int>& args) {
-            const std::wstring fn_format = L"--format";
-            auto f_format = args.find(fn_format);
-            std::wstring v_format;
-
-            if (f_format == args.end()) {
-                std::wcerr << L"error: command flag `" << fn_format << "` required\n";
+        HRESULT CommandMonitor(std::wstring& format) {
+            if (format != L"list" && format != L"csv") {
+                std::wcerr << "error: invalid format: '" << format << "'" << std::endl;
                 return E_INVALIDARG;
             }
-
-            if (f_format->second + 1 >= argc_) {
-                std::wcerr << L"error: command flag `" << f_format->first << L"` value invalid\n";
-                return E_INVALIDARG;
-            }
-
-            v_format = argv_[f_format->second + 1];
-            std::transform(v_format.begin(), v_format.end(), v_format.begin(),
-                [](wchar_t c) { return std::tolower(c); });
 
             volatile BOOLEAN end = FALSE;
             MonitorRecordCallback callback = NULL;
-            if (v_format == L"csv") {
+            if (format == L"csv") {
                 std::wcout << "major_irp,requestor_pid,requestor_tid,record_time,op_status,op_information,volume_serial_number,file_id,file_path"
                            << std::endl;
                 callback = [](FG_MONITOR_RECORD* record) {
@@ -730,7 +581,7 @@ namespace fileguard {
                                << std::wstring_view(record->FilePath, record->FilePathSize / sizeof(wchar_t))
                                << std::endl;
                     };
-            } else if (v_format == L"list") {
+            } else if (format == L"list") {
                 callback = [](FG_MONITOR_RECORD* record) {
                     std::wcout << L"           major_irp: " << MajorIRPName(record->MajorFunction) << std::endl
                                << L"       requestor_pid: " << record->RequestorPid << std::endl
@@ -751,7 +602,7 @@ namespace fileguard {
             return S_OK;
         }
 
-        HRESULT CommandCleanup(std::map<std::wstring, int> args) {
+        HRESULT CommandCleanup() {
             auto result = core_client_->CleanupRules();
             if (auto hr = std::get_if<HRESULT>(&result)) return *hr;
 

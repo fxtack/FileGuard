@@ -3,4 +3,14 @@
   <ItemGroup>
     <ClCompile Include="FileGuardAdmin.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <Filter Include="ThirdParty">
+      <UniqueIdentifier>{776940f1-7af1-45ac-ac5d-a7419513be5c}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="ThirdParty\CLI11\CLI11.hpp">
+      <Filter>ThirdParty</Filter>
+    </ClInclude>
+  </ItemGroup>
 </Project>
