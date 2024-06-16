@@ -71,7 +71,7 @@ typedef struct _FG_CORE_VERSION {
 } FG_CORE_VERSION, *PFG_CORE_VERSION;
 
 typedef union _FG_RULE_CODE {
-    ULONG Code;
+    ULONG Value;
     struct {
         USHORT Minor;
         USHORT Major;
@@ -165,6 +165,7 @@ typedef struct _FG_MONITOR_RECORD {
     FG_RULE_CODE RuleCode;
     USHORT RulePathExpressionSize;
     USHORT FilePathSize;
+    USHORT RenameFilePathSize;
     WCHAR Buffer[];
 } FG_MONITOR_RECORD, *PFG_MONITOR_RECORD;
 

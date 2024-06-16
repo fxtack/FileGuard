@@ -45,14 +45,8 @@ typedef struct _FG_RULE_ENTRY {
 
     LIST_ENTRY List;
     
-    //
-    // The policy of the rule.
-    //
-    FG_RUEL_CODE RuleCode;
-
-    //
-    // File path
-    //
+    FG_RULE_CODE Code;
+    
     PUNICODE_STRING PathExpression;
 
 } FG_RULE_ENTRY, *PFG_RULE_ENTRY;
@@ -82,7 +76,8 @@ FgcFindAndRemoveRule(
     );
 
 _Check_return_
-ULONG
+CONST
+PFG_RULE_ENTRY
 FgcMatchRules(
     _In_ PLIST_ENTRY RuleList,
     _In_ PEX_PUSH_LOCK ListLock,

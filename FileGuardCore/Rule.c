@@ -103,8 +103,8 @@ Return Value:
 
     FLT_ASSERT(NULL != pathExpression);
     FLT_ASSERT(NULL != newRuleEntry);
-
-    newRuleEntry->RuleCode = Rule->RuleCode;
+    
+    newRuleEntry->Code.Value = Rule->Code.Value;
     newRuleEntry->PathExpression = pathExpression;
     *RuleEntry = newRuleEntry;
 
@@ -159,13 +159,14 @@ FgcAddRules(
 
     for (; ruleIdx < RulesAmount; ruleIdx++) {
 
-        if (!VALID_RULE_CODE(rulePtr->RuleCode)) {
+        if (!VALID_RULE_CODE(rulePtr->Code)) {
 
             pathExpression.Buffer = rulePtr->PathExpression;
             pathExpression.Length = rulePtr->PathExpressionSize;
             pathExpression.MaximumLength = rulePtr->PathExpressionSize;
-            LOG_WARNING("Invalid rule code: 0x%08x, path expression: '%wZ'", 
-                        rulePtr->RuleCode, 
+            LOG_WARNING("Invalid rule, major code: 0x%08x, minor code: 0x%08x, path expression: '%wZ'", 
+                        rulePtr->Code.Major,
+                        rulePtr->Code.Minor,
                         &pathExpression);
 
             goto NextNewRule;
@@ -174,7 +175,7 @@ FgcAddRules(
         LIST_FOR_EACH_SAFE(entry, next, RuleList) {
 
             ruleEntry = CONTAINING_RECORD(entry, FG_RULE_ENTRY, List);
-            if (rulePtr->RuleCode == ruleEntry->RuleCode) {
+            if (rulePtr->Code.Value == ruleEntry->Code.Value) {
 
                 pathExpression.Buffer = rulePtr->PathExpression;
                 pathExpression.Length = rulePtr->PathExpressionSize;
@@ -194,9 +195,10 @@ FgcAddRules(
         InsertHeadList(RuleList, &ruleEntry->List);
         if (NULL != AddedAmount) (*AddedAmount)++;
 
-        DBG_INFO("Rule %p added, rule code: 0x%08x, path expression: '%wZ'", 
+        DBG_INFO("Rule %p added, major code: 0x%08x, minor code: 0x%08x, path expression: '%wZ'", 
                  ruleEntry, 
-                 ruleEntry->RuleCode, 
+                 ruleEntry->Code.Major,
+                 ruleEntry->Code.Minor,
                  ruleEntry->PathExpression);
 
     NextNewRule:
@@ -239,7 +241,7 @@ FgcFindAndRemoveRule(
         LIST_FOR_EACH_SAFE(entry, next, RuleList) {
 
             ruleEntry = CONTAINING_RECORD(entry, FG_RULE_ENTRY, List);
-            if (rulePtr->RuleCode == ruleEntry->RuleCode) {
+            if (rulePtr->Code.Value == ruleEntry->Code.Value) {
 
                 pathExpression.Buffer = rulePtr->PathExpression;
                 pathExpression.Length = rulePtr->PathExpressionSize;
@@ -247,9 +249,10 @@ FgcFindAndRemoveRule(
 
                 if (0 == RtlCompareUnicodeString(&pathExpression, ruleEntry->PathExpression, TRUE)) {
 
-                    LOG_INFO("Rule %p removed, rule code: 0x%08x, path expression: '%wZ'",
+                    LOG_INFO("Rule %p removed, major code: 0x%08x, minor code: 0x%08x, path expression: '%wZ'",
                              ruleEntry,
-                             ruleEntry->RuleCode,
+                             ruleEntry->Code.Major,
+                             ruleEntry->Code.Minor,
                              ruleEntry->PathExpression);
 
                     RemoveEntryList(entry);
@@ -267,7 +270,8 @@ FgcFindAndRemoveRule(
 }
 
 _Check_return_
-FG_RUEL_CODE
+CONST 
+PFG_RULE_ENTRY
 FgcMatchRules(
     _In_ PLIST_ENTRY RuleList,
     _In_ PEX_PUSH_LOCK ListLock,
@@ -277,8 +281,7 @@ FgcMatchRules(
     BOOLEAN matched = FALSE;
     PLIST_ENTRY entry = NULL, next = NULL;
     PFG_RULE_ENTRY ruleEntry = NULL;
-    FG_RUEL_CODE ruleCode = RuleNone;
-
+    
     FLT_ASSERT(NULL != RuleList);
     FLT_ASSERT(NULL != ListLock);
     FLT_ASSERT(NULL != FileDevicePathName);
@@ -295,19 +298,19 @@ FgcMatchRules(
                                           TRUE,
                                           NULL);
         if (matched) {
-            ruleCode = ruleEntry->RuleCode;
-            DBG_INFO("File '%wZ' matched rule: %p, path expression: '%wZ', rule code: 0x%08x",
+            DBG_INFO("File '%wZ' matched rule: %p, major code: 0x%08x, minor code: 0x%08x, path expression: '%wZ'",
                      FileDevicePathName, 
                      ruleEntry, 
-                     ruleEntry->PathExpression, 
-                     ruleEntry->RuleCode);
+                     ruleEntry->Code.Major,
+                     ruleEntry->Code.Minor,
+                     ruleEntry->PathExpression);
             break;
         }
     }
 
     FltReleasePushLock(ListLock);
 
-    return ruleCode;
+    return ruleEntry;
 }
 
 _Check_return_
@@ -342,9 +345,10 @@ FgcMatchRulesEx(
                                           NULL);
         if (matched) {
 
-            DBG_TRACE("Path '%wZ' matched rule code: %lu, path expression: '%wZ'",
+            DBG_TRACE("Path '%wZ' matched rule major code: 0x%08x, minor code: 0x%08x, path expression: '%wZ'",
                       FileDevicePathName, 
-                      ruleEntry->RuleCode, 
+                      ruleEntry->Code.Major,
+                      ruleEntry->Code.Minor,
                       ruleEntry->PathExpression);
 
             thisRuleSize = sizeof(FG_RULE) + ruleEntry->PathExpression->Length;
@@ -358,7 +362,7 @@ FgcMatchRulesEx(
                     RtlCopyMemory(rulePtr->PathExpression,
                                   ruleEntry->PathExpression->Buffer,
                                   ruleEntry->PathExpression->Length);
-                    rulePtr->RuleCode = ruleEntry->RuleCode;
+                    rulePtr->Code.Value = ruleEntry->Code.Value;
                     rulePtr->PathExpressionSize = ruleEntry->PathExpression->Length;
                 } except(EXCEPTION_EXECUTE_HANDLER) {
                     status = GetExceptionCode();
@@ -440,7 +444,7 @@ FgcGetRules(
             RtlCopyMemory(rulePtr->PathExpression,
                           ruleEntry->PathExpression->Buffer,
                           ruleEntry->PathExpression->Length);
-            rulePtr->RuleCode = ruleEntry->RuleCode;
+            rulePtr->Code.Value = ruleEntry->Code.Value;
             rulePtr->PathExpressionSize = ruleEntry->PathExpression->Length;
         } except(EXCEPTION_EXECUTE_HANDLER) {
             status = GetExceptionCode();
@@ -484,9 +488,10 @@ FgcCleanupRuleEntriesList(
         entry = RemoveHeadList(RuleEntriesList);
         ruleEntry = CONTAINING_RECORD(entry, FG_RULE_ENTRY, List);
 
-        DBG_TRACE("Rule: %p removed, rule code: 0x%08x, rule path expression: '%wZ'",
+        DBG_TRACE("Rule: %p removed, rule major code: 0x%08x, minor code: 0x%08x, rule path expression: '%wZ'",
                   ruleEntry,
-                  ruleEntry->RuleCode,
+                  ruleEntry->Code.Major,
+                  ruleEntry->Code.Minor,
                   ruleEntry->PathExpression);
 
         FgcFreeRuleEntry(ruleEntry);

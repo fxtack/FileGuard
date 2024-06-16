@@ -47,14 +47,13 @@ Environment:
 
 _Check_return_
 NTSTATUS
-FgcCreateMonitorRecordEntry(
+FgcRecordRuleMatched(
     _In_ UCHAR MajorFunction,
     _In_ UCHAR MinorFunction,
-    _In_opt_ FG_FILE_ID_DESCRIPTOR *FileIdDescriptor,
-    _In_opt_ IO_STATUS_BLOCK *IoStatus,
-    _In_opt_ PUNICODE_STRING RenameFilePath,
-    _In_ PUNICODE_STRING FilePath,
-    _Inout_ PFG_MONITOR_RECORD_ENTRY *MonitorRecordEntry
+    _In_opt_ CONST FG_FILE_ID_DESCRIPTOR *FileIdDescriptor,
+    _In_ CONST UNICODE_STRING *FilePath,
+    _In_opt_ CONST UNICODE_STRING *RenameFilePath,
+    _In_ CONST FG_RULE_ENTRY *RuleEntry
     )
 /*++
 
@@ -93,7 +92,7 @@ Return Value:
 
     allocateSize = sizeof(FG_MONITOR_RECORD_ENTRY) + 
                    FilePath->Length + 
-                   (NULL == RenameFilePath ? 0 : RenameFilePath->Length);
+                   RuleEntry->PathExpression->Length;
 
     status = FgcAllocateBufferEx(&recordEntry, 
                                  POOL_FLAG_PAGED, 
@@ -110,11 +109,7 @@ Return Value:
     recordEntry->Record.MinorFunction = MinorFunction;
     recordEntry->Record.RequestorPid = (ULONG_PTR)PsGetCurrentProcessId();
     recordEntry->Record.RequestorTid = (ULONG_PTR)PsGetCurrentThreadId();
-
-    if (NULL != IoStatus) {
-        recordEntry->Record.OpStatus = IoStatus->Status;
-        recordEntry->Record.OpInformation = IoStatus->Information;
-    }
+    KeQuerySystemTime(&recordEntry->Record.RecordTime);
 
     if (NULL != FileIdDescriptor) {
         RtlCopyMemory(&recordEntry->Record.FileIdDescriptor, 
@@ -122,17 +117,24 @@ Return Value:
                       sizeof(FG_FILE_ID_DESCRIPTOR));
     }
 
-    filePathPtr = recordEntry->Record.FilePath;
+    recordEntry->Record.RuleCode = RuleEntry->Code;
+
+    filePathPtr = recordEntry->Record.Buffer;
+    RtlCopyMemory(filePathPtr, RuleEntry->PathExpression->Buffer, RuleEntry->PathExpression->Length);
+    recordEntry->Record.RulePathExpressionSize = RuleEntry->PathExpression->Length;
+
+    filePathPtr += RuleEntry->PathExpression->Length;
     RtlCopyMemory(filePathPtr, FilePath->Buffer, FilePath->Length);
     recordEntry->Record.FilePathSize = FilePath->Length;
 
-    filePathPtr += FilePath->Length;
     if (NULL != RenameFilePath) {
+        filePathPtr += FilePath->Length;
         RtlCopyMemory(filePathPtr, RenameFilePath->Buffer, RenameFilePath->Length);
         recordEntry->Record.RenameFilePathSize = RenameFilePath->Length;
     }
 
-    *MonitorRecordEntry = recordEntry;
+    ExInterlockedInsertTailList(&Globals.MonitorRecordsQueue, recordEntry, &Globals.MonitorRecordsQueueLock);
+    KeSetEvent(&Globals.MonitorContext->EventWakeMonitor, 0, FALSE);
 
     return status;
 }

@@ -39,13 +39,7 @@ Environment:
 #pragma once
 
 #ifndef __MONITOR_H__
-#define __MONITOR_H__         
-
-#define FgcSubmitMonitorRecordEntry(_queue_, _lock_, _entry_) ExInterlockedInsertTailList((_queue_), (_entry_), (_lock_)); \
-                                                              KeSetEvent(&Globals.MonitorContext->EventWakeMonitor, 0, FALSE);
-
-#define FgcSetRecordIoStatus(_record_, _io_status_) (_record_).OpInformation = (_io_status_)->Information;\
-                                                    (_record_).OpStatus = (_io_status_)->Status
+#define __MONITOR_H__
 
 typedef struct _FG_MONITOR_RECORD_ENTRY {
 
@@ -63,14 +57,13 @@ typedef struct _FG_MONITOR_RECORD_ENTRY {
 
 _Check_return_
 NTSTATUS
-FgcCreateMonitorRecordEntry(
+FgcRecordRuleMatched(
     _In_ UCHAR MajorFunction,
     _In_ UCHAR MinorFunction,
-    _In_opt_ FG_FILE_ID_DESCRIPTOR *FileIdDescriptor,
-    _In_opt_ IO_STATUS_BLOCK *IoStatus,
-    _In_opt_ PUNICODE_STRING RenameFilePath,
-    _In_ PUNICODE_STRING FilePath,
-    _Inout_ PFG_MONITOR_RECORD_ENTRY* MonitorRecordEntry
+    _In_opt_ CONST FG_FILE_ID_DESCRIPTOR *FileIdDescriptor,
+    _In_ CONST UNICODE_STRING *FilePath,
+    _In_opt_ CONST UNICODE_STRING *RenameFilePath,
+    _In_ CONST FG_RULE_ENTRY *RuleEntry
     );
 
 #define FG_MONITOR_SEND_RECORD_BUFFER_SIZE (32 * 1024)
