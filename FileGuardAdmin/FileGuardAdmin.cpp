@@ -68,31 +68,29 @@ EXTERN_C_END
 namespace fileguard {
     
     struct Rule {
-        FG_RULE_MAJOR_CODE major_code;
-        FG_RULE_MINOR_CODE minor_code;
+        FG_RULE_CODE code;
         std::wstring_view path_expression;
         const std::shared_ptr<char[]> buf; 
 
-        Rule(FG_RULE_MAJOR_CODE major_code,
-            FG_RULE_MINOR_CODE minor_code,
+        Rule(FG_RULE_CODE code,
             std::wstring_view path_expression, 
             const std::shared_ptr<char[]> buf):
-            major_code(major_code), minor_code(minor_code), path_expression(path_expression), buf(buf) { }
+            code(code), path_expression(path_expression), buf(buf) { }
     };
 
     FG_RULE_MAJOR_CODE RuleMajorNameToCode(std::wstring& major_name) {
         std::transform(major_name.begin(), major_name.end(), major_name.begin(),
             [](wchar_t c) { return std::tolower(c); });
 
-        if (L"access-denied" == major_name) return FG_RULE_MAJOR_CODE::RuleMajorAccessDenined;
-        else if (L"readonly" == major_name) return FG_RULE_MAJOR_CODE::RuleMajorReadOnly;
+        if (L"access-denied" == major_name) return FG_RULE_MAJOR_CODE::RuleMajorAccessDenied;
+        else if (L"readonly" == major_name) return FG_RULE_MAJOR_CODE::RuleMajorReadonly;
         return FG_RULE_MAJOR_CODE::RuleMajorNone;
     }
 
-    std::wstring RuleMajorName(FG_RULE_MAJOR_CODE major_code) {
-        switch (major_code) {
-        case FG_RULE_MAJOR_CODE::RuleMajorAccessDenined: return L"access-denied";
-        case FG_RULE_MAJOR_CODE::RuleMajorReadOnly: return L"readonly";
+    std::wstring RuleMajorName(FG_RULE_CODE& code) {
+        switch (code.Major) {
+        case FG_RULE_MAJOR_CODE::RuleMajorAccessDenied: return L"access-denied";
+        case FG_RULE_MAJOR_CODE::RuleMajorReadonly: return L"readonly";
         }
         return L"";
     }
@@ -105,8 +103,8 @@ namespace fileguard {
         return FG_RULE_MINOR_CODE::RuleMinorNone;
     }
 
-    std::wstring RuleMinorName(FG_RULE_MINOR_CODE minor_code) {
-        switch (minor_code) {
+    std::wstring RuleMinorName(FG_RULE_CODE& code) {
+        switch (code.Minor) {
         case FG_RULE_MINOR_CODE::RuleMinorMonitored: return L"monitered";
         }
         return L"";
@@ -134,8 +132,7 @@ namespace fileguard {
         char* rule_offset_ptr = buf.get();
         while (buf_size > 0) {
             auto rule_ptr = reinterpret_cast<FG_RULE*>(rule_offset_ptr);
-            auto rule = std::make_unique<Rule>(rule_ptr->MajorCode, 
-                                               rule_ptr->MinorCode,
+            auto rule = std::make_unique<Rule>(rule_ptr->Code,
                                                std::wstring_view(rule_ptr->PathExpression, rule_ptr->PathExpressionSize/sizeof(wchar_t)),
                                                buf);
             rules.push_back(std::move(rule));
@@ -182,16 +179,16 @@ namespace fileguard {
             return SUCCEEDED(hr) ? std::nullopt : std::make_optional(hr);
         }
         
-        std::variant<bool, HRESULT> AddSingleRule(FG_RULE_MAJOR_CODE major_code, FG_RULE_MINOR_CODE minor_code, std::wstring rule_path_expression) {
-            FGL_RULE rule{ major_code, minor_code, rule_path_expression.c_str()};
+        std::variant<bool, HRESULT> AddSingleRule(FG_RULE_CODE& code, std::wstring rule_path_expression) {
+            FGL_RULE rule{ code, rule_path_expression.c_str()};
             BOOLEAN added = FALSE;
             auto hr = FglAddSingleRule(port_, &rule, &added);
             if (FAILED(hr)) return hr;
             return bool(added);
         }
 
-        std::variant<bool, HRESULT> RemoveSingleRule(FG_RULE_MAJOR_CODE major_code, FG_RULE_MINOR_CODE minor_code, std::wstring rule_path_expression) {
-            FGL_RULE rule{ major_code, minor_code, rule_path_expression.c_str() };
+        std::variant<bool, HRESULT> RemoveSingleRule(FG_RULE_CODE& code, std::wstring rule_path_expression) {
+            FGL_RULE rule{ code, rule_path_expression.c_str() };
             BOOLEAN removed = FALSE;
             auto hr = FglRemoveSingleRule(port_, &rule, &removed);
             if (FAILED(hr)) return hr;
@@ -439,15 +436,16 @@ namespace fileguard {
         }
 
         HRESULT CommandAdd(std::wstring& major_type, std::wstring& minor_type, std::wstring& expr) {
-            auto major_code = RuleMajorNameToCode(major_type);
-            auto minor_code = RuleMinorNameToCode(minor_type);
-            if (!VALID_RULE_CODE(major_code, minor_code)) {
+            FG_RULE_CODE code;
+            code.Major = RuleMajorNameToCode(major_type);
+            code.Minor = RuleMinorNameToCode(minor_type);
+            if (!VALID_RULE_CODE(code)) {
                 std::wcerr << "error: invalid rule type, major: `" << major_type
                                                   << "`, minor: `" << minor_type << "`\n";
                 return E_INVALIDARG;
             }
-
-            auto result = core_client_->AddSingleRule(major_code, minor_code, expr);
+            
+            auto result = core_client_->AddSingleRule(code, expr);
             if (auto added = std::get_if<bool>(&result)) {
                 if (*added) std::wcout << L"Add rule successfully" << std::endl;
                 else std::wcout << L"Rule already exist" << std::endl;
@@ -459,15 +457,16 @@ namespace fileguard {
         }
 
         HRESULT CommandRemove(std::wstring& major_type, std::wstring& minor_type, std::wstring& expr) {
-            auto major_code = RuleMajorNameToCode(major_type);
-            auto minor_code = RuleMinorNameToCode(minor_type);
-            if (!VALID_RULE_CODE(major_code, minor_code)) {
+            FG_RULE_CODE code;
+            code.Major = RuleMajorNameToCode(major_type);
+            code.Minor = RuleMinorNameToCode(minor_type);
+            if (!VALID_RULE_CODE(code)) {
                 std::wcerr << "error: invalid rule type, major: `" << major_type
                     << "`, minor: `" << minor_type << "`\n";
                 return E_INVALIDARG;
             }
 
-            auto result = core_client_->RemoveSingleRule(major_code, minor_code, expr);
+            auto result = core_client_->RemoveSingleRule(code, expr);
             if (auto removed = std::get_if<bool>(&result)) {
                 if (*removed) std::wcout << L"Remove rule successfully" << std::endl;
                 else std::wcout << "Rule not found" << std::endl;
@@ -501,14 +500,14 @@ namespace fileguard {
             std::for_each(rules->begin(), rules->end(),
                 [&total_rules, &index, &format](const std::unique_ptr<Rule>& rule) {
                     if (format == L"csv") {
-                        std::wcout << RuleMajorName(rule->major_code) << ","
-                                   << RuleMinorName(rule->minor_code) << ","
+                        std::wcout << RuleMajorName(rule->code) << ","
+                                   << RuleMinorName(rule->code) << ","
                                    << rule->path_expression
                                    << std::endl;
                     } else if (format == L"list") {
                         std::wcout << "     index: " << index << "/" << total_rules << std::endl
-                                   << "major type: " << RuleMajorName(rule->major_code) << std::endl
-                                   << "minor type: " << RuleMinorName(rule->minor_code) << std::endl
+                                   << "major type: " << RuleMajorName(rule->code) << std::endl
+                                   << "minor type: " << RuleMinorName(rule->code) << std::endl
                                    << "expression: " << rule->path_expression << std::endl
                                    << std::endl;
                         index++;
@@ -541,14 +540,14 @@ namespace fileguard {
             std::for_each(rules->begin(), rules->end(),
                 [&total_rules, &index, &format](const std::unique_ptr<Rule>& rule) {
                     if (format == L"csv") {
-                        std::wcout << RuleMajorName(rule->major_code) << ","
-                                   << RuleMinorName(rule->minor_code) << ","
+                        std::wcout << RuleMajorName(rule->code) << ","
+                                   << RuleMinorName(rule->code) << ","
                                    << rule->path_expression
                                    << std::endl;
                     } else if (format == L"list") {
                         std::wcout << "     index: " << index << "/" << total_rules << std::endl
-                                   << "major type: " << RuleMajorName(rule->major_code) << std::endl
-                                   << "minor type: " << RuleMinorName(rule->minor_code) << std::endl
+                                   << "major type: " << RuleMajorName(rule->code) << std::endl
+                                   << "minor type: " << RuleMinorName(rule->code) << std::endl
                                    << "expression: " << rule->path_expression << std::endl
                                    << std::endl;
                         index++;
@@ -567,31 +566,33 @@ namespace fileguard {
             volatile BOOLEAN end = FALSE;
             MonitorRecordCallback callback = NULL;
             if (format == L"csv") {
-                std::wcout << "major_irp,requestor_pid,requestor_tid,record_time,op_status,op_information,volume_serial_number,file_id,file_path"
+                std::wcout << "major_irp,requestor_pid,requestor_tid,record_time,volume_serial_number,file_id,rule_major_type,rule_minor_type,rule_expression,file_path"
                            << std::endl;
-                callback = [](FG_MONITOR_RECORD* record) {
+                callback = [](FG_MONITOR_RECORD *record) {
                     std::wcout << MajorIRPName(record->MajorFunction) << L","
                                << record->RequestorPid << L","
                                << record->RequestorTid << L","
                                << record->RecordTime.QuadPart << L","
-                               << record->OpStatus << L","
-                               << record->OpInformation << L","
                                << record->FileIdDescriptor.VolumeSerialNumber << L","
                                << record->FileIdDescriptor.FileId.FileId64.QuadPart << L","
-                               << std::wstring_view(record->FilePath, record->FilePathSize / sizeof(wchar_t))
+                               << RuleMajorName(record->RuleCode) << L","
+                               << RuleMinorName(record->RuleCode) << L","
+                               << std::wstring_view(record->Buffer, record->RulePathExpressionSize / sizeof(wchar_t)) << L","
+                               << std::wstring_view(record->Buffer + record->RulePathExpressionSize, record->FilePathSize / sizeof(wchar_t))
                                << std::endl;
                     };
             } else if (format == L"list") {
-                callback = [](FG_MONITOR_RECORD* record) {
+                callback = [](FG_MONITOR_RECORD *record) {
                     std::wcout << L"           major_irp: " << MajorIRPName(record->MajorFunction) << std::endl
                                << L"       requestor_pid: " << record->RequestorPid << std::endl
                                << L"       requestor_tid: " << record->RequestorTid << std::endl
                                << L"         record_time: " << record->RecordTime.QuadPart << std::endl
-                               << L"           op_status: " << record->OpStatus << std::endl
-                               << L"      op_information: " << record->OpInformation << std::endl
                                << L"volume_serial_number: " << record->FileIdDescriptor.VolumeSerialNumber << std::endl
                                << L"             file_id: " << record->FileIdDescriptor.FileId.FileId64.QuadPart << std::endl
-                               << L"           file_path: " << std::wstring_view(record->FilePath, record->FilePathSize / sizeof(wchar_t)) << std::endl
+                               << L"          rule_major: " << RuleMajorName(record->RuleCode) << std::endl
+                               << L"          rule_minor: " << RuleMinorName(record->RuleCode) << std::endl
+                               << L"     rule_expression: " << std::wstring_view(record->Buffer, record->RulePathExpressionSize/sizeof(wchar_t)) << std::endl
+                               << L"           file_path: " << std::wstring_view(record->Buffer + record->RulePathExpressionSize, record->FilePathSize / sizeof(wchar_t)) << std::endl
                                << std::endl;
                     };
             }

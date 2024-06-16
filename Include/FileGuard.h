@@ -160,12 +160,12 @@ typedef struct _FG_MONITOR_RECORD {
     UCHAR MinorFunction;
     ULONG_PTR RequestorPid;
     ULONG_PTR RequestorTid;
-    FG_FILE_ID_DESCRIPTOR FileIdDescriptor;
     LARGE_INTEGER RecordTime;
-    ULONG RuleMajorCode;
+    FG_FILE_ID_DESCRIPTOR FileIdDescriptor;
+    FG_RULE_CODE RuleCode;
+    USHORT RulePathExpressionSize;
     USHORT FilePathSize;
-    USHORT RulePathExpression;
-    WCHAR FilePath[];
+    WCHAR Buffer[];
 } FG_MONITOR_RECORD, *PFG_MONITOR_RECORD;
 
 #pragma warning(pop)
