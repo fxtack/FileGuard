@@ -41,15 +41,15 @@ Environment:
 #ifndef __RULE_H__
 #define __RULE_H__
 
-typedef struct _FG_RULE_ENTRY {
-
-    LIST_ENTRY List;
-    
+typedef struct _FGC_RULE {
     FG_RULE_CODE Code;
-    
     PUNICODE_STRING PathExpression;
+} FGC_RULE, *PFGC_RULE;
 
-} FG_RULE_ENTRY, *PFG_RULE_ENTRY;
+typedef struct _FG_RULE_ENTRY {
+    LIST_ENTRY List;
+    FGC_RULE Rule;
+} FGC_RULE_ENTRY, *PFGC_RULE_ENTRY;
 
 /*-------------------------------------------------------------
     Rule entry basic routines
@@ -58,8 +58,8 @@ typedef struct _FG_RULE_ENTRY {
 _Check_return_
 NTSTATUS
 FgcAddRules(
-    _In_ PLIST_ENTRY RuleList,
-    _In_ PEX_PUSH_LOCK ListLock,
+    _In_ LIST_ENTRY *RuleList,
+    _In_ EX_PUSH_LOCK *ListLock,
     _In_ USHORT RulesAmount,
     _In_ FG_RULE* Rules,
     _Inout_opt_ USHORT* AddedAmount
@@ -68,44 +68,44 @@ FgcAddRules(
 _Check_return_
 NTSTATUS
 FgcFindAndRemoveRule(
-    _In_ PLIST_ENTRY RuleList,
-    _In_ PEX_PUSH_LOCK ListLock,
+    _In_ LIST_ENTRY *RuleList,
+    _In_ EX_PUSH_LOCK *ListLock,
     _In_ USHORT RulesAmount,
-    _In_ FG_RULE* Rules,
-    _Inout_opt_ USHORT* RemovedAmount
+    _In_ FG_RULE *Rules,
+    _Inout_opt_ USHORT *RemovedAmount
     );
 
 _Check_return_
 CONST
-PFG_RULE_ENTRY
+PFGC_RULE_ENTRY
 FgcMatchRules(
-    _In_ PLIST_ENTRY RuleList,
-    _In_ PEX_PUSH_LOCK ListLock,
-    _In_ PUNICODE_STRING FileDevicePathName
+    _In_ LIST_ENTRY *RuleList,
+    _In_ EX_PUSH_LOCK *ListLock,
+    _In_ UNICODE_STRING *FileDevicePathName
     );
 
 _Check_return_
 NTSTATUS
 FgcMatchRulesEx(
-    _In_ PLIST_ENTRY RuleEntriesList,
-    _In_ PEX_PUSH_LOCK Lock,
-    _In_ PUNICODE_STRING FileDevicePathName,
-    _In_opt_  FG_RULE* RulesBuffer,
+    _In_ LIST_ENTRY *RuleList,
+    _In_ EX_PUSH_LOCK *Lock,
+    _In_ UNICODE_STRING *FileDevicePathName,
+    _In_opt_  FG_RULE *RulesBuffer,
     _In_opt_ ULONG RulesBufferSize,
-    _Inout_opt_ USHORT* RulesAmount,
-    _Inout_ ULONG* RulesSize
+    _Inout_opt_ USHORT *RulesAmount,
+    _Inout_ ULONG *RulesSize
     );
 
 FORCEINLINE
 VOID
 FgcFreeRuleEntry(
-    _In_ PFG_RULE_ENTRY RuleEntry
+    _In_ FGC_RULE_ENTRY *RuleEntry
     )
 {
     FLT_ASSERT(NULL != RuleEntry);
 
-    if (NULL != RuleEntry->PathExpression) {
-        FgcFreeUnicodeString(InterlockedExchangePointer(&RuleEntry->PathExpression, NULL));
+    if (NULL != RuleEntry->Rule.PathExpression) {
+        FgcFreeUnicodeString(InterlockedExchangePointer(&RuleEntry->Rule.PathExpression, NULL));
     }
 
     if (NULL != RuleEntry) {
@@ -115,18 +115,18 @@ FgcFreeRuleEntry(
 
 NTSTATUS
 FgcGetRules(
-    _In_ PLIST_ENTRY RuleEntriesList,
-    _In_ PEX_PUSH_LOCK Lock,
-    _In_opt_  FG_RULE* RulesBuffer,
+    _In_ LIST_ENTRY *RuleList,
+    _In_ EX_PUSH_LOCK *Lock,
+    _In_opt_  FG_RULE *RulesBuffer,
     _In_opt_ ULONG RulesBufferSize,
-    _Inout_opt_ USHORT* RulesAmount,
-    _Inout_ ULONG* RulesSize
+    _Inout_opt_ USHORT *RulesAmount,
+    _Inout_ ULONG *RulesSize
     );
 
 ULONG
 FgcCleanupRuleEntriesList(
-    _In_ PEX_PUSH_LOCK Lock,
-    _In_ PLIST_ENTRY RuleEntriesList
+    _In_ EX_PUSH_LOCK *Lock,
+    _In_ LIST_ENTRY *RuleList
     );
 
 #endif
