@@ -71,7 +71,7 @@ typedef struct _FG_CORE_VERSION {
 } FG_CORE_VERSION, *PFG_CORE_VERSION;
 
 typedef union _FG_RULE_CODE {
-    ULONG Value;
+    LONG Value;
     struct {
         USHORT Minor;
         USHORT Major;

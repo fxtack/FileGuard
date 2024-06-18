@@ -53,7 +53,7 @@ CONST FLT_OPERATION_REGISTRATION FgcOperationCallbacks[] = {
     { IRP_MJ_WRITE,
       0,
       FgcPreWriteCallback,
-      FgcPostWriteCallback },
+      NULL },
 
     { IRP_MJ_SET_INFORMATION,
       0,
@@ -63,12 +63,6 @@ CONST FLT_OPERATION_REGISTRATION FgcOperationCallbacks[] = {
     { IRP_MJ_FILE_SYSTEM_CONTROL,
       0,
       FgcPreFileSystemControlCallback,
-      NULL },
-
-    { IRP_MJ_CLOSE,
-      0,
-      FgcPreCloseCallback,
-      FgcPostCloseCallback,
       NULL },
 
     { IRP_MJ_OPERATION_END }

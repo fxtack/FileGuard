@@ -77,7 +77,7 @@ FgcFindAndRemoveRule(
 
 _Check_return_
 CONST
-PFGC_RULE_ENTRY
+FGC_RULE*
 FgcMatchRules(
     _In_ LIST_ENTRY *RuleList,
     _In_ EX_PUSH_LOCK *ListLock,

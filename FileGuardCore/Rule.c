@@ -264,8 +264,8 @@ FgcFindAndRemoveRule(
 }
 
 _Check_return_
-CONST 
-PFGC_RULE_ENTRY
+CONST
+FGC_RULE*
 FgcMatchRules(
     _In_ LIST_ENTRY *RuleList,
     _In_ EX_PUSH_LOCK *ListLock,
@@ -303,7 +303,7 @@ FgcMatchRules(
 
     FltReleasePushLock(ListLock);
 
-    return ruleEntry;
+    return matched ? &ruleEntry->Rule : NULL;
 }
 
 _Check_return_

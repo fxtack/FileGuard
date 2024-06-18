@@ -55,9 +55,7 @@ typedef struct _FG_FILE_CONTEXT {
     //
     // The policy of the rule.
     //
-    volatile FG_RULE_MAJOR_CODE RuleMajorCode;
-
-    volatile FG_RULE_MINOR_CODE RuleMinorCode;
+    FGC_RULE Rule;
 
 } FG_FILE_CONTEXT, *PFG_FILE_CONTEXT;
 
@@ -82,8 +80,7 @@ typedef struct _FG_COMPLETION_CONTEXT {
 
         struct {
             PFLT_FILE_NAME_INFORMATION FileNameInfo;
-            FG_RULE_MAJOR_CODE RuleMajorCode;
-            FG_RULE_MINOR_CODE RuleMinorCode;
+            FG_RULE_CODE RuleCode;
         } Create;
 
         struct {

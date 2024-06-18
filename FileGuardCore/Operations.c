@@ -74,7 +74,7 @@ Return Value:
     FLT_PREOP_CALLBACK_STATUS callbackStatus = FLT_PREOP_SUCCESS_WITH_CALLBACK;
     PFLT_FILE_NAME_INFORMATION nameInfo = NULL;
     PFG_COMPLETION_CONTEXT completionContext = NULL;
-    FG_RUEL_CODE ruleCode = 0ul;
+    CONST FGC_RULE *rule = NULL;
 
     UNREFERENCED_PARAMETER(FltObjects);
 
@@ -112,8 +112,8 @@ Return Value:
     }
     
     try {
-        ruleCode = FgcMatchRules(&Globals.RulesList, Globals.RulesListLock, &nameInfo->Name);
-        if (RuleAccessDenined == ruleCode) {
+        rule = FgcMatchRules(&Globals.RulesList, Globals.RulesListLock, &nameInfo->Name);
+        if (RuleMajorAccessDenied == rule->Code.Major) {
             SET_CALLBACK_DATA_STATUS(Data, STATUS_ACCESS_DENIED);
             callbackStatus = FLT_PREOP_COMPLETE;
             goto Cleanup;
@@ -135,7 +135,7 @@ Return Value:
     } else {
         FltReferenceFileNameInformation(nameInfo);
         completionContext->Create.FileNameInfo = nameInfo;
-        completionContext->Create.RuleCode = ruleCode;
+        completionContext->Create.RuleCode = rule->Code;
         *CompletionContext = completionContext;
     }
     
@@ -190,8 +190,7 @@ Return Value:
     FLT_POSTOP_CALLBACK_STATUS callbackStatus = FLT_POSTOP_FINISHED_PROCESSING;
     PFG_COMPLETION_CONTEXT completionContext = CompletionContext;
     PFLT_FILE_NAME_INFORMATION nameInfo = NULL;
-    ULONG ruleCode = 0;
-    PFG_MONITOR_RECORD_ENTRY recordEntry = NULL;
+    FG_RULE_CODE ruleCode = { 0 };
     PFG_FILE_CONTEXT fileContext = NULL, oldFileContext = NULL;
 
     UNREFERENCED_PARAMETER(FltObjects);
@@ -211,25 +210,6 @@ Return Value:
     if (FlagOn(Flags, FLTFL_POST_OPERATION_DRAINING)) {
         status = STATUS_DEVICE_REMOVED;
         goto Cleanup;
-    }
-
-    if (RuleMonitored == ruleCode) {
-        status = FgcCreateMonitorRecordEntry(Data->Iopb->MajorFunction,
-                                             Data->Iopb->MinorFunction,
-                                             NULL,
-                                             &Data->IoStatus,
-                                             NULL,
-                                             &nameInfo->Name,
-                                             &recordEntry);
-        if (!NT_SUCCESS(status)) {
-            LOG_ERROR("NTSTATUS: 0x%08x, record operation failed", status);
-            goto Cleanup;
-        }
-
-        KeQuerySystemTime(&recordEntry->Record.RecordTime);
-        FgcSubmitMonitorRecordEntry(&Globals.MonitorRecordsQueue, 
-                                    &Globals.MonitorRecordsQueueLock,
-                                    &recordEntry->List);
     }
     
     if (!NT_SUCCESS(Data->IoStatus.Status)) {
@@ -274,15 +254,15 @@ Return Value:
 
             DBG_TRACE("File context already defined, file context: %p, for '%wZ'", oldFileContext, &nameInfo->Name);
 
-            if (oldFileContext->RuleCode != completionContext->Create.RuleCode) {
+            if (oldFileContext->Rule.Code.Value != completionContext->Create.RuleCode.Value) {
                 DBG_WARNING("File context %p rule updated from 0x%08x to 0x%08x", 
                             oldFileContext, 
-                            oldFileContext->RuleCode,
-                            completionContext->Create.RuleCode);
+                            oldFileContext->Rule.Code.Value,
+                            completionContext->Create.RuleCode.Value);
             }
 #endif
 
-            InterlockedExchange((LONG*)&oldFileContext->RuleCode, (LONG)completionContext->Create.RuleCode);
+            InterlockedExchange(&oldFileContext->Rule.Code.Value, completionContext->Create.RuleCode.Value);
 
         } else {
 
@@ -293,7 +273,7 @@ Return Value:
         }
     }
 
-    InterlockedExchange((LONG*)&fileContext->RuleCode, (LONG)ruleCode);
+    InterlockedExchange(&fileContext->Rule.Code.Value, ruleCode.Value);
 
 Cleanup:
 
@@ -355,7 +335,6 @@ Return Value:
     NTSTATUS status = STATUS_SUCCESS;
     FLT_PREOP_CALLBACK_STATUS callbackStatus = FLT_PREOP_SUCCESS_NO_CALLBACK;
     PFG_FILE_CONTEXT fileContext = NULL;
-    PFG_MONITOR_RECORD_ENTRY recordEntry = NULL;
 
     UNREFERENCED_PARAMETER(CompletionContext);
     UNREFERENCED_PARAMETER(FltObjects);
@@ -377,33 +356,29 @@ Return Value:
         goto Cleanup;
     }
 
-    switch (fileContext->RuleCode) {
-    case RuleAccessDenined:
+    switch (fileContext->Rule.Code.Major) {
+    case RuleMajorAccessDenied:
         SET_CALLBACK_DATA_STATUS(Data, STATUS_ACCESS_DENIED);
         callbackStatus = FLT_PREOP_COMPLETE;
         break;
 
-    case RuleReadOnly:
+    case RuleMajorReadonly:
         SET_CALLBACK_DATA_STATUS(Data, STATUS_MEDIA_WRITE_PROTECTED);
         callbackStatus = FLT_PREOP_COMPLETE;
         break;
+    }
 
-    case RuleMonitored:
-        status = FgcCreateMonitorRecordEntry(Data->Iopb->MajorFunction, 
-                                             Data->Iopb->MinorFunction,
-                                             NULL,
-                                             NULL,
-                                             NULL,
-                                             &fileContext->FileNameInfo->Name,
-                                             &recordEntry);
+    if (RuleMinorMonitored == fileContext->Rule.Code.Minor) {
+        status = FgcRecordRuleMatched(Data->Iopb->MajorFunction, 
+                                      Data->Iopb->MinorFunction, 
+                                      NULL, 
+                                      &fileContext->FileNameInfo->Name,
+                                      NULL,
+                                      &fileContext->Rule);
         if (!NT_SUCCESS(status)) {
-            LOG_ERROR("NTSTATUS: 0x%08x, create monitor record entry failed", status);
+            LOG_ERROR("NTSTATUS: 0x%08x, record rule matched failed", status);
             goto Cleanup;
         }
-
-        *CompletionContext = recordEntry;
-        callbackStatus = FLT_PREOP_SUCCESS_WITH_CALLBACK;
-        break;
     }
 
 Cleanup:
@@ -418,55 +393,6 @@ Cleanup:
     }
 
     return callbackStatus;
-}
-
-FLT_POSTOP_CALLBACK_STATUS
-FgcPostWriteCallback(
-    _Inout_ PFLT_CALLBACK_DATA Data,
-    _In_ PCFLT_RELATED_OBJECTS FltObjects,
-    _In_opt_ PVOID CompletionContext,
-    _In_ FLT_POST_OPERATION_FLAGS Flags
-)
-/*++
-
-Routine Description:
-
-    This routine is the post-operation completion routine for 'IRP_MJ_WRITE'.
-
-    This is non-pageable because it may be called at DPC level.
-
-Arguments:
-
-    Data              - Pointer to the filter callbackData that is passed to us.
-
-    FltObjects        - Pointer to the FLT_RELATED_OBJECTS data structure containing
-                        opaque handles to this filter, instance, its associated volume and
-                        file object.
-
-    CompletionContext - The completion context set in the pre-operation routine.
-
-    Flags             - Denotes whether the completion is successful or is being drained.
-
-Return Value:
-
-    The return value is the status of the operation.
-
---*/
-{
-    FG_MONITOR_RECORD_ENTRY* recordEntry = (FG_MONITOR_RECORD_ENTRY*)CompletionContext;
-
-    UNREFERENCED_PARAMETER(FltObjects);
-    UNREFERENCED_PARAMETER(Flags);
-
-    if (NULL != recordEntry) {
-        FgcSetRecordIoStatus(recordEntry->Record, &Data->IoStatus);
-        KeQuerySystemTime(&recordEntry->Record.RecordTime);
-        FgcSubmitMonitorRecordEntry(&Globals.MonitorRecordsQueue,
-                                    &Globals.MonitorRecordsQueueLock,
-                                    &recordEntry->List);
-    }
-
-    return FLT_POSTOP_FINISHED_PROCESSING;
 }
 
 FLT_PREOP_CALLBACK_STATUS
@@ -505,7 +431,7 @@ Return Value:
     PFG_FILE_CONTEXT fileContext = NULL;
     PFLT_FILE_NAME_INFORMATION renameNameInfo = NULL;
     PFILE_RENAME_INFORMATION renameInfo = NULL;
-    FG_RUEL_CODE ruleCode = 0ul;
+    CONST FGC_RULE* rule = NULL;
 
     UNREFERENCED_PARAMETER(CompletionContext);
 
@@ -530,16 +456,29 @@ Return Value:
     case FileRenameInformation:
     case FileRenameInformationEx:
 
-        switch (fileContext->RuleCode) {
-        case RuleAccessDenined:
+        switch (fileContext->Rule.Code.Major) {
+        case RuleMajorAccessDenied:
             SET_CALLBACK_DATA_STATUS(Data, STATUS_ACCESS_DENIED);
             callbackStatus = FLT_PREOP_COMPLETE;
             break;
 
-        case RuleReadOnly:
+        case RuleMajorReadonly:
             SET_CALLBACK_DATA_STATUS(Data, STATUS_MEDIA_WRITE_PROTECTED);
             callbackStatus = FLT_PREOP_COMPLETE;
             break;
+        }
+
+        if (RuleMinorMonitored == fileContext->Rule.Code.Minor) {
+            status = FgcRecordRuleMatched(Data->Iopb->MajorFunction,
+                                          Data->Iopb->MinorFunction,
+                                          NULL,
+                                          &fileContext->FileNameInfo->Name,
+                                          NULL,
+                                          &fileContext->Rule);
+            if (!NT_SUCCESS(status)) {
+                LOG_ERROR("NTSTATUS: 0x%08x, record rule matched failed", status);
+                goto Cleanup;
+            }
         }
 
         renameInfo = Data->Iopb->Parameters.SetFileInformation.InfoBuffer;
@@ -556,17 +495,30 @@ Return Value:
         }
 
         try {
-            ruleCode = FgcMatchRules(&Globals.RulesList, Globals.RulesListLock, &renameNameInfo->Name);
-            switch (ruleCode) {
-            case RuleAccessDenined:
+            rule = FgcMatchRules(&Globals.RulesList, Globals.RulesListLock, &renameNameInfo->Name);
+            switch (rule->Code.Major) {
+            case RuleMajorAccessDenied:
                 SET_CALLBACK_DATA_STATUS(Data, STATUS_ACCESS_DENIED);
                 callbackStatus = FLT_PREOP_COMPLETE;
                 break;
 
-            case RuleReadOnly:
+            case RuleMajorReadonly:
                 SET_CALLBACK_DATA_STATUS(Data, STATUS_MEDIA_WRITE_PROTECTED);
                 callbackStatus = FLT_PREOP_COMPLETE;
                 break;
+            }
+
+            if (RuleMinorMonitored == fileContext->Rule.Code.Minor) {
+                status = FgcRecordRuleMatched(Data->Iopb->MajorFunction,
+                                              Data->Iopb->MinorFunction,
+                                              NULL,
+                                              &fileContext->FileNameInfo->Name,
+                                              NULL,
+                                              &fileContext->Rule);
+                if (!NT_SUCCESS(status)) {
+                    LOG_ERROR("NTSTATUS: 0x%08x, record rule matched failed", status);
+                    goto Cleanup;
+                }
             }
         } except(EXCEPTION_EXECUTE_HANDLER) {
             status = GetExceptionCode();
@@ -580,16 +532,29 @@ Return Value:
     case FileEndOfFileInformation:
     case FileAllocationInformation:
 
-        switch (fileContext->RuleCode) {
-        case RuleAccessDenined:
+        switch (fileContext->Rule.Code.Major) {
+        case RuleMajorAccessDenied:
             SET_CALLBACK_DATA_STATUS(Data, STATUS_ACCESS_DENIED);
             callbackStatus = FLT_PREOP_COMPLETE;
             break;
 
-        case RuleReadOnly:
+        case RuleMajorReadonly:
             SET_CALLBACK_DATA_STATUS(Data, STATUS_MEDIA_WRITE_PROTECTED);
             callbackStatus = FLT_PREOP_COMPLETE;
             break;
+        }
+
+        if (RuleMinorMonitored == fileContext->Rule.Code.Minor) {
+            status = FgcRecordRuleMatched(Data->Iopb->MajorFunction,
+                                          Data->Iopb->MinorFunction,
+                                          NULL,
+                                          &fileContext->FileNameInfo->Name,
+                                          NULL,
+                                          &fileContext->Rule);
+            if (!NT_SUCCESS(status)) {
+                LOG_ERROR("NTSTATUS: 0x%08x, record rule matched failed", status);
+                goto Cleanup;
+            }
         }
         break;
     }
@@ -674,16 +639,29 @@ Return Value:
     case FSCTL_SET_REPARSE_POINT_EX:
     case FSCTL_DELETE_REPARSE_POINT:
 
-        switch (fileContext->RuleCode) {
-        case RuleAccessDenined:
+        switch (fileContext->Rule.Code.Major) {
+        case RuleMajorAccessDenied:
             SET_CALLBACK_DATA_STATUS(Data, STATUS_ACCESS_DENIED);
             callbackStatus = FLT_PREOP_COMPLETE;
             break;
 
-        case RuleReadOnly:
+        case RuleMajorReadonly:
             SET_CALLBACK_DATA_STATUS(Data, STATUS_MEDIA_WRITE_PROTECTED);
             callbackStatus = FLT_PREOP_COMPLETE;
             break;
+        }
+
+        if (RuleMinorMonitored == fileContext->Rule.Code.Minor) {
+            status = FgcRecordRuleMatched(Data->Iopb->MajorFunction,
+                                          Data->Iopb->MinorFunction,
+                                          NULL,
+                                          &fileContext->FileNameInfo->Name,
+                                          NULL,
+                                          &fileContext->Rule);
+            if (!NT_SUCCESS(status)) {
+                LOG_ERROR("NTSTATUS: 0x%08x, record rule matched failed", status);
+                goto Cleanup;
+            }
         }
     }
 
@@ -699,125 +677,4 @@ Cleanup:
     }
 
     return callbackStatus;
-}
-
-FLT_PREOP_CALLBACK_STATUS
-FgcPreCloseCallback(
-    _Inout_ PFLT_CALLBACK_DATA Data,
-    _In_ PCFLT_RELATED_OBJECTS FltObjects,
-    _Flt_CompletionContext_Outptr_ PVOID *CompletionContext
-    )
-/*++
-
-Routine Description:
-
-    This routine is a pre-operation dispatch routine for 'IRP_MJ_CLOSE'.
-
-    This is non-pageable because it could be called on the paging path
-
-Arguments:
-
-    Data              - Pointer to the filter callbackData that is passed to us.
-    FltObjects        - Pointer to the FLT_RELATED_OBJECTS data structure containing
-                        opaque handles to this filter, instance, its associated volume and
-                        file object.
-    CompletionContext - The context for the completion routine for this
-                        operation.
-
-Return Value:
-
-    The return value is the status of the operation.
-
---*/
-{
-    NTSTATUS status = STATUS_SUCCESS;
-    FLT_PREOP_CALLBACK_STATUS callbackStatus = FLT_PREOP_SUCCESS_NO_CALLBACK;
-    PFG_FILE_CONTEXT fileContext = NULL;
-    PFG_MONITOR_RECORD_ENTRY recordEntry = NULL;
-
-    UNREFERENCED_PARAMETER(FltObjects);
-
-    PAGED_CODE();
-
-    status = FltGetFileContext(Data->Iopb->TargetInstance, Data->Iopb->TargetFileObject, &fileContext);
-    if (!NT_SUCCESS(status)) {
-        goto Cleanup;
-    }
-
-    if (RuleMonitored == fileContext->RuleCode) {
-        status = FgcCreateMonitorRecordEntry(Data->Iopb->MajorFunction,
-                                             Data->Iopb->MinorFunction,
-                                             NULL,
-                                             NULL,
-                                             NULL,
-                                             &fileContext->FileNameInfo->Name,
-                                             &recordEntry);
-        if (!NT_SUCCESS(status)) {
-            LOG_ERROR("NTSTATUS: 0x%08x, create monitor record entry failed", status);
-            goto Cleanup;
-        }
-
-        *CompletionContext = recordEntry;
-        callbackStatus = FLT_PREOP_SUCCESS_WITH_CALLBACK;
-    }
-
-Cleanup:
-
-    if (NULL != fileContext) {
-        FltReleaseContext(fileContext);
-    }
-
-    return callbackStatus;
-}
-
-FLT_POSTOP_CALLBACK_STATUS
-FgcPostCloseCallback(
-    _Inout_ PFLT_CALLBACK_DATA Data,
-    _In_ PCFLT_RELATED_OBJECTS FltObjects,
-    _In_opt_ PVOID CompletionContext,
-    _In_ FLT_POST_OPERATION_FLAGS Flags
-    )
-/*++
-
-Routine Description:
-
-    This routine is the post-operation completion routine for 'IRP_MJ_CLOSE'.
-
-    This is non-pageable because it may be called at DPC level.
-
-Arguments:
-
-    Data              - Pointer to the filter callbackData that is passed to us.
-
-    FltObjects        - Pointer to the FLT_RELATED_OBJECTS data structure containing
-                        opaque handles to this filter, instance, its associated volume and
-                        file object.
-
-    CompletionContext - The completion context set in the pre-operation routine.
-
-    Flags             - Denotes whether the completion is successful or is being drained.
-
-Return Value:
-
-    The return value is the status of the operation.
-
---*/
-{
-    FG_MONITOR_RECORD_ENTRY *recordEntry = (FG_MONITOR_RECORD_ENTRY*)CompletionContext;
-
-    UNREFERENCED_PARAMETER(Data);
-    UNREFERENCED_PARAMETER(FltObjects);
-    UNREFERENCED_PARAMETER(Flags);
-
-    PAGED_CODE();
-
-    if (NULL != recordEntry) {
-        FgcSetRecordIoStatus(recordEntry->Record, &Data->IoStatus);
-        KeQuerySystemTime(&recordEntry->Record.RecordTime);
-        FgcSubmitMonitorRecordEntry(&Globals.MonitorRecordsQueue,
-                                    &Globals.MonitorRecordsQueueLock,
-                                    &recordEntry->List);
-    }
-
-    return FLT_POSTOP_FINISHED_PROCESSING;
 }

@@ -53,7 +53,7 @@ FgcRecordRuleMatched(
     _In_opt_ CONST FG_FILE_ID_DESCRIPTOR *FileIdDescriptor,
     _In_ CONST UNICODE_STRING *FilePath,
     _In_opt_ CONST UNICODE_STRING *RenameFilePath,
-    _In_ CONST FGC_RULE_ENTRY *RuleEntry
+    _In_ CONST FGC_RULE *Rule
     )
 /*++
 
@@ -92,7 +92,7 @@ Return Value:
 
     allocateSize = sizeof(FG_MONITOR_RECORD_ENTRY) + 
                    FilePath->Length + 
-                   RuleEntry->Rule.PathExpression->Length;
+                   Rule->PathExpression->Length;
 
     status = FgcAllocateBufferEx(&recordEntry, 
                                  POOL_FLAG_PAGED, 
@@ -117,13 +117,13 @@ Return Value:
                       sizeof(FG_FILE_ID_DESCRIPTOR));
     }
 
-    recordEntry->Record.RuleCode = RuleEntry->Rule.Code;
+    recordEntry->Record.RuleCode = Rule->Code;
 
     filePathPtr = recordEntry->Record.Buffer;
-    RtlCopyMemory(filePathPtr, RuleEntry->Rule.PathExpression->Buffer, RuleEntry->Rule.PathExpression->Length);
-    recordEntry->Record.RulePathExpressionSize = RuleEntry->Rule.PathExpression->Length;
+    RtlCopyMemory(filePathPtr, Rule->PathExpression->Buffer, Rule->PathExpression->Length);
+    recordEntry->Record.RulePathExpressionSize = Rule->PathExpression->Length;
 
-    filePathPtr += RuleEntry->Rule.PathExpression->Length;
+    filePathPtr += Rule->PathExpression->Length;
     RtlCopyMemory(filePathPtr, FilePath->Buffer, FilePath->Length);
     recordEntry->Record.FilePathSize = FilePath->Length;
 
@@ -133,7 +133,7 @@ Return Value:
         recordEntry->Record.RenameFilePathSize = RenameFilePath->Length;
     }
 
-    ExInterlockedInsertTailList(&Globals.MonitorRecordsQueue, recordEntry, &Globals.MonitorRecordsQueueLock);
+    ExInterlockedInsertTailList(&Globals.MonitorRecordsQueue, &recordEntry->List, &Globals.MonitorRecordsQueueLock);
     KeSetEvent(&Globals.MonitorContext->EventWakeMonitor, 0, FALSE);
 
     return status;

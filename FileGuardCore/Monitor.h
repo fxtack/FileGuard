@@ -63,7 +63,7 @@ FgcRecordRuleMatched(
     _In_opt_ CONST FG_FILE_ID_DESCRIPTOR *FileIdDescriptor,
     _In_ CONST UNICODE_STRING *FilePath,
     _In_opt_ CONST UNICODE_STRING *RenameFilePath,
-    _In_ CONST FG_RULE_ENTRY *RuleEntry
+    _In_ CONST FGC_RULE* Rule
     );
 
 #define FG_MONITOR_SEND_RECORD_BUFFER_SIZE (32 * 1024)
