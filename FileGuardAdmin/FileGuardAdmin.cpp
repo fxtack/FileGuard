@@ -105,7 +105,7 @@ namespace fileguard {
 
     std::wstring RuleMinorName(FG_RULE_CODE& code) {
         switch (code.Minor) {
-        case FG_RULE_MINOR_CODE::RuleMinorMonitored: return L"monitered";
+        case FG_RULE_MINOR_CODE::RuleMinorMonitored: return L"monitored";
         }
         return L"";
     }
