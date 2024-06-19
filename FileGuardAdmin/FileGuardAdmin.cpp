@@ -592,7 +592,7 @@ namespace fileguard {
                                << L"          rule_major: " << RuleMajorName(record->RuleCode) << std::endl
                                << L"          rule_minor: " << RuleMinorName(record->RuleCode) << std::endl
                                << L"     rule_expression: " << std::wstring_view(record->Buffer, record->RulePathExpressionSize/sizeof(wchar_t)) << std::endl
-                               << L"           file_path: " << std::wstring_view(record->Buffer + record->RulePathExpressionSize, record->FilePathSize / sizeof(wchar_t)) << std::endl
+                               << L"           file_path: " << std::wstring_view(record->Buffer+record->RulePathExpressionSize/sizeof(wchar_t), record->FilePathSize/sizeof(wchar_t)) << std::endl
                                << std::endl;
                     };
             }
