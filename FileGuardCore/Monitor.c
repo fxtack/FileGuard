@@ -82,7 +82,7 @@ Return Value:
     NTSTATUS status = STATUS_SUCCESS;
     SIZE_T allocateSize = 0;
     FG_MONITOR_RECORD_ENTRY *recordEntry = NULL;
-    WCHAR *filePathPtr = NULL;
+    CHAR *filePathPtr = NULL;
 
     if (NULL == FilePath) return STATUS_INVALID_PARAMETER_5;
 
@@ -119,10 +119,10 @@ Return Value:
 
     recordEntry->Record.RuleCode = Rule->Code;
 
-    filePathPtr = recordEntry->Record.Buffer;
+    filePathPtr = (CHAR*)recordEntry->Record.Buffer;
     RtlCopyMemory(filePathPtr, Rule->PathExpression->Buffer, Rule->PathExpression->Length);
     recordEntry->Record.RulePathExpressionSize = Rule->PathExpression->Length;
-
+    
     filePathPtr += Rule->PathExpression->Length;
     RtlCopyMemory(filePathPtr, FilePath->Buffer, FilePath->Length);
     recordEntry->Record.FilePathSize = FilePath->Length;

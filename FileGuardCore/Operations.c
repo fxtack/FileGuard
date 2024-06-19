@@ -113,9 +113,25 @@ Return Value:
     
     try {
         rule = FgcMatchRules(&Globals.RulesList, Globals.RulesListLock, &nameInfo->Name);
-        if (RuleMajorAccessDenied == rule->Code.Major) {
-            SET_CALLBACK_DATA_STATUS(Data, STATUS_ACCESS_DENIED);
-            callbackStatus = FLT_PREOP_COMPLETE;
+        if (NULL != rule) {
+            status = FgcRecordRuleMatched(Data->Iopb->MajorFunction,
+                                          Data->Iopb->MinorFunction,
+                                          NULL,
+                                          &nameInfo->Name,
+                                          NULL,
+                                          rule);
+            if (!NT_SUCCESS(status)) {
+                LOG_ERROR("NTSTATUS: 0x%08x, record rule matched failed", status);
+                goto Cleanup;
+            }
+
+            if (RuleMajorAccessDenied == rule->Code.Major) {
+                SET_CALLBACK_DATA_STATUS(Data, STATUS_ACCESS_DENIED);
+                callbackStatus = FLT_PREOP_COMPLETE;
+                goto Cleanup;
+            }
+        } else {
+            callbackStatus = FLT_PREOP_SUCCESS_NO_CALLBACK;
             goto Cleanup;
         }
     } except(EXCEPTION_EXECUTE_HANDLER) {
