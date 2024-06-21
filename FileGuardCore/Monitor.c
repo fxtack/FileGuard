@@ -337,7 +337,10 @@ FgcGetRecords(
 
         entry = RemoveHeadList(List);
         recordEntry = CONTAINING_RECORD(entry, FG_MONITOR_RECORD_ENTRY, List);
-        writeSize = sizeof(FG_MONITOR_RECORD) + recordEntry->Record.FilePathSize;
+        writeSize = sizeof(FG_MONITOR_RECORD) +
+                    recordEntry->Record.RulePathExpressionSize + 
+                    recordEntry->Record.FilePathSize + 
+                    recordEntry->Record.RenameFilePathSize;
 
         if (OutputBufferSize < writeSize) {
             InsertHeadList(List, entry);

@@ -56,7 +56,11 @@ EXTERN_C_START
 #include "FileGuardLib.h"
 EXTERN_C_END
 
+
+#pragma warning(push)
+#pragma warning(disable: 4423)
 #include "CLI11/CLI11.hpp"
+#pragma warning(pop)
 
 #define FGA_MAJOR_VERSION ((USHORT)0)
 #define FGA_MINOR_VERSION ((USHORT)1)
@@ -64,6 +68,14 @@ EXTERN_C_END
 #define FGA_BUILD_VERSION ((USHORT)0)
 
 #define HEX(_num_) L"0x" << std::hex << std::setfill(L'0') << std::setw(8) << (_num_)
+
+#define SYSTEMTIME(_time_) std::setfill(L'0') << std::setw(4) << (_time_).wYear << L"-" \
+                                              << std::setw(2) << (_time_).wMonth << L"-" \
+                                              << std::setw(2) << (_time_).wDay << L" " \
+                                              << std::setw(2) << (_time_).wHour << L":" \
+                                              << std::setw(2) << (_time_).wMinute << L":" \
+                                              << std::setw(2) << (_time_).wSecond << L"." \
+                                              << std::setw(3) << (_time_).wMilliseconds
 
 namespace fileguard {
     
@@ -569,24 +581,40 @@ namespace fileguard {
                 std::wcout << "major_irp,requestor_pid,requestor_tid,record_time,volume_serial_number,file_id,rule_major_type,rule_minor_type,rule_expression,file_path"
                            << std::endl;
                 callback = [](FG_MONITOR_RECORD *record) {
+                    FILETIME filetime;
+                    SYSTEMTIME utc_systemtime, local_systemtime;
+                    TIME_ZONE_INFORMATION timezone;
+                    filetime.dwLowDateTime = record->RecordTime.LowPart;
+                    filetime.dwHighDateTime = record->RecordTime.HighPart;
+                    GetTimeZoneInformation(&timezone);
+                    FileTimeToSystemTime(&filetime, &utc_systemtime);
+                    SystemTimeToTzSpecificLocalTime(&timezone, &utc_systemtime, &local_systemtime);
                     std::wcout << MajorIRPName(record->MajorFunction) << L","
                                << record->RequestorPid << L","
                                << record->RequestorTid << L","
-                               << record->RecordTime.QuadPart << L","
+                               << SYSTEMTIME(local_systemtime) << L","
                                << record->FileIdDescriptor.VolumeSerialNumber << L","
                                << record->FileIdDescriptor.FileId.FileId64.QuadPart << L","
                                << RuleMajorName(record->RuleCode) << L","
                                << RuleMinorName(record->RuleCode) << L","
                                << std::wstring_view(record->Buffer, record->RulePathExpressionSize / sizeof(wchar_t)) << L","
-                               << std::wstring_view(record->Buffer + record->RulePathExpressionSize, record->FilePathSize / sizeof(wchar_t))
+                               << std::wstring_view(record->Buffer + record->RulePathExpressionSize / sizeof(wchar_t), record->FilePathSize / sizeof(wchar_t))
                                << std::endl;
                     };
             } else if (format == L"list") {
                 callback = [](FG_MONITOR_RECORD *record) {
+                    FILETIME filetime;
+                    SYSTEMTIME utc_systemtime, local_systemtime;
+                    TIME_ZONE_INFORMATION timezone;
+                    filetime.dwLowDateTime = record->RecordTime.LowPart;
+                    filetime.dwHighDateTime = record->RecordTime.HighPart;
+                    GetTimeZoneInformation(&timezone);
+                    FileTimeToSystemTime(&filetime, &utc_systemtime);
+                    SystemTimeToTzSpecificLocalTime(&timezone, &utc_systemtime, &local_systemtime);
                     std::wcout << L"           major_irp: " << MajorIRPName(record->MajorFunction) << std::endl
                                << L"       requestor_pid: " << record->RequestorPid << std::endl
                                << L"       requestor_tid: " << record->RequestorTid << std::endl
-                               << L"         record_time: " << record->RecordTime.QuadPart << std::endl
+                               << L"         record_time: " << SYSTEMTIME(local_systemtime) << std::endl
                                << L"volume_serial_number: " << record->FileIdDescriptor.VolumeSerialNumber << std::endl
                                << L"             file_id: " << record->FileIdDescriptor.FileId.FileId64.QuadPart << std::endl
                                << L"          rule_major: " << RuleMajorName(record->RuleCode) << std::endl

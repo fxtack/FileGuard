@@ -89,7 +89,7 @@ HRESULT FglParseMonitorRecords(
 
         PFG_MONITOR_RECORD record = (PFG_MONITOR_RECORD)(buffer + offset);
         RecordsArray[recordCount++] = record;
-        offset += sizeof(FG_MONITOR_RECORD) + record->FilePathSize;
+        offset += (sizeof(FG_MONITOR_RECORD) + record->RulePathExpressionSize + record->FilePathSize + record->RenameFilePathSize);
     }
 
     *ParsedCount = recordCount;
