@@ -259,7 +259,7 @@ namespace fileguard {
             CLI::App app("This tool is used to operate rules");
 
             app.set_help_flag("--help", "Print this help message and exit");
-            app.set_version_flag("--version", "1.0.0");
+            app.set_version_flag("--version", GetVersionInfo());
 
             app.require_subcommand(1);
 
@@ -328,36 +328,37 @@ namespace fileguard {
             return image_name;
         }
 
-        std::wstring GetVersionInfo() {
-            std::wstring core_ver_wstr;
-            std::wostringstream core_ver_wos;
+        std::string GetVersionInfo() {
+            std::string core_ver_str;
+            std::ostringstream core_ver_os;
 
             if (nullptr != core_client_) {
                 auto core_ver_opt = core_client_->GetCoreVersion();
                 if (std::holds_alternative<FG_CORE_VERSION>(core_ver_opt)) {
                     auto core_ver = std::get<FG_CORE_VERSION>(core_ver_opt);
-                    core_ver_wos << L"v"
-                                 << core_ver.Major << L"."
-                                 << core_ver.Minor << L"."
-                                 << core_ver.Patch << L"."
-                                 << core_ver.Patch;
+                    core_ver_os << "v"
+                                << core_ver.Major << "."
+                                << core_ver.Minor << "."
+                                << core_ver.Patch << "."
+                                << core_ver.Build;
                 } else if (std::holds_alternative<HRESULT>(core_ver_opt)) {
-                    core_ver_wos << L"(error: " HEX(std::get<HRESULT>(core_ver_opt)) << L")";
+                    core_ver_os << "(error: 0x" << std::hex << std::setfill('0') << std::setw(8)
+                                << std::get<HRESULT>(core_ver_opt) << ")";
                 }
-                core_ver_wstr = core_ver_wos.str();
+                core_ver_str = core_ver_os.str();
             } else {
-                core_ver_wstr = L"(core not connected)";
+                core_ver_str = "(core not connected)";
             }
 
-            std::wostringstream admin_ver_wos;
-            admin_ver_wos << L"Admin: v"
-                          << FGA_MAJOR_VERSION << L"."
-                          << FGA_MINOR_VERSION << L"."
-                          << FGA_PATCH_VERSION << L"."
-                          << FGA_BUILD_VERSION << L", "
-                          << L"Core: " << core_ver_wstr;
+            std::ostringstream admin_ver_os;
+            admin_ver_os << "Admin: v"
+                          << FGA_MAJOR_VERSION << "."
+                          << FGA_MINOR_VERSION << "."
+                          << FGA_PATCH_VERSION << "."
+                          << FGA_BUILD_VERSION << ", "
+                          << "Core: " << core_ver_str;
 
-            return admin_ver_wos.str();
+            return admin_ver_os.str();
         }
 
         HRESULT CommandUnload() {
