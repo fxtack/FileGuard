@@ -55,9 +55,9 @@ Environment:
 // FileGuardCore version information.
 //
 #define FG_CORE_VERSION_MAJOR ((USHORT)0)
-#define FG_CORE_VERSION_MINOR ((USHORT)1)
-#define FG_CORE_VERSION_PATCH ((USHORT)1)
-#define FG_CORE_VERSION_BUILD ((USHORT)2)
+#define FG_CORE_VERSION_MINOR ((USHORT)2)
+#define FG_CORE_VERSION_PATCH ((USHORT)0)
+#define FG_CORE_VERSION_BUILD ((USHORT)0)
 
 //
 // Memory pool tags.
