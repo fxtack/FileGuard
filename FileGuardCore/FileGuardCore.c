@@ -407,10 +407,10 @@ Return Value:
     ULONG volumeNameSize = 0ul;
     PUNICODE_STRING volumeName = NULL;
 
-    PAGED_CODE();
-
     UNREFERENCED_PARAMETER(Flags);
     UNREFERENCED_PARAMETER(VolumeDeviceType);
+
+    PAGED_CODE();
 
     LOG_INFO("Start setup a instance for the volume");
 

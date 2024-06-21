@@ -129,4 +129,8 @@ FgcCleanupRuleEntriesList(
     _In_ LIST_ENTRY *RuleList
     );
 
+#ifdef ALLOC_PRAGMA
+#pragma alloc_text(PAGE, FgcMatchRules)
+#endif
+
 #endif

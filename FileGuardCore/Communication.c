@@ -79,13 +79,13 @@ Return Value
 
 --*/
 {
-    PAGED_CODE();
-
     UNREFERENCED_PARAMETER(ClientPort);
     UNREFERENCED_PARAMETER(ServerPortCookie);
     UNREFERENCED_PARAMETER(ConnectionContext);
     UNREFERENCED_PARAMETER(ContextBytes);
     UNREFERENCED_PARAMETER(ConnectionCookie);
+
+    PAGED_CODE();
 
     FLT_ASSERT(Globals.ControlClientPort == NULL);
 
@@ -148,6 +148,8 @@ FgcControlMessageNotifyCallback(
     UNICODE_STRING pathName = { 0 };
 
     UNREFERENCED_PARAMETER(ConnectionCookie);
+
+    PAGED_CODE();
 
     if (NULL == Input) return STATUS_INVALID_PARAMETER_2;
     if (InputSize < sizeof(FG_MESSAGE)) status = STATUS_INVALID_PARAMETER_3;

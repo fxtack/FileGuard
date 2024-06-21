@@ -87,4 +87,12 @@ FgcMonitorPortDisconnectCallback(
     _In_opt_ PVOID ConnectionCookie
     );
 
+#ifdef ALLOC_PRAGMA
+#pragma alloc_text(PAGE, FgcControlPortConnectCallback)
+#pragma alloc_text(PAGE, FgcControlPortDisconnectCallback)
+#pragma alloc_text(PAGE, FgcControlMessageNotifyCallback)
+#pragma alloc_text(PAGE, FgcMonitorPortConnectCallback)
+#pragma alloc_text(PAGE, FgcMonitorPortDisconnectCallback)
+#endif
+
 #endif

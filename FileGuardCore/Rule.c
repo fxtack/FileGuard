@@ -276,11 +276,11 @@ FgcMatchRules(
     LIST_ENTRY *entry = NULL, *next = NULL;
     FGC_RULE_ENTRY *ruleEntry = NULL;
     
+    PAGED_CODE();
+
     FLT_ASSERT(NULL != RuleList);
     FLT_ASSERT(NULL != ListLock);
     FLT_ASSERT(NULL != FileDevicePathName);
-
-    PAGED_CODE();
 
     FltAcquirePushLockShared(ListLock);
     LIST_FOR_EACH_SAFE(entry, next, RuleList) {

@@ -451,6 +451,8 @@ Return Value:
 
     UNREFERENCED_PARAMETER(CompletionContext);
 
+    PAGED_CODE();
+
     FLT_ASSERT(NULL != Data);
     FLT_ASSERT(NULL != Data->Iopb);
     FLT_ASSERT(IRP_MJ_SET_INFORMATION == Data->Iopb->MajorFunction);
@@ -630,6 +632,8 @@ Return Value:
     ULONG fsctlCode = 0ul;
 
     UNREFERENCED_PARAMETER(CompletionContext);
+
+    PAGED_CODE();
 
     FLT_ASSERT(NULL != Data);
     FLT_ASSERT(NULL != Data->Iopb);

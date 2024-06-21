@@ -77,4 +77,11 @@ FgcPreFileSystemControlCallback(
     _Flt_CompletionContext_Outptr_ PVOID* CompletionContext
     );
 
+#ifdef ALLOC_PRAGMA
+#pragma alloc_text(PAGE, FgcPreCreateCallback)
+#pragma alloc_text(PAGE, FgcPostCreateCallback)
+#pragma alloc_text(PAGE, FgcPreSetInformationCallback)
+#pragma alloc_text(PAGE, FgcPreFileSystemControlCallback)
+#endif
+
 #endif

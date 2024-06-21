@@ -143,4 +143,9 @@ FgcCleanupMonitorRecords(
     VOID
     );
 
+#ifdef ALLOC_PRAGMA
+#pragma alloc_text(PAGE, FgcCreateMonitorStartContext)
+#pragma alloc_text(PAGE, FgcMonitorThreadRoutine)
+#endif
+
 #endif
