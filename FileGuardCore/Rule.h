@@ -41,19 +41,63 @@ Environment:
 #ifndef __RULE_H__
 #define __RULE_H__
 
+/*-------------------------------------------------------------
+    Core rule basic structures and routines
+-------------------------------------------------------------*/
+
 typedef struct _FGC_RULE {
     FG_RULE_CODE Code;
     PUNICODE_STRING PathExpression;
-} FGC_RULE, *PFGC_RULE;
+    volatile LONG64 References;
+} FGC_RULE, * PFGC_RULE;
+
+_Check_return_
+NTSTATUS
+FgcCreateRule(
+    _In_ FG_RULE* UserRule,
+    _Inout_ FGC_RULE** Rule
+);
+
+#define FgcReferenceRule(_rule_) InterlockedIncrement64(&(_rule_)->References)
+
+FORCEINLINE
+VOID
+FgcReleaseRule(
+    _Inout_ FGC_RULE *Rule
+) {
+    FLT_ASSERT(NULL != Rule);
+
+    if (0 == InterlockedDecrement64(&Rule->References)) {
+        if (NULL != Rule->PathExpression) {
+            FgcFreeUnicodeString(InterlockedExchangePointer(&Rule->PathExpression, NULL));
+        }
+
+        if (NULL != Rule) {
+            FgcFreeBuffer(Rule);
+        }
+    }
+}
+
+#define FgcCompareRule(_rule1_, _rule2_) (_rule1_)->Code.Value == (_rule2_)->Code.Value && \
+                                          RtlCompareUnicodeString((_rule1_)->PathExpression, (_rule2_)->PathExpression, FALSE)
+
+/*-------------------------------------------------------------
+    Rule entry basic structures and routines
+-------------------------------------------------------------*/
 
 typedef struct _FG_RULE_ENTRY {
     LIST_ENTRY List;
-    FGC_RULE Rule;
+    FGC_RULE *Rule;
 } FGC_RULE_ENTRY, *PFGC_RULE_ENTRY;
 
-/*-------------------------------------------------------------
-    Rule entry basic routines
--------------------------------------------------------------*/
+_Check_return_
+NTSTATUS
+FgcCreateRuleEntry(
+    _In_ FG_RULE *Rule,
+    _Inout_ PFGC_RULE_ENTRY *RuleEntry
+    );
+
+#define FgcFreeRuleEntry(_entry_) FgcFreeBuffer((_entry_))
 
 _Check_return_
 NTSTATUS
@@ -77,11 +121,12 @@ FgcFindAndRemoveRule(
 
 _Check_return_
 CONST
-FGC_RULE*
+NTSTATUS
 FgcMatchRules(
     _In_ LIST_ENTRY *RuleList,
     _In_ EX_PUSH_LOCK *ListLock,
-    _In_ UNICODE_STRING *FileDevicePathName
+    _In_ UNICODE_STRING *FileDevicePathName,
+    _Outptr_result_maybenull_ FGC_RULE CONST **MatchedRule
     );
 
 _Check_return_
@@ -95,23 +140,6 @@ FgcMatchRulesEx(
     _Inout_opt_ USHORT *RulesAmount,
     _Inout_ ULONG *RulesSize
     );
-
-FORCEINLINE
-VOID
-FgcFreeRuleEntry(
-    _In_ FGC_RULE_ENTRY *RuleEntry
-    )
-{
-    FLT_ASSERT(NULL != RuleEntry);
-
-    if (NULL != RuleEntry->Rule.PathExpression) {
-        FgcFreeUnicodeString(InterlockedExchangePointer(&RuleEntry->Rule.PathExpression, NULL));
-    }
-
-    if (NULL != RuleEntry) {
-        FgcFreeBuffer(RuleEntry);
-    }
-}
 
 NTSTATUS
 FgcGetRules(
