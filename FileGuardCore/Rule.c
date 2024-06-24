@@ -355,7 +355,7 @@ FgcMatchRules(
 
     FltReleasePushLock(ListLock);
 
-    if (matched && !NT_SUCCESS(status)) {
+    if (matched && NT_SUCCESS(status)) {
         FgcReferenceRule(ruleEntry->Rule);
         *MatchedRule = ruleEntry->Rule;
     }

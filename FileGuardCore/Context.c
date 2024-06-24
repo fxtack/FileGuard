@@ -58,6 +58,10 @@ FgcCleanupFileContext(
     if (NULL != fileContext->FileNameInfo) {
         FltReleaseFileNameInformation(InterlockedExchangePointer(&fileContext->FileNameInfo, NULL));
     }
+
+    if (NULL != fileContext->Rule) {
+        FgcReferenceRule(fileContext->Rule);
+    }
 }
 
 /*-------------------------------------------------------------

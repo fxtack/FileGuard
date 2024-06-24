@@ -275,14 +275,14 @@ Return Value:
 
         } else if (STATUS_FLT_CONTEXT_ALREADY_DEFINED == status) {
 
-            if (!FgcCompareRule(oldFileContext->Rule, completionContext->Create.MatchedRule)) {
+            if (!FgcCompareRule(oldFileContext->Rule, matchedRule)) {
                 DBG_WARNING("File context %p rule updated from 0x%08x to 0x%08x",
                             oldFileContext,
                             oldFileContext->Rule->Code.Value,
-                            completionContext->Create.MatchedRule->Code.Value);
+                            matchedRule->Code.Value);
 
-                FgcReferenceRule(completionContext->Create.MatchedRule);
-                oldRule = InterlockedExchangePointer(&oldFileContext->Rule, completionContext->Create.MatchedRule);
+                FgcReferenceRule(matchedRule);
+                oldRule = InterlockedExchangePointer(&oldFileContext->Rule, matchedRule);
                 FgcReleaseRule(oldRule);
             }
         } else {
@@ -291,6 +291,9 @@ Return Value:
 
             FltReferenceFileNameInformation(nameInfo);
             InterlockedExchangePointer(&fileContext->FileNameInfo, nameInfo);
+
+            FgcReferenceRule(matchedRule);
+            InterlockedExchangePointer(&fileContext->Rule, matchedRule);
         }
     }
 
@@ -301,16 +304,20 @@ Cleanup:
         SET_CALLBACK_DATA_STATUS(Data, status);
     }
 
-    if (NULL != nameInfo) {
-        FltReleaseFileNameInformation(nameInfo);
+    if (NULL != oldFileContext) {
+        FltReleaseContext(oldFileContext);
     }
 
     if (NULL != fileContext) {
         FltReleaseContext(fileContext);
     }
 
-    if (NULL != oldFileContext) {
-        FltReleaseContext(oldFileContext);
+    if (NULL != matchedRule) {
+        FgcReferenceRule(matchedRule);
+    }
+
+    if (NULL != nameInfo) {
+        FltReleaseFileNameInformation(nameInfo);
     }
 
     if (NULL != completionContext) {
@@ -370,9 +377,22 @@ Return Value:
         LOG_ERROR("NTSTATUS: '0x%08x', get file context", status);
         goto Cleanup;
 
-    } else if (STATUS_NOT_FOUND == status) {
+    } else if (STATUS_NOT_FOUND == status || NULL == fileContext->Rule) {
         status = STATUS_SUCCESS;
         goto Cleanup;
+    }
+
+    if (RuleMinorMonitored == fileContext->Rule->Code.Minor) {
+        status = FgcRecordRuleMatched(Data->Iopb->MajorFunction,
+                                      Data->Iopb->MinorFunction,
+                                      NULL,
+                                      &fileContext->FileNameInfo->Name,
+                                      NULL,
+                                      fileContext->Rule);
+        if (!NT_SUCCESS(status)) {
+            LOG_ERROR("NTSTATUS: 0x%08x, record rule matched failed", status);
+            goto Cleanup;
+        }
     }
 
     switch (fileContext->Rule->Code.Major) {
@@ -387,18 +407,6 @@ Return Value:
         break;
     }
 
-    if (RuleMinorMonitored == fileContext->Rule->Code.Minor) {
-        status = FgcRecordRuleMatched(Data->Iopb->MajorFunction, 
-                                      Data->Iopb->MinorFunction, 
-                                      NULL, 
-                                      &fileContext->FileNameInfo->Name,
-                                      NULL,
-                                      fileContext->Rule);
-        if (!NT_SUCCESS(status)) {
-            LOG_ERROR("NTSTATUS: 0x%08x, record rule matched failed", status);
-            goto Cleanup;
-        }
-    }
 
 Cleanup:
 
@@ -450,7 +458,7 @@ Return Value:
     PFG_FILE_CONTEXT fileContext = NULL;
     PFLT_FILE_NAME_INFORMATION renameNameInfo = NULL;
     PFILE_RENAME_INFORMATION renameInfo = NULL;
-    CONST FGC_RULE* rule = NULL;
+    FGC_RULE *matchedRule = NULL;
 
     UNREFERENCED_PARAMETER(CompletionContext);
 
@@ -468,7 +476,7 @@ Return Value:
         LOG_ERROR("NTSTATUS: 0x%08x, get file context failed", status);
         goto Cleanup;
 
-    } else if (STATUS_NOT_FOUND == status) {
+    } else if (STATUS_NOT_FOUND == status || NULL == fileContext->Rule) {
         status = STATUS_SUCCESS;
         goto Cleanup;
     }
@@ -476,19 +484,6 @@ Return Value:
     switch (Data->Iopb->Parameters.SetFileInformation.FileInformationClass) {
     case FileRenameInformation:
     case FileRenameInformationEx:
-
-        switch (fileContext->Rule->Code.Major) {
-        case RuleMajorAccessDenied:
-            SET_CALLBACK_DATA_STATUS(Data, STATUS_ACCESS_DENIED);
-            callbackStatus = FLT_PREOP_COMPLETE;
-            break;
-
-        case RuleMajorReadonly:
-            SET_CALLBACK_DATA_STATUS(Data, STATUS_MEDIA_WRITE_PROTECTED);
-            callbackStatus = FLT_PREOP_COMPLETE;
-            break;
-        }
-
         if (RuleMinorMonitored == fileContext->Rule->Code.Minor) {
             status = FgcRecordRuleMatched(Data->Iopb->MajorFunction,
                                           Data->Iopb->MinorFunction,
@@ -500,6 +495,18 @@ Return Value:
                 LOG_ERROR("NTSTATUS: 0x%08x, record rule matched failed", status);
                 goto Cleanup;
             }
+        }
+
+        switch (fileContext->Rule->Code.Major) {
+        case RuleMajorAccessDenied:
+            SET_CALLBACK_DATA_STATUS(Data, STATUS_ACCESS_DENIED);
+            callbackStatus = FLT_PREOP_COMPLETE;
+            break;
+
+        case RuleMajorReadonly:
+            SET_CALLBACK_DATA_STATUS(Data, STATUS_MEDIA_WRITE_PROTECTED);
+            callbackStatus = FLT_PREOP_COMPLETE;
+            break;
         }
 
         renameInfo = Data->Iopb->Parameters.SetFileInformation.InfoBuffer;
@@ -516,23 +523,11 @@ Return Value:
         }
 
         try {
-            status = FgcMatchRules(&Globals.RulesList, Globals.RulesListLock, &renameNameInfo->Name, &rule);
+            status = FgcMatchRules(&Globals.RulesList, Globals.RulesListLock, &renameNameInfo->Name, &matchedRule);
             if (!NT_SUCCESS(status)) {
                 LOG_ERROR("NTSTATUS: 0x%08x try match file '%wZ' rule failed", status, &renameNameInfo->Name);
                 goto Cleanup;
-            } else if (NULL != rule) {
-                switch (rule->Code.Major) {
-                case RuleMajorAccessDenied:
-                    SET_CALLBACK_DATA_STATUS(Data, STATUS_ACCESS_DENIED);
-                    callbackStatus = FLT_PREOP_COMPLETE;
-                    break;
-
-                case RuleMajorReadonly:
-                    SET_CALLBACK_DATA_STATUS(Data, STATUS_MEDIA_WRITE_PROTECTED);
-                    callbackStatus = FLT_PREOP_COMPLETE;
-                    break;
-                }
-
+            } else if (NULL != matchedRule) {
                 if (RuleMinorMonitored == fileContext->Rule->Code.Minor) {
                     status = FgcRecordRuleMatched(Data->Iopb->MajorFunction,
                                                   Data->Iopb->MinorFunction,
@@ -544,6 +539,18 @@ Return Value:
                         LOG_ERROR("NTSTATUS: 0x%08x, record rule matched failed", status);
                         goto Cleanup;
                     }
+                }
+
+                switch (matchedRule->Code.Major) {
+                case RuleMajorAccessDenied:
+                    SET_CALLBACK_DATA_STATUS(Data, STATUS_ACCESS_DENIED);
+                    callbackStatus = FLT_PREOP_COMPLETE;
+                    break;
+
+                case RuleMajorReadonly:
+                    SET_CALLBACK_DATA_STATUS(Data, STATUS_MEDIA_WRITE_PROTECTED);
+                    callbackStatus = FLT_PREOP_COMPLETE;
+                    break;
                 }
             }
         } except(EXCEPTION_EXECUTE_HANDLER) {
@@ -558,18 +565,6 @@ Return Value:
     case FileEndOfFileInformation:
     case FileAllocationInformation:
 
-        switch (fileContext->Rule->Code.Major) {
-        case RuleMajorAccessDenied:
-            SET_CALLBACK_DATA_STATUS(Data, STATUS_ACCESS_DENIED);
-            callbackStatus = FLT_PREOP_COMPLETE;
-            break;
-
-        case RuleMajorReadonly:
-            SET_CALLBACK_DATA_STATUS(Data, STATUS_MEDIA_WRITE_PROTECTED);
-            callbackStatus = FLT_PREOP_COMPLETE;
-            break;
-        }
-
         if (RuleMinorMonitored == fileContext->Rule->Code.Minor) {
             status = FgcRecordRuleMatched(Data->Iopb->MajorFunction,
                                           Data->Iopb->MinorFunction,
@@ -582,6 +577,18 @@ Return Value:
                 goto Cleanup;
             }
         }
+
+        switch (fileContext->Rule->Code.Major) {
+        case RuleMajorAccessDenied:
+            SET_CALLBACK_DATA_STATUS(Data, STATUS_ACCESS_DENIED);
+            callbackStatus = FLT_PREOP_COMPLETE;
+            break;
+
+        case RuleMajorReadonly:
+            SET_CALLBACK_DATA_STATUS(Data, STATUS_MEDIA_WRITE_PROTECTED);
+            callbackStatus = FLT_PREOP_COMPLETE;
+            break;
+        }
         break;
     }
 
@@ -590,6 +597,10 @@ Cleanup:
     if (!NT_SUCCESS(status)) {
         SET_CALLBACK_DATA_STATUS(Data, status);
         callbackStatus = FLT_PREOP_COMPLETE;
+    }
+
+    if (NULL != matchedRule) {
+        FgcReferenceRule(matchedRule);
     }
 
     if (NULL != renameNameInfo) {
@@ -655,7 +666,7 @@ Return Value:
         LOG_ERROR("NTSTATUS: 0x%08x, get file context failed", status);
         goto Cleanup;
 
-    } else if (STATUS_NOT_FOUND == status) {
+    } else if (STATUS_NOT_FOUND == status || NULL == fileContext->Rule) {
         status = STATUS_SUCCESS;
         goto Cleanup;
     }
