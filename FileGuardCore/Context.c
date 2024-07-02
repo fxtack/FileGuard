@@ -60,7 +60,7 @@ FgcCleanupFileContext(
     }
 
     if (NULL != fileContext->Rule) {
-        FgcReferenceRule(fileContext->Rule);
+        FgcReleaseRule(fileContext->Rule);
     }
 }
 

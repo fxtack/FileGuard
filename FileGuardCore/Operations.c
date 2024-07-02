@@ -313,7 +313,7 @@ Cleanup:
     }
 
     if (NULL != matchedRule) {
-        FgcReferenceRule(matchedRule);
+        FgcReleaseRule(matchedRule);
     }
 
     if (NULL != nameInfo) {
@@ -600,7 +600,7 @@ Cleanup:
     }
 
     if (NULL != matchedRule) {
-        FgcReferenceRule(matchedRule);
+        FgcReleaseRule(matchedRule);
     }
 
     if (NULL != renameNameInfo) {

@@ -60,23 +60,10 @@ FgcCreateRule(
 
 #define FgcReferenceRule(_rule_) InterlockedIncrement64(&(_rule_)->References)
 
-FORCEINLINE
 VOID
 FgcReleaseRule(
-    _Inout_ FGC_RULE *Rule
-) {
-    FLT_ASSERT(NULL != Rule);
-
-    if (0 == InterlockedDecrement64(&Rule->References)) {
-        if (NULL != Rule->PathExpression) {
-            FgcFreeUnicodeString(InterlockedExchangePointer(&Rule->PathExpression, NULL));
-        }
-
-        if (NULL != Rule) {
-            FgcFreeBuffer(Rule);
-        }
-    }
-}
+    _Inout_ FGC_RULE* Rule
+);
 
 #define FgcCompareRule(_rule1_, _rule2_) (_rule1_)->Code.Value == (_rule2_)->Code.Value && \
                                           RtlCompareUnicodeString((_rule1_)->PathExpression, (_rule2_)->PathExpression, FALSE)
@@ -97,7 +84,17 @@ FgcCreateRuleEntry(
     _Inout_ PFGC_RULE_ENTRY *RuleEntry
     );
 
-#define FgcFreeRuleEntry(_entry_) FgcFreeBuffer((_entry_))
+FORCEINLINE
+VOID
+FgcFreeRuleEntry(
+    _In_ FGC_RULE_ENTRY *RuleEntry
+) {
+    if (NULL != RuleEntry->Rule) {
+        FgcReleaseRule(RuleEntry->Rule);
+    }
+
+    FgcFreeBuffer(RuleEntry);
+}
 
 _Check_return_
 NTSTATUS

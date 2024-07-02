@@ -104,6 +104,42 @@ Cleanup:
     return status;
 }
 
+VOID
+FgcReleaseRule(
+    _Inout_ FGC_RULE* Rule
+) {
+    FLT_ASSERT(NULL != Rule);
+
+    if (0 == InterlockedDecrement64(&Rule->References)) {
+
+        if (NULL != Rule->PathExpression) {
+            FgcFreeUnicodeString(InterlockedExchangePointer(&Rule->PathExpression, NULL));
+        }
+
+        if (NULL != Rule) {
+            FgcFreeBuffer(Rule);
+        }
+
+        LOG_TRACE("Rule %p freed, references: %I64d, code major code: 0x%08x, minor code: 0x%08x, expression: '%wZ'",
+                  Rule,
+                  Rule->References,
+                  Rule->Code.Major,
+                  Rule->Code.Minor,
+                  Rule->PathExpression);
+    }
+
+#ifdef DBG
+    else {
+        DBG_TRACE("Rule %p release, references: %I64d, code major code: 0x%08x, minor code: 0x%08x, expression: '%wZ'",
+                  Rule,
+                  Rule->References,
+                  Rule->Code.Major,
+                  Rule->Code.Minor,
+                  Rule->PathExpression);
+    }
+#endif
+}
+
 /*-------------------------------------------------------------
     Rule entry basic structures and routines
 -------------------------------------------------------------*/
@@ -234,7 +270,6 @@ FgcAddRules(
             break;
         }
 
-        FgcReferenceRule(ruleEntry->Rule);
         InsertHeadList(RuleList, &ruleEntry->List);
         if (NULL != AddedAmount) (*AddedAmount)++;
 
@@ -296,7 +331,6 @@ FgcFindAndRemoveRule(
                              ruleEntry->Rule->PathExpression);
 
                     RemoveEntryList(listEntry);
-                    FgcReleaseRule(ruleEntry->Rule);
                     FgcFreeRuleEntry(ruleEntry);
                     if (NULL != RemovedAmount) (*RemovedAmount)++;
                 }
