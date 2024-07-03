@@ -182,6 +182,69 @@ Return value:
 }
 
 /*-------------------------------------------------------------
+    Other tool routines.
+-------------------------------------------------------------*/
+
+_Check_return_
+NTSTATUS
+FgcCheckFileExists(
+    _In_ PFLT_INSTANCE Instance,
+    _In_ UNICODE_STRING* FileDevicePath,
+    _Out_ BOOLEAN* Exist
+) {
+    NTSTATUS status = STATUS_SUCCESS;
+    OBJECT_ATTRIBUTES objAttr = { 0 };
+    IO_STATUS_BLOCK stBlock = { 0 };
+    HANDLE fileHandle = NULL;
+    PFILE_OBJECT fileObject = NULL;
+
+    if (NULL == Instance) return STATUS_INVALID_PARAMETER_1;
+    if (NULL == FileDevicePath) return STATUS_INVALID_PARAMETER_2;
+    if (NULL == Exist) return STATUS_INVALID_PARAMETER_3;
+
+    InitializeObjectAttributes(&objAttr,
+                               FileDevicePath,
+                               OBJ_KERNEL_HANDLE,
+                               NULL,
+                               NULL);
+    status = FltCreateFileEx(Globals.Filter,
+                             Instance,
+                             &fileHandle,
+                             &fileObject,
+                             GENERIC_READ,
+                             &objAttr,
+                             &stBlock,
+                             0,
+                             FILE_ATTRIBUTE_NORMAL,
+                             FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                             FILE_OPEN,
+                             FILE_OPEN_FOR_BACKUP_INTENT,
+                             NULL,
+                             0,
+                             IO_IGNORE_SHARE_ACCESS_CHECK);
+    if (STATUS_OBJECT_PATH_NOT_FOUND == status || STATUS_OBJECT_NAME_NOT_FOUND == status) {
+        status = STATUS_SUCCESS;
+        *Exist = FALSE;
+
+    } else if (NT_SUCCESS(status)) {
+        *Exist = TRUE;
+
+    } else {
+        LOG_WARNING("Error(0x%08x) Open file '%wZ' failed", status, FileDevicePath);
+    }
+
+    if (NULL != fileHandle) {
+        FltClose(fileHandle);
+    }
+
+    if (NULL != fileObject) {
+        ObDereferenceObject(fileObject);
+    }
+
+    return status;
+}
+
+/*-------------------------------------------------------------
     Exception routines.
 -------------------------------------------------------------*/
 

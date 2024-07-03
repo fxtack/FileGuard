@@ -155,6 +155,14 @@ FgcFreePushLock(
                                                   (_cbd_)->IoStatus.Information = 0; \
                                                   FltSetCallbackDataDirty(Data);
 
+_Check_return_
+NTSTATUS
+FgcCheckFileExists(
+    _In_ PFLT_INSTANCE Instance,
+    _In_ UNICODE_STRING* FileDevicePath,
+    _Out_ BOOLEAN* Exist
+);
+
 /*-------------------------------------------------------------
     Exception routines.
 -------------------------------------------------------------*/

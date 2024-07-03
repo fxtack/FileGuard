@@ -72,9 +72,11 @@ Return Value:
 {
     NTSTATUS status = STATUS_SUCCESS;
     FLT_PREOP_CALLBACK_STATUS callbackStatus = FLT_PREOP_SUCCESS_WITH_CALLBACK;
+    ULONG createDisposition = 0ul;
     PFLT_FILE_NAME_INFORMATION nameInfo = NULL;
     PFG_COMPLETION_CONTEXT completionContext = NULL;
     FGC_RULE *rule = NULL;
+    BOOLEAN exist = FALSE;
 
     UNREFERENCED_PARAMETER(FltObjects);
 
@@ -83,6 +85,8 @@ Return Value:
     FLT_ASSERT(NULL != Data);
     FLT_ASSERT(NULL != Data->Iopb);
     FLT_ASSERT(IRP_MJ_CREATE == Data->Iopb->MajorFunction);
+
+    createDisposition = Data->Iopb->Parameters.Create.Options >> 24;
 
     // Check if this is a paging file as we don't want to redirect
     // the location of the paging file.
@@ -116,6 +120,7 @@ Return Value:
         if (!NT_SUCCESS(status)) {
             LOG_ERROR("NTSTATUS: 0x%08x try match file '%wZ' rule failed", status, &nameInfo->Name);
             goto Cleanup;
+
         } else if (NULL != rule) {
             status = FgcRecordRuleMatched(Data->Iopb->MajorFunction,
                                           Data->Iopb->MinorFunction,
@@ -132,6 +137,26 @@ Return Value:
                 SET_CALLBACK_DATA_STATUS(Data, STATUS_ACCESS_DENIED);
                 callbackStatus = FLT_PREOP_COMPLETE;
                 goto Cleanup;
+
+            } else if (RuleMajorReadonly == rule->Code.Major) {
+                if (FILE_CREATE == createDisposition || FILE_OVERWRITE == createDisposition) {
+                    SET_CALLBACK_DATA_STATUS(Data, STATUS_MEDIA_WRITE_PROTECTED);
+                    callbackStatus = FLT_PREOP_COMPLETE;
+                    goto Cleanup;
+
+                } else if (FILE_OPEN_IF == createDisposition || FILE_OVERWRITE_IF == createDisposition) {
+                    status = FgcCheckFileExists(FltObjects->Instance, &nameInfo->Name, &exist);
+                    if (!NT_SUCCESS(status)) {
+                        LOG_ERROR("NTSTATUS: 0x%08x, check file existence failed", status);
+                        goto Cleanup;
+                    }
+
+                    if (!exist) {
+                        SET_CALLBACK_DATA_STATUS(Data, STATUS_MEDIA_WRITE_PROTECTED);
+                        callbackStatus = FLT_PREOP_COMPLETE;
+                        goto Cleanup;
+                    }
+                }
             }
         } else {
             callbackStatus = FLT_PREOP_SUCCESS_NO_CALLBACK;
