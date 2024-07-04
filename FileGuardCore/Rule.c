@@ -110,34 +110,34 @@ FgcReleaseRule(
 ) {
     FLT_ASSERT(NULL != Rule);
 
-    if (0 == InterlockedDecrement64(&Rule->References)) {
+    if (NULL != Rule) {
+        if (0 == InterlockedDecrement64(&Rule->References)) {
 
-        if (NULL != Rule->PathExpression) {
-            FgcFreeUnicodeString(InterlockedExchangePointer(&Rule->PathExpression, NULL));
-        }
+            LOG_TRACE("Rule: %p freed, references: %I64d, code major code: 0x%08x, minor code: 0x%08x, expression: '%wZ'",
+                      Rule,
+                      Rule->References,
+                      Rule->Code.Major,
+                      Rule->Code.Minor,
+                      Rule->PathExpression);
 
-        if (NULL != Rule) {
+            if (NULL != Rule->PathExpression) {
+                FgcFreeUnicodeString(InterlockedExchangePointer(&Rule->PathExpression, NULL));
+            }
+
             FgcFreeBuffer(Rule);
         }
 
-        LOG_TRACE("Rule %p freed, references: %I64d, code major code: 0x%08x, minor code: 0x%08x, expression: '%wZ'",
-                  Rule,
-                  Rule->References,
-                  Rule->Code.Major,
-                  Rule->Code.Minor,
-                  Rule->PathExpression);
-    }
-
 #ifdef DBG
-    else {
-        DBG_TRACE("Rule %p release, references: %I64d, code major code: 0x%08x, minor code: 0x%08x, expression: '%wZ'",
-                  Rule,
-                  Rule->References,
-                  Rule->Code.Major,
-                  Rule->Code.Minor,
-                  Rule->PathExpression);
-    }
+        else {
+            DBG_TRACE("Rule: %p release, references: %I64d, code major code: 0x%08x, minor code: 0x%08x, expression: '%wZ'",
+                      Rule,
+                      Rule->References,
+                      Rule->Code.Major,
+                      Rule->Code.Minor,
+                      Rule->PathExpression);
+        }
 #endif
+    }
 }
 
 /*-------------------------------------------------------------
