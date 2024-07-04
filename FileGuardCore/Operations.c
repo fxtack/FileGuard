@@ -139,12 +139,14 @@ Return Value:
                 goto Cleanup;
 
             } else if (RuleMajorReadonly == rule->Code.Major) {
-                if (FILE_CREATE == createDisposition || FILE_OVERWRITE == createDisposition) {
+                if (FILE_CREATE == createDisposition || 
+                    FILE_OVERWRITE == createDisposition || 
+                    FILE_OVERWRITE_IF == createDisposition) {
                     SET_CALLBACK_DATA_STATUS(Data, STATUS_MEDIA_WRITE_PROTECTED);
                     callbackStatus = FLT_PREOP_COMPLETE;
                     goto Cleanup;
 
-                } else if (FILE_OPEN_IF == createDisposition || FILE_OVERWRITE_IF == createDisposition) {
+                } else if (FILE_OPEN_IF == createDisposition) {
                     status = FgcCheckFileExists(FltObjects->Instance, &nameInfo->Name, &exist);
                     if (!NT_SUCCESS(status)) {
                         LOG_ERROR("NTSTATUS: 0x%08x, check file existence failed", status);
