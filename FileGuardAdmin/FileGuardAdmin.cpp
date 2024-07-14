@@ -256,7 +256,7 @@ namespace fileguard {
 
         HRESULT Parse() {
 
-            CLI::App app("This tool is used to operate rules");
+            CLI::App app("This tool is used to manage file access rules and control the driver.");
 
             app.set_help_flag("--help", "Print this help message and exit");
             app.set_version_flag("--version", GetVersionInfo());
