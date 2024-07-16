@@ -2,6 +2,8 @@
 
 By using FileGuard, you can achieve dynamic control over access to files and directories in the Windows NTFS file system by setting rules.
 
+[中文](./README_ZH.md)
+
 ## FileGuardCore
 
 The FileGuardCore module is a filter driver implemented based on the Windows MiniFilter framework. It is written in C and runs within the Windows operating system kernel.
@@ -40,8 +42,6 @@ Subcommands:
 ```
 
 ## FileGuardLib
-
-# FileGuardLib
 
 FileGuardLib is a library wrapper for the FileGuard FilterCommunication interface. You can use FileGuardLib to communicate more conveniently with the FileGuardCore module driver and complete secondary development.
 
