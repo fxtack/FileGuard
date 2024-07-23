@@ -56,7 +56,6 @@ EXTERN_C_START
 #include "FileGuardLib.h"
 EXTERN_C_END
 
-
 #pragma warning(push)
 #pragma warning(disable: 4423)
 #include "CLI11/CLI11.hpp"
@@ -365,9 +364,7 @@ namespace fileguard {
             auto result = core_client_->SetUnloadAcceptable(true);
             if (result) {
                 auto hr = result.value();
-                std::wcerr << L"error: set core unload acceptable to FALSE failed, hresult: "
-                           << HEX(hr)
-                           << std::endl;
+                std::wcerr << L"error: set core unload acceptable to FALSE failed: " << HEX(hr) << std::endl;
                 return hr;
             }
 
@@ -376,10 +373,8 @@ namespace fileguard {
                                        TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY,
                                        &token);
             if (!ok) {
-                auto hr = GetLastError();
-                std::wcerr << L"error: unload core failed: "
-                           << HEX(hr)
-                           << std::endl;
+                auto hr = HRESULT_FROM_WIN32(GetLastError());
+                std::wcerr << L"error: unload core failed: " << HEX(hr) << std::endl;
                 return hr;
             }
 
@@ -387,10 +382,8 @@ namespace fileguard {
             LUID luid = { 0 };
             ok = LookupPrivilegeValue(NULL, SE_LOAD_DRIVER_NAME, &luid);
             if (!ok) {
-                auto hr = GetLastError();
-                std::wcerr << L"error: unload core failed: "
-                           << HEX(hr)
-                           << std::endl;
+                auto hr = HRESULT_FROM_WIN32(GetLastError());
+                std::wcerr << L"error: unload core failed: " << HEX(hr) << std::endl;
                 return hr;
             }
 
@@ -404,18 +397,14 @@ namespace fileguard {
                                        NULL, 
                                        NULL);
             if (!ok) {
-                auto hr = GetLastError();
-                std::wcerr << L"error: unload core failed: "
-                           << HEX(hr)
-                           << std::endl;
+                auto hr = HRESULT_FROM_WIN32(GetLastError());
+                std::wcerr << L"error: unload core failed: " << HEX(hr) << std::endl;
                 return hr;
             }
 
             auto hr = FilterUnload(FG_CORE_FILTER_NAME);
             if (FAILED(hr)) {
-                std::wcerr << L"error: unload core failed, hresult: "
-                           << HEX(hr)
-                           << std::endl;
+                std::wcerr << L"error: unload core failed: " << HEX(hr) << std::endl;
                 return hr;
             }
 
