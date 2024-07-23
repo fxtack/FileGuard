@@ -20,6 +20,15 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FileGuardLib", "FileGuardLi
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FileGuardAdmin", "FileGuardAdmin\FileGuardAdmin.vcxproj", "{A8EBDB90-7571-467F-8B6D-7EA0ACDD8F95}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FileGuardTest", "FileGuardTest\FileGuardTest.vcxproj", "{296EE03C-92F2-4C26-A288-08293F6DA5CF}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ThirdParty", "ThirdParty", "{D3FA4A04-09F4-4779-A2FA-0D03BC850701}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "CLI11", "CLI11", "{466EC3F9-4754-48CE-95C1-582E21044F31}"
+	ProjectSection(SolutionItems) = preProject
+		Include\ThirdParty\CLI11\CLI11.hpp = Include\ThirdParty\CLI11\CLI11.hpp
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|ARM = Debug|ARM
@@ -88,9 +97,29 @@ Global
 		{A8EBDB90-7571-467F-8B6D-7EA0ACDD8F95}.Release|x64.Build.0 = Release|x64
 		{A8EBDB90-7571-467F-8B6D-7EA0ACDD8F95}.Release|x86.ActiveCfg = Release|Win32
 		{A8EBDB90-7571-467F-8B6D-7EA0ACDD8F95}.Release|x86.Build.0 = Release|Win32
+		{296EE03C-92F2-4C26-A288-08293F6DA5CF}.Debug|ARM.ActiveCfg = Debug|x64
+		{296EE03C-92F2-4C26-A288-08293F6DA5CF}.Debug|ARM.Build.0 = Debug|x64
+		{296EE03C-92F2-4C26-A288-08293F6DA5CF}.Debug|ARM64.ActiveCfg = Debug|x64
+		{296EE03C-92F2-4C26-A288-08293F6DA5CF}.Debug|ARM64.Build.0 = Debug|x64
+		{296EE03C-92F2-4C26-A288-08293F6DA5CF}.Debug|x64.ActiveCfg = Debug|x64
+		{296EE03C-92F2-4C26-A288-08293F6DA5CF}.Debug|x64.Build.0 = Debug|x64
+		{296EE03C-92F2-4C26-A288-08293F6DA5CF}.Debug|x86.ActiveCfg = Debug|Win32
+		{296EE03C-92F2-4C26-A288-08293F6DA5CF}.Debug|x86.Build.0 = Debug|Win32
+		{296EE03C-92F2-4C26-A288-08293F6DA5CF}.Release|ARM.ActiveCfg = Release|x64
+		{296EE03C-92F2-4C26-A288-08293F6DA5CF}.Release|ARM.Build.0 = Release|x64
+		{296EE03C-92F2-4C26-A288-08293F6DA5CF}.Release|ARM64.ActiveCfg = Release|x64
+		{296EE03C-92F2-4C26-A288-08293F6DA5CF}.Release|ARM64.Build.0 = Release|x64
+		{296EE03C-92F2-4C26-A288-08293F6DA5CF}.Release|x64.ActiveCfg = Release|x64
+		{296EE03C-92F2-4C26-A288-08293F6DA5CF}.Release|x64.Build.0 = Release|x64
+		{296EE03C-92F2-4C26-A288-08293F6DA5CF}.Release|x86.ActiveCfg = Release|Win32
+		{296EE03C-92F2-4C26-A288-08293F6DA5CF}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{D3FA4A04-09F4-4779-A2FA-0D03BC850701} = {5C090465-4FA4-42FC-8D45-561C477F25C4}
+		{466EC3F9-4754-48CE-95C1-582E21044F31} = {D3FA4A04-09F4-4779-A2FA-0D03BC850701}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {BCE4E4A3-ED3E-4AE5-85F2-C0B53E4A0721}
