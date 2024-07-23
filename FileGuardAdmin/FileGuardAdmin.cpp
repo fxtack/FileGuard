@@ -254,6 +254,7 @@ namespace fileguard {
         ~Admin() = default;
 
         HRESULT Parse() {
+            HRESULT hr = S_OK;
 
             CLI::App app("This tool is used to manage file access rules and control the driver.");
 
@@ -263,47 +264,47 @@ namespace fileguard {
             app.require_subcommand(1);
 
             auto unload_cmd = app.add_subcommand("unload", "Unload core driver");
-            unload_cmd->callback([&]() { CommandUnload(); });
+            unload_cmd->callback([&]() { hr = CommandUnload(); });
 
             auto detach_cmd = app.add_subcommand("detach", "Detach core instance");
             std::wstring volume;
             detach_cmd->add_option("--volume", volume, "Detach instance volume path")->required();
-            detach_cmd->callback([&]() { CommandDetach(volume); });
+            detach_cmd->callback([&]() { hr = CommandDetach(volume); });
 
             auto add_cmd = app.add_subcommand("add", "Add a rule");
             std::wstring major_type, minor_type, expr;
             add_cmd->add_option("--major-type", major_type, "Rule major type")->required();
             add_cmd->add_option("--minor-type", minor_type, "Rule minor type")->default_val("monitored");
             add_cmd->add_option("--expr", expr, "Rule path expression")->required();
-            add_cmd->callback([&]() { CommandAdd(major_type, minor_type, expr); });
+            add_cmd->callback([&]() { hr = CommandAdd(major_type, minor_type, expr); });
 
             auto remove_cmd = app.add_subcommand("remove", "Remove a rule");
             remove_cmd->add_option("--major-type", major_type, "Rule major type")->required();
             remove_cmd->add_option("--minor-type", minor_type, "Rule minor type")->default_val("monitored");
             remove_cmd->add_option("--expr", expr, "Rule path expression")->required();
-            remove_cmd->callback([&]() { CommandRemove(major_type, expr, minor_type); });
+            remove_cmd->callback([&]() { hr = CommandRemove(major_type, expr, minor_type); });
 
             auto query_cmd = app.add_subcommand("query", "Query all rules and output it");
             std::wstring format = L"list";
             query_cmd->add_option("--format", format, "Default output format")->default_val("list");
-            query_cmd->callback([&]() { CommandQuery(format); });
+            query_cmd->callback([&]() { hr = CommandQuery(format); });
 
             auto check_cmd = app.add_subcommand("check-matched", "Check which rules will matched for path");
             std::wstring path;
             check_cmd->add_option("--path", path, "Check for matching paths")->required();
             check_cmd->add_option("--format", format, "Default format")->default_val("list");
-            check_cmd->callback([&]() { CommandCheckMatched(path, format); });
+            check_cmd->callback([&]() { hr = CommandCheckMatched(path, format); });
 
             auto monitor_cmd = app.add_subcommand("monitor", "Receive monitoring records");
             monitor_cmd->add_option("--format", format, "Default output format")->default_val("list");
-            monitor_cmd->callback([&]() { CommandMonitor(format); });
+            monitor_cmd->callback([&]() { hr = CommandMonitor(format); });
 
             auto cleanup_cmd = app.add_subcommand("cleanup", "Cleanup all rules");
-            cleanup_cmd->callback([&]() { CommandCleanup(); });
+            cleanup_cmd->callback([&]() { hr = CommandCleanup(); });
 
             CLI11_PARSE(app, argc_, argv_);
 
-            return S_OK;
+            return hr;
         }
 
     private:
