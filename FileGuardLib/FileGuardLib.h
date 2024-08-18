@@ -43,12 +43,9 @@ Environment:
 
 #include <windows.h>
 
-typedef struct _FGL_RULE {
-    FG_RULE_CODE Code;
-    PCWSTR RulePathExpression;
-} FGL_RULE, *PFGL_RULE;
-
-typedef void (CALLBACK *MonitorRecordCallback) (_In_opt_ FG_MONITOR_RECORD*);
+/*-------------------------------------------------------------
+    FileGuardCore driver control routines
+-------------------------------------------------------------*/
 
 extern HRESULT FglConnectCore(
     _Outptr_ HANDLE *Port
@@ -58,14 +55,9 @@ extern VOID FglDisconnectCore(
     _In_ _Post_ptr_invalid_ HANDLE Port
 );
 
-extern HRESULT FglReceiveMonitorRecords(
-    _In_ volatile BOOLEAN *End,
-    _In_ MonitorRecordCallback MonitorRecordCallback
-);
-
 extern HRESULT FglGetCoreVersion(
     _In_ HANDLE Port,
-    _Inout_ FG_CORE_VERSION *Version
+    _Inout_ FG_CORE_VERSION* Version
 );
 
 extern HRESULT FglSetUnloadAcceptable(
@@ -77,6 +69,27 @@ extern HRESULT FglSetDetachAcceptable(
     _In_ HANDLE Port,
     _In_ BOOLEAN acceptable
 );
+
+/*-------------------------------------------------------------
+    Monitor record handling routine
+-------------------------------------------------------------*/
+
+typedef void (CALLBACK* FGL_MONITOR_RECORD_CALLBACK) (_In_opt_ FG_MONITOR_RECORD*);
+
+extern HRESULT FglReceiveMonitorRecords(
+    _In_ volatile BOOLEAN* End,
+    _In_ FGL_MONITOR_RECORD_CALLBACK MonitorRecordCallback
+);
+
+/*-------------------------------------------------------------
+    Rule management routines
+-------------------------------------------------------------*/
+
+typedef struct _FGL_RULE {
+    FG_RULE_CODE Code;
+    PCWSTR RulePathExpression;
+} FGL_RULE, * PFGL_RULE;
+
 
 extern HRESULT FglAddBulkRules(
     _In_ CONST HANDLE Port,

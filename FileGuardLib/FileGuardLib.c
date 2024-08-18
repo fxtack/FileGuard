@@ -49,6 +49,18 @@ Environment:
 HRESULT FglConnectCore(
     _Outptr_ HANDLE *Port
     )
+/*++
+
+Routine Description:
+
+    This routine attempts to establish a connection to the FileGuardCore control port.
+    It uses the FilterConnectCommunicationPort function to initiate the connection.
+
+Arguments:
+
+    Port - A pointer to a HANDLE that, on success, receives the handle to the connected port.
+
+--*/
 {
     return FilterConnectCommunicationPort(FG_CORE_CONTROL_PORT_NAME,
                                           0, 
@@ -61,6 +73,18 @@ HRESULT FglConnectCore(
 VOID FglDisconnectCore(
     _In_ _Post_ptr_invalid_ HANDLE Port
     )
+/*++
+
+Routine Description:
+
+    This routine closes the connection to the FileGuardCore control port.
+    It releases the handle obtained from FglConnectCore.
+
+Arguments:
+
+    Port - The handle to the connected port that needs to be closed.
+
+--*/
 {
     CloseHandle(Port);
 }
@@ -71,6 +95,21 @@ HRESULT FglParseMonitorRecords(
     _In_ USHORT ArrayLength,
     _Out_ USHORT *ParsedCount
     )
+/*++
+
+Routine Description:
+
+    This routine parses monitor records from a given message body.
+    It extracts individual records and stores pointers to them in the provided array.
+
+Arguments:
+
+    RecordMessageBody - A pointer to the FG_RECORDS_MESSAGE_BODY structure that contains the data to be parsed.
+    RecordsArray      - An array of PFG_MONITOR_RECORD pointers that will receive the pointers to the parsed records.
+    ArrayLength       - The length of the RecordsArray.
+    ParsedCount       - A pointer to a USHORT that, on success, receives the number of records parsed.
+
+--*/
 {
     ULONG totalSize = RecordMessageBody->DataSize;
     UCHAR *buffer = RecordMessageBody->DataBuffer;
@@ -98,8 +137,23 @@ HRESULT FglParseMonitorRecords(
 
 HRESULT FglReceiveMonitorRecords(
     _In_ volatile BOOLEAN *End,
-    _In_ MonitorRecordCallback MonitorRecordCallback
+    _In_ FGL_MONITOR_RECORD_CALLBACK MonitorRecordCallback
     )
+/*++
+
+Routine Description:
+
+    This routine continuously receives monitor records from the FileGuardCore driver until the specified
+    end condition is met. It connects to the monitor port, retrieves messages containing monitor records,
+    parses the records, and invokes the provided callback function for each parsed record.
+
+Arguments:
+
+    End                   - A pointer to a volatile BOOLEAN that, when set to TRUE,
+                            indicates that the routine should stop receiving records.
+    MonitorRecordCallback - A callback function that will be invoked for each parsed monitor record.
+
+--*/
 {
     HRESULT hr = S_OK;
     HANDLE port = INVALID_HANDLE_VALUE;
@@ -165,6 +219,21 @@ HRESULT FglGetCoreVersion(
     _In_ CONST HANDLE Port,
     _Inout_ FG_CORE_VERSION *Version
     )
+/*++
+
+Routine Description:
+
+    This routine retrieves the version information of the FileGuardCore driver.
+    It sends a message to the driver to request the version information and
+    populates the provided FG_CORE_VERSION structure with the retrieved data.
+
+Arguments:
+
+    Port    - A handle to the FileGuardCore port used to send the message.
+    Version - A pointer to an FG_CORE_VERSION structure that, on success, receives the version information
+              of the FileGuardCore driver. This parameter is required.
+
+--*/
 {
     HRESULT hr = S_OK;
     FG_MESSAGE msg = { .Type = GetCoreVersion };
@@ -194,6 +263,19 @@ HRESULT FglSetUnloadAcceptable(
     _In_ HANDLE Port,
     _In_ BOOLEAN Acceptable
     )
+/*++
+
+Routine Description:
+
+    This routine sets whether the FileGuardCore driver can be unloaded.
+    It sends a message to the driver to update its unload acceptable status.
+
+Arguments:
+
+    Port       - A handle to the FileGuardCore port used to send the message.
+    Acceptable - A BOOLEAN value indicating whether the unload operation is acceptable.
+
+--*/
 {
     HRESULT hr = S_OK;
     FG_MESSAGE msg = { .Type = SetUnloadAcceptable, .UnloadAcceptable = Acceptable };
@@ -214,6 +296,19 @@ HRESULT FglSetDetachAcceptable(
     _In_ HANDLE Port,
     _In_ BOOLEAN Acceptable
     )
+/*++
+
+Routine Description:
+
+    This routine sets whether the FileGuardCore driver instance can be detached.
+    It sends a message to the driver to update its detach acceptable status.
+
+Arguments:
+
+    Port       - A handle to the FileGuardCore port used to send the message.
+    Acceptable - A BOOLEAN value indicating whether the detach operation is acceptable.
+
+--*/
 {
     HRESULT hr = S_OK;
     FG_MESSAGE msg = { .Type = SetDetachAcceptable, .UnloadAcceptable = Acceptable };
@@ -235,6 +330,21 @@ HRESULT FglCreateRulesMessage(
     _In_ USHORT RulesAmount,
     _Outptr_ PFG_MESSAGE *Message
     )
+/*++
+
+Routine Description:
+
+    This routine creates a message structure that contains multiple rules.
+    It allocates memory for the message, populates it with the provided rules,
+    and returns a pointer to the created message.
+
+Arguments:
+
+    Rules       - An array of FGL_RULE structures representing the rules to be included in the message.
+    RulesAmount - The number of rules to be included in the message.
+    Message     - A pointer to a PFG_MESSAGE pointer that, on success, receives the pointer to the created message.
+
+--*/
 {
     HRESULT hr = S_OK;
     INT i = 0;
@@ -286,6 +396,23 @@ HRESULT FglAddBulkRules(
     _In_ USHORT RulesAmount,
     _Inout_opt_ USHORT *AddedRulesAmount
     )
+/*++
+
+Routine Description:
+
+    This routine attempts to add multiple rules via the specified FileGuardCore port.
+    It sends a message containing the rules to be added and optionally returns the number
+    of rules that were successfully added.
+
+Arguments:
+
+    Port             - A handle to the FileGuardCore port used to send the add message.
+    Rules            - An array of FGL_RULE structures representing the rules to be added.
+    RulesAmount      - The number of rules to be added.
+    AddedRulesAmount - A pointer to a variable that will receive the number of rules
+                       that were successfully added. This parameter is optional and can be NULL.
+
+--*/
 {
     HRESULT hr = S_OK;
     FG_MESSAGE* message = NULL;
@@ -318,7 +445,22 @@ HRESULT FglAddSingleRule(
     _In_ CONST HANDLE Port,
     _In_ CONST FGL_RULE *Rule,
     _Inout_ BOOLEAN *Added
-) {
+    )
+/*++
+
+Routine Description:
+
+    This routine attempts to add a single rule via the specified FileGuardCore port.
+
+Arguments:
+
+    Port  - A handle to the FileGuardCore port used to send the add message.
+    Rule  - A pointer to the FGL_RULE structure representing the rule to be added.
+    Added - A pointer to a BOOLEAN variable that receives TRUE if the rule was successfully added,
+            or FALSE otherwise. This parameter is required.
+
+--*/
+{
     HRESULT hr = S_OK;
     USHORT addedAmount = 0;
     
@@ -334,7 +476,25 @@ HRESULT FglRemoveBulkRules(
     _In_ CONST FGL_RULE Rules[],
     _In_ USHORT RulesAmount,
     _Inout_opt_ USHORT *RemovedRulesAmount
-) {
+    )
+/*++
+
+Routine Description:
+
+    This routine attempts to remove multiple rules via the specified FileGuardCore port.
+    It sends a message containing the rules to be removed and optionally returns the number
+    of rules that were successfully removed.
+
+Arguments:
+
+    Port               - A handle to the FileGuardCore port used to send the remove message.
+    Rules              - An array of FGL_RULE structures representing the rules to be removed.
+    RulesAmount        - The number of rules to be removed.
+    RemovedRulesAmount - A pointer to a variable that will receive the number of rules
+                         that were successfully removed. This parameter is optional and can be NULL.
+
+--*/
+{
     HRESULT hr = S_OK;
     FG_MESSAGE* message = NULL;
     FG_MESSAGE_RESULT result = { 0 };
@@ -366,7 +526,22 @@ HRESULT FglRemoveSingleRule(
     _In_ CONST HANDLE Port,
     _In_ CONST FGL_RULE *Rule,
     _Inout_ BOOLEAN *Removed
-) {
+    )
+/*++
+
+Routine Description:
+
+    This routine attempts to remove a single rule via the specified FileGuardCore port.
+
+Arguments:
+
+    Port    - A handle to the FileGuardCore port used to send the remove message.
+    Rule    - A pointer to the FGL_RULE structure representing the rule to be removed.
+    Removed - A pointer to a BOOLEAN variable that receives TRUE if the rule was successfully removed,
+              or FALSE otherwise. This parameter is required.
+
+--*/
+{
     HRESULT hr = S_OK;
     USHORT addedAmount = 0;
 
@@ -384,7 +559,26 @@ HRESULT FglCheckMatchedRules(
     _In_opt_ ULONG RulesBufferSize,
     _Inout_opt_ USHORT *RulesAmount,
     _Inout_ ULONG *RulesSize
-) {
+    )
+/*++
+
+Routine Description:
+
+    This routine sends a message to check matched rules based on the specified path name
+    via the FileGuardCore port. It can return the matched rules, the number of matched rules,
+    and the total size of the matched rules.
+
+Arguments:
+
+    Port            - A handle to the FileGuardCore port used to send the check message.
+    PathName        - A pointer to a wide character string that specifies the path name to check against the rules.
+    RulesBuffer     - A buffer to receive the matched rules. This parameter is optional and can be NULL.
+    RulesBufferSize - The size of the RulesBuffer in bytes. This parameter is optional.
+    RulesAmount     - A pointer to a variable that will receive the number of matched rules. This parameter is optional and can be NULL.
+    RulesSize       - A pointer to a variable that will receive the total size of the matched rules. This parameter is required.
+
+--*/
+{
     HRESULT hr = S_OK;
     SIZE_T pathNameSize = 0;
     FG_MESSAGE *message = NULL;
@@ -437,6 +631,22 @@ HRESULT FglQueryRules(
     _Inout_opt_ USHORT* RulesAmount,
     _Inout_ ULONG* RulesSize
     )
+/*++
+
+Routine Description:
+
+    This routine sends a message to query rules via the specified FileGuardCore port.
+    It can return the queried rules, the number of rules, and the total size of the rules.
+
+Arguments:
+
+    Port            - A handle to the FileGuardCore port used to send the query message.
+    RulesBuffer     - A buffer to receive the queried rules. This parameter is optional and can be NULL.
+    RulesBufferSize - The size of the RulesBuffer in bytes. This parameter is optional.
+    RulesAmount     - A pointer to a variable that will receive the number of rules. This parameter is optional and can be NULL.
+    RulesSize       - A pointer to a variable that will receive the total size of the rules. This parameter is required.
+
+--*/
 {
     HRESULT hr = S_OK;
     FG_MESSAGE message = { 0 };
@@ -473,7 +683,21 @@ HRESULT FglQueryRules(
 HRESULT FglCleanupRules(
     _In_ CONST HANDLE Port,
     _Inout_opt_ ULONG *CleanedRulesAmount
-) {
+    )
+/*++
+
+Routine Description:
+
+    This routine sends a message to clean up rules via the specified FileGuardCore port.
+    It optionally returns the number of rules that have been cleaned up.
+
+Arguments:
+
+    Port               - A handle to the FileGuardCore port used to send message.
+    CleanedRulesAmount - A pointer to a variable that will receive the number of rules 
+                         that have been cleaned up. This parameter is optional and can be NULL.
+--*/
+{
     HRESULT hr = S_OK;
     FG_MESSAGE message = { 0 };
     FG_MESSAGE_RESULT result = { 0 };

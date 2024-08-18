@@ -175,7 +175,7 @@ namespace fileguard {
             return hr;
         }
 
-        std::optional<HRESULT> ReceiveMonitorRecords(volatile BOOLEAN* End, MonitorRecordCallback callback) {
+        std::optional<HRESULT> ReceiveMonitorRecords(volatile BOOLEAN* End, FGL_MONITOR_RECORD_CALLBACK callback) {
             auto hr = FglReceiveMonitorRecords(End, callback);
             return SUCCEEDED(hr) ? std::nullopt : std::make_optional(hr);
         }
@@ -567,7 +567,7 @@ namespace fileguard {
             }
 
             volatile BOOLEAN end = FALSE;
-            MonitorRecordCallback callback = NULL;
+            FGL_MONITOR_RECORD_CALLBACK callback = NULL;
             if (format == L"csv") {
                 std::wcout << "major_irp,requestor_pid,requestor_tid,record_time,volume_serial_number,file_id,rule_major_type,rule_minor_type,rule_expression,file_path"
                            << std::endl;
