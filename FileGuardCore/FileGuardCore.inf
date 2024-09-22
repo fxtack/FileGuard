@@ -5,8 +5,8 @@
 [Version]
 Signature   = "$Windows NT$"
 ; TODO - Change the Class and ClassGuid to match the Load Order Group value, see https://msdn.microsoft.com/en-us/windows/hardware/gg462963
-Class       = "ActivityMonitor"                         ;This is determined by the work this filter driver does
-ClassGuid   = {b86dff51-a31e-4bac-b3cf-e8cfe75c9fc2}    ;This value is determined by the Load Order Group value
+Class       = "SecurityEnhancer"                     ; This is determined by the work this filter driver does
+ClassGuid   = {d02bc3da-0c8e-4945-9bd5-f1883c226c8c} ; This value is determined by the Load Order Group value
 Provider    = %ManufacturerName%
 DriverVer   = 01/01/2024,0.1.0
 CatalogFile = FileGuardCore.cat
@@ -38,7 +38,7 @@ DelFiles = FileGuardCore.DriverFiles
 LegacyUninstall = 1
 
 [DefaultUninstall.NTAMD64.Services]
-DelService = %ServiceName%,0x200 ;Ensure service is stopped before deleting
+DelService = %ServiceName%,0x200
 
 ;;
 ;; Services Section
@@ -47,11 +47,11 @@ DelService = %ServiceName%,0x200 ;Ensure service is stopped before deleting
 [FileGuardCore.Service]
 DisplayName      = %ServiceName%
 Description      = %ServiceDescription%
-ServiceBinary    = %12%\%DriverName%.sys ;%windir%\system32\drivers\
+ServiceBinary    = %12%\%DriverName%.sys
 Dependencies     = "FltMgr"
-ServiceType      = 2                     ;SERVICE_FILE_SYSTEM_DRIVER
-StartType        = 3                     ;SERVICE_DEMAND_START
-ErrorControl     = 1                     ;SERVICE_ERROR_NORMAL
+ServiceType      = 2 
+StartType        = 3
+ErrorControl     = 1
 ; TODO - Change the Load Order Group value
 LoadOrderGroup   = "FSFilter Activity Monitor"
 AddReg           = FileGuardCore.AddRegistry
@@ -84,15 +84,16 @@ FileGuardCore.sys = 1,,
 ;;
 
 [Strings]
-ManufacturerName   = "Your ManufacturerName"
+; TODO - Your ManufacturerName
+ManufacturerName   = "Your ManufacturerName" 
 ServiceDescription = "FileGuard Mini-Filter Driver"
 ServiceName        = "FileGuardCore"
 DriverName         = "FileGuardCore"
 DiskId1            = "FileGuard Device Installation Disk"
 
-;Instances specific information.
+; Instances specific information.
 DefaultInstance    = "FileGuard Instance"
 Instance1.Name     = "FileGuard Instance"
 ; Altitude value, see https://msdn.microsoft.com/en-us/windows/hardware/drivers/ifs/load-order-groups-and-altitudes-for-minifilter-drivers
-Instance1.Altitude = "409599"
+Instance1.Altitude = "82024"
 Instance1.Flags    = 0x1
