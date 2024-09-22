@@ -258,8 +258,8 @@ namespace fileguard {
 
             CLI::App app("This tool is used to manage file access rules and control the driver.");
 
-            app.set_help_flag("--help", "Print this help message and exit");
-            app.set_version_flag("--version", GetVersionInfo());
+            app.set_help_flag("-h,--help", "Print this help message and exit");
+            app.set_version_flag("-v,--version", GetVersionInfo());
 
             app.require_subcommand(1);
 
@@ -624,7 +624,10 @@ namespace fileguard {
 
         HRESULT CommandCleanup() {
             auto result = core_client_->CleanupRules();
-            if (auto hr = std::get_if<HRESULT>(&result)) return *hr;
+            if (auto hr = std::get_if<HRESULT>(&result)) {
+                std::wcout << L"Cleanup rules error: " << HEX(*hr) << std::endl;
+                return *hr; 
+            }
 
             std::wcout << L"Cleanup rules amount: " 
                        << std::get<unsigned long>(result) 
