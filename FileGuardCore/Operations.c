@@ -88,11 +88,7 @@ Return Value:
 
     createDisposition = Data->Iopb->Parameters.Create.Options >> 24;
 
-    // Check if this is a paging file as we don't want to redirect
-    // the location of the paging file.
-    if (FlagOn(Data->Iopb->OperationFlags, SL_OPEN_PAGING_FILE) ||
-        FlagOn(Data->Iopb->TargetFileObject->Flags, FO_VOLUME_OPEN) ||
-        FlagOn(Data->Iopb->Parameters.Create.Options, FILE_OPEN_BY_FILE_ID)) {
+    if (FlagOn(Data->Iopb->TargetFileObject->Flags, FO_VOLUME_OPEN)) {
         callbackStatus = FLT_PREOP_SUCCESS_NO_CALLBACK;
         goto Cleanup;
     }
@@ -106,12 +102,6 @@ Return Value:
     status = FltParseFileNameInformation(nameInfo);
     if (!NT_SUCCESS(status)) {
         DBG_ERROR("NTSTATUS: '0x%08x', parse file name information failed", status);
-        goto Cleanup;
-    }
-    
-    // Ignore volume root directory operations.
-    if (0 == nameInfo->FinalComponent.Length) {
-        callbackStatus = FLT_PREOP_SUCCESS_NO_CALLBACK;
         goto Cleanup;
     }
     
